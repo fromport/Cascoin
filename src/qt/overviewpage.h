@@ -40,11 +40,11 @@ public:
 public Q_SLOTS:
     void setBalance(const CAmount& balance, const CAmount& unconfirmedBalance, const CAmount& immatureBalance,
                     const CAmount& watchOnlyBalance, const CAmount& watchUnconfBalance, const CAmount& watchImmatureBalance);
-    void setEncryptionStatus(int status);       // LitecoinCash: Rialto
+    void setEncryptionStatus(int status);       // Cascoin: Rialto
 
 Q_SIGNALS:
     void transactionClicked(const QModelIndex &index);
-    void beeButtonClicked();                    // LitecoinCash: Hive
+    void beeButtonClicked();                    // Cascoin: Hive
     void outOfSyncWarningClicked();
 
 private:
@@ -57,7 +57,7 @@ private:
     CAmount currentWatchOnlyBalance;
     CAmount currentWatchUnconfBalance;
     CAmount currentWatchImmatureBalance;
-    CAmount cost, rewardsPaid, profit;          // LitecoinCash: Hive
+    CAmount cost, rewardsPaid, profit;          // Cascoin: Hive
 
     TxViewDelegate *txdelegate;
     std::unique_ptr<TransactionFilterProxy> filter;
@@ -68,9 +68,9 @@ private Q_SLOTS:
     void updateAlerts(const QString &warnings);
     void updateWatchOnlyLabels(bool showWatchOnly);
     void handleOutOfSyncWarningClicks();
-    void on_beeButton_clicked();                // LitecoinCash: Hive: Bee button handler
-    void updateHiveSummary();                   // LitecoinCash: Hive: Update hive summary
-    void on_unlockWalletButton_clicked();       // LitecoinCash: Rialto: Unlock wallet button handler
+    void on_beeButton_clicked();                // Cascoin: Hive: Bee button handler
+    void updateHiveSummary();                   // Cascoin: Hive: Update hive summary
+    void on_unlockWalletButton_clicked();       // Cascoin: Rialto: Unlock wallet button handler
 };
 
 #endif // BITCOIN_QT_OVERVIEWPAGE_H

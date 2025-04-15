@@ -65,16 +65,16 @@ TESTS =
 BENCHMARKS =
 
 if BUILD_BITCOIND
-  bin_PROGRAMS += litecoincashd
+  bin_PROGRAMS += cascoind
 endif
 
 if BUILD_BITCOIN_UTILS
-  bin_PROGRAMS += litecoincash-cli litecoincash-tx
+  bin_PROGRAMS += cascoin-cli cascoin-tx
 endif
 
 .PHONY: FORCE check-symbols check-security
 # bitcoin core #
-# LitecoinCash: Rialto: Added rialto.h
+# Cascoin: Rialto: Added rialto.h
 BITCOIN_CORE_H = \
   addrdb.h \
   addrman.h \
@@ -186,7 +186,7 @@ obj/build.h: FORCE
 libbitcoin_util_a-clientversion.$(OBJEXT): obj/build.h
 
 # server: shared between bitcoind and bitcoin-qt
-# LitecoinCash: Rialto: Added rialto.cpp
+# Cascoin: Rialto: Added rialto.cpp
 libbitcoin_server_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(MINIUPNPC_CPPFLAGS) $(EVENT_CFLAGS) $(EVENT_PTHREADS_CFLAGS)
 libbitcoin_server_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libbitcoin_server_a_SOURCES = \
@@ -259,7 +259,7 @@ libbitcoin_wallet_a_SOURCES = \
   $(BITCOIN_CORE_H)
 
 # crypto primitives library
-# LitecoinCash: MinotaurX: Added crypto/minotaurx/
+# Cascoin: MinotaurX: Added crypto/minotaurx/
 crypto_libbitcoin_crypto_a_CPPFLAGS = $(AM_CPPFLAGS) $(SSL_CFLAGS)
 crypto_libbitcoin_crypto_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 crypto_libbitcoin_crypto_a_SOURCES = \
@@ -446,16 +446,16 @@ nodist_libbitcoin_util_a_SOURCES = $(srcdir)/obj/build.h
 #
 
 # bitcoind binary #
-litecoincashd_SOURCES = bitcoind.cpp
-litecoincashd_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
-litecoincashd_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-litecoincashd_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
+cascoind_SOURCES = bitcoind.cpp
+cascoind_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
+cascoind_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+cascoind_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
 
 if TARGET_WINDOWS
-litecoincashd_SOURCES += bitcoind-res.rc
+cascoind_SOURCES += bitcoind-res.rc
 endif
 
-litecoincashd_LDADD = \
+cascoind_LDADD = \
   $(LIBBITCOIN_SERVER) \
   $(LIBBITCOIN_COMMON) \
   $(LIBUNIVALUE) \
@@ -469,38 +469,38 @@ litecoincashd_LDADD = \
   $(LIBMEMENV) \
   $(LIBSECP256K1)
 
-litecoincashd_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(MINIUPNPC_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS) $(ZMQ_LIBS)
+cascoind_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(MINIUPNPC_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS) $(ZMQ_LIBS)
 
 # bitcoin-cli binary #
-litecoincash_cli_SOURCES = bitcoin-cli.cpp
-litecoincash_cli_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(EVENT_CFLAGS)
-litecoincash_cli_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-litecoincash_cli_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
+cascoin_cli_SOURCES = bitcoin-cli.cpp
+cascoin_cli_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(EVENT_CFLAGS)
+cascoin_cli_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+cascoin_cli_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
 
 if TARGET_WINDOWS
-litecoincash_cli_SOURCES += bitcoin-cli-res.rc
+cascoin_cli_SOURCES += bitcoin-cli-res.rc
 endif
 
-litecoincash_cli_LDADD = \
+cascoin_cli_LDADD = \
   $(LIBBITCOIN_CLI) \
   $(LIBUNIVALUE) \
   $(LIBBITCOIN_UTIL) \
   $(LIBBITCOIN_CRYPTO)
 
-litecoincash_cli_LDADD += $(BOOST_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(EVENT_LIBS)
+cascoin_cli_LDADD += $(BOOST_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(EVENT_LIBS)
 #
 
 # bitcoin-tx binary #
-litecoincash_tx_SOURCES = bitcoin-tx.cpp
-litecoincash_tx_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
-litecoincash_tx_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-litecoincash_tx_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
+cascoin_tx_SOURCES = bitcoin-tx.cpp
+cascoin_tx_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
+cascoin_tx_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+cascoin_tx_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
 
 if TARGET_WINDOWS
-litecoincash_tx_SOURCES += bitcoin-tx-res.rc
+cascoin_tx_SOURCES += bitcoin-tx-res.rc
 endif
 
-litecoincash_tx_LDADD = \
+cascoin_tx_LDADD = \
   $(LIBUNIVALUE) \
   $(LIBBITCOIN_COMMON) \
   $(LIBBITCOIN_UTIL) \
@@ -508,7 +508,7 @@ litecoincash_tx_LDADD = \
   $(LIBBITCOIN_CRYPTO) \
   $(LIBSECP256K1)
 
-litecoincash_tx_LDADD += $(BOOST_LIBS) $(CRYPTO_LIBS)
+cascoin_tx_LDADD += $(BOOST_LIBS) $(CRYPTO_LIBS)
 #
 
 # bitcoinconsensus library #
@@ -534,7 +534,7 @@ CTAES_DIST += crypto/ctaes/ctaes.h
 CTAES_DIST += crypto/ctaes/README.md
 CTAES_DIST += crypto/ctaes/test.c
 
-# LitecoinCash: MinotaurX
+# Cascoin: MinotaurX
 CRYPTO_HELPER_DIST =  crypto/minotaurx/aes_helper.c
 CRYPTO_HELPER_DIST += crypto/minotaurx/hamsi_helper.c
 CRYPTO_HELPER_DIST += crypto/minotaurx/haval_helper.c
@@ -557,7 +557,7 @@ CLEANFILES += wallet/test/*.gcda wallet/test/*.gcno
 CLEANFILES += zmq/*.gcda zmq/*.gcno
 CLEANFILES += obj/build.h
 
-# LitecoinCash: MinotaurX
+# Cascoin: MinotaurX
 EXTRA_DIST = $(CTAES_DIST) $(CRYPTO_HELPER_DIST)
 
 

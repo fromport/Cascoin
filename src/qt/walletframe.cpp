@@ -117,7 +117,7 @@ void WalletFrame::gotoOverviewPage()
         i.value()->gotoOverviewPage();
 }
 
-// LitecoinCash: Hive page
+// Cascoin: Hive page
 void WalletFrame::gotoHivePage()
 {
     QMap<QString, WalletView*>::const_iterator i;
@@ -125,7 +125,7 @@ void WalletFrame::gotoHivePage()
         i.value()->gotoHivePage();
 }
 
-// LitecoinCash: Key import helper
+// Cascoin: Key import helper
 void WalletFrame::importPrivateKey()
 {
     WalletView *walletView = currentWalletView();

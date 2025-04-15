@@ -10,11 +10,11 @@
 #include <utilstrencodings.h>
 #include <crypto/common.h>
 #include <crypto/scrypt.h>
-#include <chainparams.h>    // LitecoinCash: Hive
+#include <chainparams.h>    // Cascoin: Hive
 
-#include <crypto/minotaurx/minotaur.h>  // LitecoinCash: MinotaurX+Hive1.2
-#include <validation.h>                 // LitecoinCash: MinotaurX+Hive1.2
-#include <util.h>                       // LitecoinCash: MinotaurX+Hive1.2
+#include <crypto/minotaurx/minotaur.h>  // Cascoin: MinotaurX+Hive1.2
+#include <validation.h>                 // Cascoin: MinotaurX+Hive1.2
+#include <util.h>                       // Cascoin: MinotaurX+Hive1.2
 
 uint256 CBlockHeader::GetHash() const
 {
@@ -22,32 +22,32 @@ uint256 CBlockHeader::GetHash() const
 }
 
 /*
-// LitecoinCash: MinotaurX+Hive1.2: Hash arbitrary data, using internally-managed thread-local memory for YP
+// Cascoin: MinotaurX+Hive1.2: Hash arbitrary data, using internally-managed thread-local memory for YP
 uint256 CBlockHeader::MinotaurXHashArbitrary(const char* data) {
     return Minotaur(data, data + strlen(data), true);
 }
 
-// LitecoinCash: MinotaurX+Hive1.2: Hash a string with MinotaurX, using provided YP thread-local memory
+// Cascoin: MinotaurX+Hive1.2: Hash a string with MinotaurX, using provided YP thread-local memory
 uint256 CBlockHeader::MinotaurXHashStringWithLocal(std::string data, yespower_local_t *local) {
     return Minotaur(data.begin(), data.end(), true, local);
 }*/
 
-// LitecoinCash: MinotaurX+Hive1.2: Hash arbitrary data with classical Minotaur
+// Cascoin: MinotaurX+Hive1.2: Hash arbitrary data with classical Minotaur
 uint256 CBlockHeader::MinotaurHashArbitrary(const char* data) {
     return Minotaur(data, data + strlen(data), false);
 }
 
-// LitecoinCash: MinotaurX+Hive1.2: Hash a string with classical Minotaur
+// Cascoin: MinotaurX+Hive1.2: Hash a string with classical Minotaur
 uint256 CBlockHeader::MinotaurHashString(std::string data) {
     return Minotaur(data.begin(), data.end(), false);
 }
 
-// LitecoinCash: MinotaurX+Hive1.2: Get pow hash based on block type and UASF activation
+// Cascoin: MinotaurX+Hive1.2: Get pow hash based on block type and UASF activation
 uint256 CBlockHeader::GetPoWHash() const
 {
-    // LitecoinCash: After powForkTime, the pow hash may be sha256 or MinotaurX
+    // Cascoin: After powForkTime, the pow hash may be sha256 or MinotaurX
     if (nTime > Params().GetConsensus().powForkTime) {
-        if (nVersion >= 0x20000000)                                 // Check for MinotaurX activation (Note: This is a safe check, so long as we are only considering blocks since LCC forked from LTC)
+        if (nVersion >= 0x20000000)                                 // Check for MinotaurX activation (Note: This is a safe check, so long as we are only considering blocks since CAS forked from LTC)
             return GetHash();                                       // MinotaurX not activated; definitely sha256
 
         switch (GetPoWType()) {                                     // Call appropriate hash for blockType
@@ -62,7 +62,7 @@ uint256 CBlockHeader::GetPoWHash() const
         }
     }
     
-    // LCC not forked yet; still on Litecoin chain - definitely scrypt
+    // CAS not forked yet; still on Litecoin chain - definitely scrypt
     uint256 thash;
     scrypt_1024_1_1_256(BEGIN(nVersion), BEGIN(thash));
     return thash;
@@ -71,13 +71,13 @@ uint256 CBlockHeader::GetPoWHash() const
 std::string CBlock::ToString() const
 {
     std::stringstream s;
-    // LitecoinCash: Hive: Include type
+    // Cascoin: Hive: Include type
     bool isHive = IsHiveMined(Params().GetConsensus());
     s << strprintf("CBlock(type=%s, hash=%s, powHash=%s, powType=%s, ver=0x%08x, hashPrevBlock=%s, hashMerkleRoot=%s, nTime=%u, nBits=%08x, nNonce=%u, vtx=%u)\n",
         isHive ? "hive" : "pow",
         GetHash().ToString(),
         GetPoWHash().ToString(),
-        isHive ? "n/a" : GetPoWTypeName(),  // LitecoinCash: MinotaurX+Hive1.2: Include pow type name
+        isHive ? "n/a" : GetPoWTypeName(),  // Cascoin: MinotaurX+Hive1.2: Include pow type name
         nVersion,
         hashPrevBlock.ToString(),
         hashMerkleRoot.ToString(),

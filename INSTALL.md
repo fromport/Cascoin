@@ -1,5 +1,5 @@
-Building LitecoinCash
+Building Cascoin
 ================
 
 See doc/build-*.md for instructions on building the various
-elements of the LitecoinCash Core reference implementation of LitecoinCash.
+elements of the Cascoin Core reference implementation of Cascoin.

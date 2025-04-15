@@ -14,8 +14,8 @@
 #include <util.h>
 #include <utilstrencodings.h>
 
-#include <chainparams.h>    // LitecoinCash: Hive
-#include <base58.h>    // LitecoinCash: Hive
+#include <chainparams.h>    // Cascoin: Hive
+#include <base58.h>    // Cascoin: Hive
 
 CAmount GetDustThreshold(const CTxOut& txout, const CFeeRate& dustRelayFeeIn)
 {
@@ -120,16 +120,16 @@ bool IsStandardTx(const CTransaction& tx, std::string& reason, const bool witnes
     unsigned int nDataOut = 0;
     txnouttype whichType;
 
-    const Consensus::Params& consensusParams = Params().GetConsensus();     // LitecoinCash: Hive
-    CScript scriptPubKeyBCF = GetScriptForDestination(DecodeDestination(consensusParams.beeCreationAddress));   // LitecoinCash: Hive
+    const Consensus::Params& consensusParams = Params().GetConsensus();     // Cascoin: Hive
+    CScript scriptPubKeyBCF = GetScriptForDestination(DecodeDestination(consensusParams.beeCreationAddress));   // Cascoin: Hive
 
     for (const CTxOut& txout : tx.vout) {
-        if (CScript::IsBCTScript(txout.scriptPubKey, scriptPubKeyBCF))      // LitecoinCash: Hive
-            return true;                                                    // LitecoinCash: Hive
+        if (CScript::IsBCTScript(txout.scriptPubKey, scriptPubKeyBCF))      // Cascoin: Hive
+            return true;                                                    // Cascoin: Hive
 
-        // LitecoinCash: Rialto: Not needed :) Nick registrations are valid transactions to unupgraded clients.
-        //if (tx.IsNCT(consensusParams, scriptPubKeyNCF))                   // LitecoinCash: Rialto
-        //    return true;                                                  // LitecoinCash: Rialto
+        // Cascoin: Rialto: Not needed :) Nick registrations are valid transactions to unupgraded clients.
+        //if (tx.IsNCT(consensusParams, scriptPubKeyNCF))                   // Cascoin: Rialto
+        //    return true;                                                  // Cascoin: Rialto
 
         if (!::IsStandard(txout.scriptPubKey, whichType, witnessEnabled)) {
             reason = "scriptpubkey";

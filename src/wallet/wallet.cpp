@@ -29,7 +29,7 @@
 #include <util.h>
 #include <utilmoneystr.h>
 #include <wallet/fees.h>
-#include <rialto.h>  // LitecoinCash: Rialto: For IsValidNick()
+#include <rialto.h>  // Cascoin: Rialto: For IsValidNick()
 
 #include <assert.h>
 #include <future>
@@ -37,7 +37,7 @@
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/thread.hpp>
 
-#include <script/ismine.h>  // LitecoinCash: Hive
+#include <script/ismine.h>  // Cascoin: Hive
 
 std::vector<CWalletRef> vpwallets;
 /** Transaction fee set by the user */
@@ -2609,7 +2609,7 @@ bool CWallet::SignTransaction(CMutableTransaction &tx)
         const CScript& scriptPubKey = mi->second.tx->vout[input.prevout.n].scriptPubKey;
         const CAmount& amount = mi->second.tx->vout[input.prevout.n].nValue;
         SignatureData sigdata;
-        if (!ProduceSignature(TransactionSignatureCreator(this, &txNewConst, nIn, amount, SIGHASH_ALL | SIGHASH_FORKID), scriptPubKey, sigdata)) {	// LitecoinCash: Replay attack protection
+        if (!ProduceSignature(TransactionSignatureCreator(this, &txNewConst, nIn, amount, SIGHASH_ALL | SIGHASH_FORKID), scriptPubKey, sigdata)) {	// Cascoin: Replay attack protection
             return false;
         }
         UpdateTransaction(tx, nIn, sigdata);
@@ -2699,11 +2699,11 @@ OutputType CWallet::TransactionChangeType(OutputType change_type, const std::vec
     // else use g_address_type for change
     return g_address_type;
 }
-// LitecoinCash: Hive: Unlock for hive mining purposes only.
-// LitecoinCash: Rialto: Renamed from fWalletUnlockHiveOnly to reflect usage.
+// Cascoin: Hive: Unlock for hive mining purposes only.
+// Cascoin: Rialto: Renamed from fWalletUnlockHiveOnly to reflect usage.
 bool fWalletUnlockWithoutTransactions = false;
 
-// LitecoinCash: Hive: Return info for a single BCT known by this wallet, optionally scanning for blocks minted by bees from this BCT
+// Cascoin: Hive: Return info for a single BCT known by this wallet, optionally scanning for blocks minted by bees from this BCT
 CBeeCreationTransactionInfo CWallet::GetBCT(const CWalletTx& wtx, bool includeDead, bool scanRewards, const Consensus::Params& consensusParams, int minHoneyConfirmations) {
     CBeeCreationTransactionInfo bct;
 
@@ -2806,7 +2806,7 @@ CBeeCreationTransactionInfo CWallet::GetBCT(const CWalletTx& wtx, bool includeDe
     return bct;
 }
 
-// LitecoinCash: Hive: Return all BCTs known by this wallet, optionally including dead bees and optionally scanning for blocks minted by bees from each BCT
+// Cascoin: Hive: Return all BCTs known by this wallet, optionally including dead bees and optionally scanning for blocks minted by bees from each BCT
 std::vector<CBeeCreationTransactionInfo> CWallet::GetBCTs(bool includeDead, bool scanRewards, const Consensus::Params& consensusParams, int minHoneyConfirmations) {
     std::vector<CBeeCreationTransactionInfo> bcts;
 
@@ -2840,7 +2840,7 @@ std::vector<CBeeCreationTransactionInfo> CWallet::GetBCTs(bool includeDead, bool
     return bcts;
 }
 
-// LitecoinCash: Hive: Create a BCT to gestate given number of bees
+// Cascoin: Hive: Create a BCT to gestate given number of bees
 bool CWallet::CreateBeeTransaction(int beeCount, CWalletTx& wtxNew, CReserveKey& reservekeyChange, CReserveKey& reservekeyHoney, std::string honeyAddress, std::string changeAddress, bool communityContrib, std::string& strFailReason, const Consensus::Params& consensusParams) {
     CBlockIndex* pindexPrev = chainActive.Tip();
     assert(pindexPrev != nullptr);
@@ -2866,8 +2866,8 @@ bool CWallet::CreateBeeTransaction(int beeCount, CWalletTx& wtxNew, CReserveKey&
     }
 
     // Don't spend more than potential rewards in a single BCT
-    // LitecoinCash: Hive 1.1: Use correct typical spacing
-    // LitecoinCash: MinotaurX+Hive1.2: Get correct hive block reward
+    // Cascoin: Hive 1.1: Use correct typical spacing
+    // Cascoin: MinotaurX+Hive1.2: Get correct hive block reward
     auto blockReward = GetBlockSubsidy(pindexPrev->nHeight, consensusParams);
     if (IsMinotaurXEnabled(pindexPrev, consensusParams))
         blockReward += blockReward >> 1;
@@ -2955,7 +2955,7 @@ bool CWallet::CreateBeeTransaction(int beeCount, CWalletTx& wtxNew, CReserveKey&
     CAmount beeCreationValue = totalBeeCost;
     CAmount donationValue = (CAmount)(totalBeeCost / consensusParams.communityContribFactor);
     
-    // LitecoinCash: MinotaurX+Hive1.2
+    // Cascoin: MinotaurX+Hive1.2
     if (IsMinotaurXEnabled(pindexPrev, consensusParams))
         donationValue += donationValue >> 1;
 
@@ -2990,7 +2990,7 @@ bool CWallet::CreateBeeTransaction(int beeCount, CWalletTx& wtxNew, CReserveKey&
     return true;
 }
 
-// LitecoinCash: Rialto: Create an NCT to register a given nickname
+// Cascoin: Rialto: Create an NCT to register a given nickname
 bool CWallet::CreateNickRegistrationTransaction(std::string nickname, CWalletTx& wtxNew, CReserveKey& reservekeyChange, CReserveKey& reservekeyNickAddress, std::string nickAddress, std::string changeAddress, std::string& strFailReason, const Consensus::Params& consensusParams) {
     CBlockIndex* pindexPrev = chainActive.Tip();
     assert(pindexPrev != nullptr);
@@ -3447,7 +3447,7 @@ bool CWallet::CreateTransaction(const std::vector<CRecipient>& vecSend, CWalletT
                 const CScript& scriptPubKey = coin.txout.scriptPubKey;
                 SignatureData sigdata;
 
-                if (!ProduceSignature(TransactionSignatureCreator(this, &txNewConst, nIn, coin.txout.nValue, SIGHASH_ALL | SIGHASH_FORKID), scriptPubKey, sigdata))     // LitecoinCash: Include fork ID in the signature
+                if (!ProduceSignature(TransactionSignatureCreator(this, &txNewConst, nIn, coin.txout.nValue, SIGHASH_ALL | SIGHASH_FORKID), scriptPubKey, sigdata))     // Cascoin: Include fork ID in the signature
                 {
                     strFailReason = _("Signing transaction failed");
                     return false;

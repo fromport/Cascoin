@@ -5,7 +5,7 @@ Before every release candidate:
 
 * Update translations (ping wumpus on IRC) see [translation_process.md](https://github.com/bitcoin/bitcoin/blob/master/doc/translation_process.md#synchronising-translations).
 
-* Update manpages, see [gen-manpages.sh](https://github.com/litecoincash-project/litecoincash/blob/master/contrib/devtools/README.md#gen-manpagessh).
+* Update manpages, see [gen-manpages.sh](https://github.com/cascoin-project/cascoin/blob/master/contrib/devtools/README.md#gen-manpagessh).
 
 Before every minor and major release:
 
@@ -33,12 +33,12 @@ If you're using the automated script (found in [contrib/gitian-build.sh](/contri
 Check out the source code in the following directory hierarchy.
 
     cd /path/to/your/toplevel/build
-    git clone https://github.com/litecoincash-project/gitian.sigs.lcc.git
-    git clone https://github.com/litecoincash-project/litecoincash-detached-sigs.git
+    git clone https://github.com/cascoin-project/gitian.sigs.cas.git
+    git clone https://github.com/cascoin-project/cascoin-detached-sigs.git
     git clone https://github.com/devrandom/gitian-builder.git
-    git clone https://github.com/litecoincash-project/litecoincash.git
+    git clone https://github.com/cascoin-project/cascoin.git
 
-### LitecoinCash maintainers/release engineers, suggestion for writing release notes
+### Cascoin maintainers/release engineers, suggestion for writing release notes
 
 Write release notes. git shortlog helps a lot, for example:
 
@@ -61,16 +61,16 @@ If you're using the automated script (found in [contrib/gitian-build.sh](/contri
 
 Setup Gitian descriptors:
 
-    pushd ./litecoincash
+    pushd ./cascoin
     export SIGNER=(your Gitian key, ie bluematt, sipa, etc)
     export VERSION=(new version, e.g. 0.8.0)
     git fetch
     git checkout v${VERSION}
     popd
 
-Ensure your gitian.sigs.lcc are up-to-date if you wish to gverify your builds against other Gitian signatures.
+Ensure your gitian.sigs.cas are up-to-date if you wish to gverify your builds against other Gitian signatures.
 
-    pushd ./gitian.sigs.lcc
+    pushd ./gitian.sigs.cas
     git pull
     popd
 
@@ -95,7 +95,7 @@ Create the OS X SDK tarball, see the [OS X readme](README_osx.md) for details, a
 By default, Gitian will fetch source files as needed. To cache them ahead of time:
 
     pushd ./gitian-builder
-    make -C ../litecoincash/depends download SOURCES_PATH=`pwd`/cache/common
+    make -C ../cascoin/depends download SOURCES_PATH=`pwd`/cache/common
     popd
 
 Only missing files will be fetched, so this is safe to re-run for each build.
@@ -103,62 +103,62 @@ Only missing files will be fetched, so this is safe to re-run for each build.
 NOTE: Offline builds must use the --url flag to ensure Gitian fetches only from local URLs. For example:
 
     pushd ./gitian-builder
-    ./bin/gbuild --url litecoincash=/path/to/litecoincash,signature=/path/to/sigs {rest of arguments}
+    ./bin/gbuild --url cascoin=/path/to/cascoin,signature=/path/to/sigs {rest of arguments}
     popd
 
 The gbuild invocations below <b>DO NOT DO THIS</b> by default.
 
-### Build and sign LitecoinCash Core for Linux, Windows, and OS X:
+### Build and sign Cascoin Core for Linux, Windows, and OS X:
 
     pushd ./gitian-builder
-    ./bin/gbuild --num-make 2 --memory 3000 --commit litecoincash=v${VERSION} ../litecoincash/contrib/gitian-descriptors/gitian-linux.yml
-    ./bin/gsign --signer $SIGNER --release ${VERSION}-linux --destination ../gitian.sigs.lcc/ ../litecoincash/contrib/gitian-descriptors/gitian-linux.yml
-    mv build/out/litecoincash-*.tar.gz build/out/src/litecoincash-*.tar.gz ../
+    ./bin/gbuild --num-make 2 --memory 3000 --commit cascoin=v${VERSION} ../cascoin/contrib/gitian-descriptors/gitian-linux.yml
+    ./bin/gsign --signer $SIGNER --release ${VERSION}-linux --destination ../gitian.sigs.cas/ ../cascoin/contrib/gitian-descriptors/gitian-linux.yml
+    mv build/out/cascoin-*.tar.gz build/out/src/cascoin-*.tar.gz ../
 
-    ./bin/gbuild --num-make 2 --memory 3000 --commit litecoincash=v${VERSION} ../litecoincash/contrib/gitian-descriptors/gitian-win.yml
-    ./bin/gsign --signer $SIGNER --release ${VERSION}-win-unsigned --destination ../gitian.sigs.lcc/ ../litecoincash/contrib/gitian-descriptors/gitian-win.yml
-    mv build/out/litecoincash-*-win-unsigned.tar.gz inputs/litecoincash-win-unsigned.tar.gz
-    mv build/out/litecoincash-*.zip build/out/litecoincash-*.exe ../
+    ./bin/gbuild --num-make 2 --memory 3000 --commit cascoin=v${VERSION} ../cascoin/contrib/gitian-descriptors/gitian-win.yml
+    ./bin/gsign --signer $SIGNER --release ${VERSION}-win-unsigned --destination ../gitian.sigs.cas/ ../cascoin/contrib/gitian-descriptors/gitian-win.yml
+    mv build/out/cascoin-*-win-unsigned.tar.gz inputs/cascoin-win-unsigned.tar.gz
+    mv build/out/cascoin-*.zip build/out/cascoin-*.exe ../
 
-    ./bin/gbuild --num-make 2 --memory 3000 --commit litecoincash=v${VERSION} ../litecoincash/contrib/gitian-descriptors/gitian-osx.yml
-    ./bin/gsign --signer $SIGNER --release ${VERSION}-osx-unsigned --destination ../gitian.sigs.lcc/ ../litecoincash/contrib/gitian-descriptors/gitian-osx.yml
-    mv build/out/litecoincash-*-osx-unsigned.tar.gz inputs/litecoincash-osx-unsigned.tar.gz
-    mv build/out/litecoincash-*.tar.gz build/out/litecoincash-*.dmg ../
+    ./bin/gbuild --num-make 2 --memory 3000 --commit cascoin=v${VERSION} ../cascoin/contrib/gitian-descriptors/gitian-osx.yml
+    ./bin/gsign --signer $SIGNER --release ${VERSION}-osx-unsigned --destination ../gitian.sigs.cas/ ../cascoin/contrib/gitian-descriptors/gitian-osx.yml
+    mv build/out/cascoin-*-osx-unsigned.tar.gz inputs/cascoin-osx-unsigned.tar.gz
+    mv build/out/cascoin-*.tar.gz build/out/cascoin-*.dmg ../
     popd
 
 Build output expected:
 
-  1. source tarball (`litecoincash-${VERSION}.tar.gz`)
-  2. linux 32-bit and 64-bit dist tarballs (`litecoincash-${VERSION}-linux[32|64].tar.gz`)
-  3. windows 32-bit and 64-bit unsigned installers and dist zips (`litecoincash-${VERSION}-win[32|64]-setup-unsigned.exe`, `litecoincash-${VERSION}-win[32|64].zip`)
-  4. OS X unsigned installer and dist tarball (`litecoincash-${VERSION}-osx-unsigned.dmg`, `litecoincash-${VERSION}-osx64.tar.gz`)
-  5. Gitian signatures (in `gitian.sigs.lcc/${VERSION}-<linux|{win,osx}-unsigned>/(your Gitian key)/`)
+  1. source tarball (`cascoin-${VERSION}.tar.gz`)
+  2. linux 32-bit and 64-bit dist tarballs (`cascoin-${VERSION}-linux[32|64].tar.gz`)
+  3. windows 32-bit and 64-bit unsigned installers and dist zips (`cascoin-${VERSION}-win[32|64]-setup-unsigned.exe`, `cascoin-${VERSION}-win[32|64].zip`)
+  4. OS X unsigned installer and dist tarball (`cascoin-${VERSION}-osx-unsigned.dmg`, `cascoin-${VERSION}-osx64.tar.gz`)
+  5. Gitian signatures (in `gitian.sigs.cas/${VERSION}-<linux|{win,osx}-unsigned>/(your Gitian key)/`)
 
 ### Verify other gitian builders signatures to your own. (Optional)
 
 Add other gitian builders keys to your gpg keyring, and/or refresh keys.
 
-    gpg --import litecoincash/contrib/gitian-keys/*.pgp
+    gpg --import cascoin/contrib/gitian-keys/*.pgp
     gpg --refresh-keys
 
 Verify the signatures
 
     pushd ./gitian-builder
-    ./bin/gverify -v -d ../gitian.sigs.lcc/ -r ${VERSION}-linux ../litecoincash/contrib/gitian-descriptors/gitian-linux.yml
-    ./bin/gverify -v -d ../gitian.sigs.lcc/ -r ${VERSION}-win-unsigned ../litecoincash/contrib/gitian-descriptors/gitian-win.yml
-    ./bin/gverify -v -d ../gitian.sigs.lcc/ -r ${VERSION}-osx-unsigned ../litecoincash/contrib/gitian-descriptors/gitian-osx.yml
+    ./bin/gverify -v -d ../gitian.sigs.cas/ -r ${VERSION}-linux ../cascoin/contrib/gitian-descriptors/gitian-linux.yml
+    ./bin/gverify -v -d ../gitian.sigs.cas/ -r ${VERSION}-win-unsigned ../cascoin/contrib/gitian-descriptors/gitian-win.yml
+    ./bin/gverify -v -d ../gitian.sigs.cas/ -r ${VERSION}-osx-unsigned ../cascoin/contrib/gitian-descriptors/gitian-osx.yml
     popd
 
 ### Next steps:
 
-Commit your signature to gitian.sigs.lcc:
+Commit your signature to gitian.sigs.cas:
 
-    pushd gitian.sigs.lcc
+    pushd gitian.sigs.cas
     git add ${VERSION}-linux/${SIGNER}
     git add ${VERSION}-win-unsigned/${SIGNER}
     git add ${VERSION}-osx-unsigned/${SIGNER}
     git commit -a
-    git push  # Assuming you can push to the gitian.sigs.lcc tree
+    git push  # Assuming you can push to the gitian.sigs.cas tree
     popd
 
 Codesigner only: Create Windows/OS X detached signatures:
@@ -167,22 +167,22 @@ Codesigner only: Create Windows/OS X detached signatures:
 
 Codesigner only: Sign the osx binary:
 
-    transfer litecoincash-osx-unsigned.tar.gz to osx for signing
-    tar xf litecoincash-osx-unsigned.tar.gz
+    transfer cascoin-osx-unsigned.tar.gz to osx for signing
+    tar xf cascoin-osx-unsigned.tar.gz
     ./detached-sig-create.sh -s "Key ID"
     Enter the keychain password and authorize the signature
     Move signature-osx.tar.gz back to the gitian host
 
 Codesigner only: Sign the windows binaries:
 
-    tar xf litecoincash-win-unsigned.tar.gz
+    tar xf cascoin-win-unsigned.tar.gz
     ./detached-sig-create.sh -key /path/to/codesign.key
     Enter the passphrase for the key when prompted
     signature-win.tar.gz will be created
 
 Codesigner only: Commit the detached codesign payloads:
 
-    cd ~/litecoincash-detached-sigs
+    cd ~/cascoin-detached-sigs
     checkout the appropriate branch for this release series
     rm -rf *
     tar xf signature-osx.tar.gz
@@ -195,34 +195,34 @@ Codesigner only: Commit the detached codesign payloads:
 Non-codesigners: wait for Windows/OS X detached signatures:
 
 - Once the Windows/OS X builds each have 3 matching signatures, they will be signed with their respective release keys.
-- Detached signatures will then be committed to the [litecoincash-detached-sigs](https://github.com/litecoincash-project/litecoincash-detached-sigs) repository, which can be combined with the unsigned apps to create signed binaries.
+- Detached signatures will then be committed to the [cascoin-detached-sigs](https://github.com/cascoin-project/cascoin-detached-sigs) repository, which can be combined with the unsigned apps to create signed binaries.
 
 Create (and optionally verify) the signed OS X binary:
 
     pushd ./gitian-builder
-    ./bin/gbuild -i --commit signature=v${VERSION} ../litecoincash/contrib/gitian-descriptors/gitian-osx-signer.yml
-    ./bin/gsign --signer $SIGNER --release ${VERSION}-osx-signed --destination ../gitian.sigs.lcc/ ../litecoincash/contrib/gitian-descriptors/gitian-osx-signer.yml
-    ./bin/gverify -v -d ../gitian.sigs.lcc/ -r ${VERSION}-osx-signed ../litecoincash/contrib/gitian-descriptors/gitian-osx-signer.yml
-    mv build/out/litecoincash-osx-signed.dmg ../litecoincash-${VERSION}-osx.dmg
+    ./bin/gbuild -i --commit signature=v${VERSION} ../cascoin/contrib/gitian-descriptors/gitian-osx-signer.yml
+    ./bin/gsign --signer $SIGNER --release ${VERSION}-osx-signed --destination ../gitian.sigs.cas/ ../cascoin/contrib/gitian-descriptors/gitian-osx-signer.yml
+    ./bin/gverify -v -d ../gitian.sigs.cas/ -r ${VERSION}-osx-signed ../cascoin/contrib/gitian-descriptors/gitian-osx-signer.yml
+    mv build/out/cascoin-osx-signed.dmg ../cascoin-${VERSION}-osx.dmg
     popd
 
 Create (and optionally verify) the signed Windows binaries:
 
     pushd ./gitian-builder
-    ./bin/gbuild -i --commit signature=v${VERSION} ../litecoincash/contrib/gitian-descriptors/gitian-win-signer.yml
-    ./bin/gsign --signer $SIGNER --release ${VERSION}-win-signed --destination ../gitian.sigs.lcc/ ../litecoincash/contrib/gitian-descriptors/gitian-win-signer.yml
-    ./bin/gverify -v -d ../gitian.sigs.lcc/ -r ${VERSION}-win-signed ../litecoincash/contrib/gitian-descriptors/gitian-win-signer.yml
-    mv build/out/litecoincash-*win64-setup.exe ../litecoincash-${VERSION}-win64-setup.exe
-    mv build/out/litecoincash-*win32-setup.exe ../litecoincash-${VERSION}-win32-setup.exe
+    ./bin/gbuild -i --commit signature=v${VERSION} ../cascoin/contrib/gitian-descriptors/gitian-win-signer.yml
+    ./bin/gsign --signer $SIGNER --release ${VERSION}-win-signed --destination ../gitian.sigs.cas/ ../cascoin/contrib/gitian-descriptors/gitian-win-signer.yml
+    ./bin/gverify -v -d ../gitian.sigs.cas/ -r ${VERSION}-win-signed ../cascoin/contrib/gitian-descriptors/gitian-win-signer.yml
+    mv build/out/cascoin-*win64-setup.exe ../cascoin-${VERSION}-win64-setup.exe
+    mv build/out/cascoin-*win32-setup.exe ../cascoin-${VERSION}-win32-setup.exe
     popd
 
 Commit your signature for the signed OS X/Windows binaries:
 
-    pushd gitian.sigs.lcc
+    pushd gitian.sigs.cas
     git add ${VERSION}-osx-signed/${SIGNER}
     git add ${VERSION}-win-signed/${SIGNER}
     git commit -a
-    git push  # Assuming you can push to the gitian.sigs.lcc tree
+    git push  # Assuming you can push to the gitian.sigs.cas tree
     popd
 
 ### After 3 or more people have gitian-built and their results match:
@@ -235,23 +235,23 @@ sha256sum * > SHA256SUMS
 
 The list of files should be:
 ```
-litecoincash-${VERSION}-aarch64-linux-gnu.tar.gz
-litecoincash-${VERSION}-arm-linux-gnueabihf.tar.gz
-litecoincash-${VERSION}-i686-pc-linux-gnu.tar.gz
-litecoincash-${VERSION}-x86_64-linux-gnu.tar.gz
-litecoincash-${VERSION}-osx64.tar.gz
-litecoincash-${VERSION}-osx.dmg
-litecoincash-${VERSION}.tar.gz
-litecoincash-${VERSION}-win32-setup.exe
-litecoincash-${VERSION}-win32.zip
-litecoincash-${VERSION}-win64-setup.exe
-litecoincash-${VERSION}-win64.zip
+cascoin-${VERSION}-aarch64-linux-gnu.tar.gz
+cascoin-${VERSION}-arm-linux-gnueabihf.tar.gz
+cascoin-${VERSION}-i686-pc-linux-gnu.tar.gz
+cascoin-${VERSION}-x86_64-linux-gnu.tar.gz
+cascoin-${VERSION}-osx64.tar.gz
+cascoin-${VERSION}-osx.dmg
+cascoin-${VERSION}.tar.gz
+cascoin-${VERSION}-win32-setup.exe
+cascoin-${VERSION}-win32.zip
+cascoin-${VERSION}-win64-setup.exe
+cascoin-${VERSION}-win64.zip
 ```
 The `*-debug*` files generated by the gitian build contain debug symbols
 for troubleshooting by developers. It is assumed that anyone that is interested
 in debugging can run gitian to generate the files for themselves. To avoid
 end-user confusion about which file to pick, as well as save storage
-space *do not upload these to the litecoinca.sh server, nor put them in the torrent*.
+space *do not upload these to the cascoin.net server, nor put them in the torrent*.
 
 - GPG-sign it, delete the unsigned file:
 ```
@@ -261,24 +261,24 @@ rm SHA256SUMS
 (the digest algorithm is forced to sha256 to avoid confusion of the `Hash:` header that GPG adds with the SHA256 used for the files)
 Note: check that SHA256SUMS itself doesn't end up in SHA256SUMS, which is a spurious/nonsensical entry.
 
-- Upload zips and installers, as well as `SHA256SUMS.asc` from last step, to the litecoinca.sh server.
+- Upload zips and installers, as well as `SHA256SUMS.asc` from last step, to the cascoin.net server.
 
 ```
 
-- Update litecoinca.sh version
+- Update cascoin.net version
 
 - Announce the release:
 
-  - litecoincash-dev and litecoincash-dev mailing list
+  - cascoin-dev and cascoin-dev mailing list
 
-  - blog.litecoinca.sh blog post
+  - blog.cascoin.net blog post
 
-  - Update title of #litecoincash and #litecoincash-dev on Freenode IRC
+  - Update title of #cascoin and #cascoin-dev on Freenode IRC
 
-  - Optionally twitter, reddit /r/LitecoinCash, ... but this will usually sort out itself
+  - Optionally twitter, reddit /r/Cascoin, ... but this will usually sort out itself
 
   - Archive release notes for the new version to `doc/release-notes/` (branch `master` and branch of the release)
 
-  - Create a [new GitHub release](https://github.com/litecoincash-project/litecoincash/releases/new) with a link to the archived release notes.
+  - Create a [new GitHub release](https://github.com/cascoin-project/cascoin/releases/new) with a link to the archived release notes.
 
   - Celebrate

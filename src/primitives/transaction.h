@@ -11,7 +11,7 @@
 #include <script/script.h>
 #include <serialize.h>
 #include <uint256.h>
-#include <consensus/params.h>   // LitecoinCash: Hive
+#include <consensus/params.h>   // Cascoin: Hive
 
 static const int SERIALIZE_TRANSACTION_NO_WITNESS = 0x40000000;
 
@@ -336,7 +336,7 @@ public:
         return (vin.size() == 1 && vin[0].prevout.IsNull());
     }
 
-    // LitecoinCash: Hive: Check if this transaction is a Hivemined coinbase transaction
+    // Cascoin: Hive: Check if this transaction is a Hivemined coinbase transaction
     // Helper for QT wallet; not used for validation
     bool IsHiveCoinBase() const {
         return (IsCoinBase() && vout[0].nValue == 0 
@@ -346,10 +346,10 @@ public:
         );
     }
 
-    // LitecoinCash: Hive: Check if this transaction is a Bee Creation Transaction, and if so return the total bee fee paid via beeFeePaid and honey scriptPubKey via scriptPubKeyHoney
+    // Cascoin: Hive: Check if this transaction is a Bee Creation Transaction, and if so return the total bee fee paid via beeFeePaid and honey scriptPubKey via scriptPubKeyHoney
     bool IsBCT(const Consensus::Params& consensusParams, CScript scriptPubKeyBCF, CAmount* beeFeePaid = nullptr, CScript* scriptPubKeyHoney = nullptr) const;
 
-    // LitecoinCash: Rialto: Check if this transaction is a valid nick creation transaction, and optionally extract the nick and pubkey
+    // Cascoin: Rialto: Check if this transaction is a valid nick creation transaction, and optionally extract the nick and pubkey
     bool IsNCT(const Consensus::Params& consensusParams, CScript scriptPubKeyNCF, std::string* pubKey = nullptr, std::string* nickname = nullptr) const;
 
     friend bool operator==(const CTransaction& a, const CTransaction& b)

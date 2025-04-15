@@ -139,10 +139,10 @@ const char* GetOpName(opcodetype opcode)
     case OP_NOP9                   : return "OP_NOP9";
     case OP_NOP10                  : return "OP_NOP10";
 
-    // LitecoinCash: Hive
+    // Cascoin: Hive
     case OP_BEE                    : return "OP_BEE";
 
-    // LitecoinCash: Rialto
+    // Cascoin: Rialto
     case OP_NICK_CREATE            : return "OP_NICK_CREATE";
 
     case OP_INVALIDOPCODE          : return "OP_INVALIDOPCODE";

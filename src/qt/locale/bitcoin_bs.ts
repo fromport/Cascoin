@@ -14,8 +14,8 @@
 <context>
     <name>BitcoinGUI</name>
     <message>
-        <source>LitecoinCash</source>
-        <translation>Litecoin Cash</translation>
+        <source>Cascoin</source>
+        <translation>Cascoin</translation>
     </message>
     </context>
 <context>
@@ -33,8 +33,8 @@
 <context>
     <name>Intro</name>
     <message>
-        <source>LitecoinCash</source>
-        <translation>Litecoin Cash</translation>
+        <source>Cascoin</source>
+        <translation>Cascoin</translation>
     </message>
     </context>
 <context>
@@ -160,8 +160,8 @@
 <context>
     <name>bitcoin-core</name>
     <message>
-        <source>Litecoin Cash Core</source>
-        <translation>Litecoin Cash Jezrga</translation>
+        <source>Cascoin Core</source>
+        <translation>Cascoin Jezrga</translation>
     </message>
     </context>
 </TS>

@@ -11,8 +11,8 @@
 #include <map>
 #include <string>
 
-#include <script/script.h>  // LitecoinCash: Needed for CScript
-#include <amount.h>         // LitecoinCash: Needed for CAmount
+#include <script/script.h>  // Cascoin: Needed for CScript
+#include <amount.h>         // Cascoin: Needed for CAmount
 
 namespace Consensus {
 
@@ -21,10 +21,10 @@ enum DeploymentPos
     DEPLOYMENT_TESTDUMMY,
     DEPLOYMENT_CSV, // Deployment of BIP68, BIP112, and BIP113.
     DEPLOYMENT_SEGWIT, // Deployment of BIP141, BIP143, and BIP147.
-    DEPLOYMENT_HIVE,        // LitecoinCash: Hive: Deployment
-    DEPLOYMENT_HIVE_1_1,    // LitecoinCash: Hive: 1.1 Deployment
-    DEPLOYMENT_MINOTAURX,   // LitecoinCash: MinotaurX+Hive1.2: Deployment
-    DEPLOYMENT_RIALTO,      // LitecoinCash: Rialto: Deployment
+    DEPLOYMENT_HIVE,        // Cascoin: Hive: Deployment
+    DEPLOYMENT_HIVE_1_1,    // Cascoin: Hive: 1.1 Deployment
+    DEPLOYMENT_MINOTAURX,   // Cascoin: MinotaurX+Hive1.2: Deployment
+    DEPLOYMENT_RIALTO,      // Cascoin: Rialto: Deployment
 
     // NOTE: Also add new deployments to VersionBitsDeploymentInfo in versionbits.cpp
     MAX_VERSION_BITS_DEPLOYMENTS
@@ -84,7 +84,7 @@ struct Params {
     uint256 nMinimumChainWork;
     uint256 defaultAssumeValid;
 
-    // LitecoinCash: General consensus params
+    // Cascoin: General consensus params
     uint32_t powForkTime;               // Time of PoW hash method change
     int lastScryptBlock;                // Height of last scrypt block
     int slowStartBlocks;                // Scale post-fork block reward over this many blocks
@@ -93,7 +93,7 @@ struct Params {
     CAmount premineAmount;              // Premine amount
     CScript premineOutputScript;        // Premine output script
 
-    // LitecoinCash: Hive-related consensus params
+    // Cascoin: Hive-related consensus params
     CAmount minBeeCost;                 // Minimum cost of a bee, used when no more block rewards
     int beeCostFactor;                  // Bee cost is block_reward/beeCostFactor
     std::string beeCreationAddress;     // Unspendable address for bee creation
@@ -109,7 +109,7 @@ struct Params {
     int hiveBlockSpacingTargetTypical;  // Observed Hive block frequency (1 out of this many blocks are observed to be Hive)
     int hiveBlockSpacingTargetTypical_1_1; // Observed Hive block frequency in Hive 1.1 (1 out of this many blocks are observed to be Hive)
 
-    // LitecoinCash: Hive 1.1-related consensus fields
+    // Cascoin: Hive 1.1-related consensus fields
     int minK;                           // Minimum chainwork scale for Hive blocks (see Hive whitepaper section 5)
     int maxK;                           // Maximum chainwork scale for Hive blocks (see Hive whitepaper section 5)
     double maxHiveDiff;                 // Hive difficulty at which max chainwork bonus is awarded
@@ -119,11 +119,11 @@ struct Params {
     int maxConsecutiveHiveBlocks;       // Maximum hive blocks that can occur consecutively before a PoW block is required
     int hiveDifficultyWindow;           // How many blocks the SMA averages over in hive difficulty adjust
 
-    // LitecoinCash: MinotaurX+Hive1.2-related consensus fields
+    // Cascoin: MinotaurX+Hive1.2-related consensus fields
     int64_t lwmaAveragingWindow;        // Averaging window size for LWMA diff adjust
     std::vector<uint256> powTypeLimits; // Limits for each pow type (with future-proofing space; can't pick up NUM_BLOCK_TYPES here)
 
-    // LitecoinCash: Rialto-related consensus fields
+    // Cascoin: Rialto-related consensus fields
     std::string nickCreationAddress;    // Nick creation address
     CAmount nickCreationCost3Char;      // Minimum costs to register a nick
     CAmount nickCreationCost4Char;

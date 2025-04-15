@@ -1,4 +1,4 @@
-// Copyright (c) 2024 The Litecoin Cash Core developers
+// Copyright (c) 2024 The Cascoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -20,7 +20,7 @@
 
 #include <iomanip> // std::setw
 
-// LitecoinCash: Rialto
+// Cascoin: Rialto
 
 // Protected queue of received messages
 std::vector<RialtoQueuedMessage> receivedMessageQueue;
@@ -349,7 +349,7 @@ bool RialtoEncryptMessage(const std::string nickFrom, const std::string nickTo, 
     uint32_t nonce = 0;
     std::string dataToHash = nowStr + HexStr(layer2EnvelopeVec.begin(), layer2EnvelopeVec.end());
 
-    // LitecoinCash: Rialto: Note that this is called in an RPC thread, so there's no need to worry about blocking the main thread
+    // Cascoin: Rialto: Note that this is called in an RPC thread, so there's no need to worry about blocking the main thread
     // or spinning up a new thread to do the PoW. We can just do it here.
 
     while (true) {  // with a promise we'll break or return!

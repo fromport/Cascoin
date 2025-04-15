@@ -1,16 +1,16 @@
-// Copyright (c) 2024 The Litecoin Cash Core developers
+// Copyright (c) 2024 The Cascoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef LITECOINCASH_RIALTO_H
-#define LITECOINCASH_RIALTO_H
+#ifndef cascoin_RIALTO_H
+#define cascoin_RIALTO_H
 
 /*
-LitecoinCash: Rialto: End-to-end encrypted chat.
+Cascoin: Rialto: End-to-end encrypted chat.
 
 Rialto chat uses the exact same type of secp256k keypairs that we trust to protect our
 coins, and is implemented using only cryptographic primitives which already exist in
-the Litecoin Cash codebase.
+the Cascoin codebase.
 
 Our implementation encapsulates a message in three envelopes:
 
@@ -63,7 +63,7 @@ to register a nick in the White Pages, and the ability for users to maintain loc
 aims to mitigate spam. Minotaur, rather than the more expensive MinotaurX, is used to ensure
 that validating Layer 3 Envelopes is not a significant burden on nodes.
 
-Rialto messaging benefits from the robust LCC P2P network and are propogated through the
+Rialto messaging benefits from the robust CAS P2P network and are propogated through the
 network in the same way as blocks and transactions. A node advertises a hash of a Rialto
 message that is has received or originated, and its connected peers request the message data
 (Layer 3 Envelope) from the node. The P2P component of Rialto messaging uses the existing

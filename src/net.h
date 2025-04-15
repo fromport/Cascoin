@@ -56,7 +56,7 @@ static const unsigned int MAX_PROTOCOL_MESSAGE_LENGTH = 4 * 1000 * 1000;
 /** Maximum length of strSubVer in `version` message */
 static const unsigned int MAX_SUBVERSION_LENGTH = 256;
 /** Maximum number of automatic outgoing nodes */
-static const int DEFAULT_MAX_OUTBOUND_CONNECTIONS = 8; // LitecoinCash: Parameterisation of max outbound connections
+static const int DEFAULT_MAX_OUTBOUND_CONNECTIONS = 8; // Cascoin: Parameterisation of max outbound connections
 /** Maximum number of addnode outgoing nodes */
 static const int MAX_ADDNODE_CONNECTIONS = 8;
 /** -listen default */
@@ -679,11 +679,11 @@ public:
 
     // inventory based relay
     CRollingBloomFilter filterInventoryKnown;
-    CRollingBloomFilter filterInventoryKnownRialto; // LitecoinCash: Rialto
+    CRollingBloomFilter filterInventoryKnownRialto; // Cascoin: Rialto
     // Set of transaction ids we still have to announce.
     // They are sorted by the mempool before relay, so the order is not important.
     std::set<uint256> setInventoryTxToSend;
-    std::set<uint256> rialtoInventoryToSend; // LitecoinCash: Rialto
+    std::set<uint256> rialtoInventoryToSend; // Cascoin: Rialto
     // List of block ids we still have announce.
     // There is no final sorting before sending, as they are always sent immediately
     // and in the order requested.
@@ -827,7 +827,7 @@ public:
             if (!filterInventoryKnown.contains(inv.hash)) {
                 setInventoryTxToSend.insert(inv.hash);
             }
-        // LitecoinCash: Rialto
+        // Cascoin: Rialto
         } else if (inv.type == MSG_RIALTO) {
             if (!filterInventoryKnownRialto.contains(inv.hash)) {
                 rialtoInventoryToSend.insert(inv.hash);

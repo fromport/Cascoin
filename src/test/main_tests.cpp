@@ -23,7 +23,7 @@ static void TestBlockSubsidyHalvings(const Consensus::Params& consensusParams)
     for (int nHalvings = 0; nHalvings < maxHalvings; nHalvings++) {
         int nHeight = nHalvings * consensusParams.nSubsidyHalvingInterval;
         CAmount nSubsidy = GetBlockSubsidy(nHeight, consensusParams);
-        if(nHeight >= 6164768) {	// LitecoinCash: Money issue has finished by this point
+        if(nHeight >= 6164768) {	// Cascoin: Money issue has finished by this point
 			BOOST_CHECK(nSubsidy == 0);
 		} else {
 			BOOST_CHECK(nSubsidy <= nInitialSubsidy);
@@ -37,11 +37,11 @@ static void TestBlockSubsidyHalvings(const Consensus::Params& consensusParams)
 static void TestBlockSubsidyHalvings(int nSubsidyHalvingInterval)
 {
     const auto chainParams = CreateChainParams(CBaseChainParams::MAIN);
-	const Consensus::Params mainConsensusParams = chainParams->GetConsensus();	// Get Litecoin Cash extra params
+	const Consensus::Params mainConsensusParams = chainParams->GetConsensus();	// Get Cascoin extra params
     Consensus::Params consensusParams;
     consensusParams.nSubsidyHalvingInterval = nSubsidyHalvingInterval;
-    consensusParams.lastScryptBlock = mainConsensusParams.lastScryptBlock;		// Set Litecoin Cash extra params
-    consensusParams.slowStartBlocks = mainConsensusParams.slowStartBlocks;		// Set Litecoin Cash extra params
+    consensusParams.lastScryptBlock = mainConsensusParams.lastScryptBlock;		// Set Cascoin extra params
+    consensusParams.slowStartBlocks = mainConsensusParams.slowStartBlocks;		// Set Cascoin extra params
     TestBlockSubsidyHalvings(consensusParams);
 }
 
@@ -53,7 +53,7 @@ BOOST_AUTO_TEST_CASE(block_subsidy_test)
     TestBlockSubsidyHalvings(1000); // Just another interval
 }
 
-BOOST_AUTO_TEST_CASE(block_subsidy_money_limit)	// LitecoinCash: Change money limit test
+BOOST_AUTO_TEST_CASE(block_subsidy_money_limit)	// Cascoin: Change money limit test
 {
     const auto chainParams = CreateChainParams(CBaseChainParams::MAIN);
     const Consensus::Params consensusParams = chainParams->GetConsensus();

@@ -43,7 +43,7 @@
 #include <util.h>
 #include <utilmoneystr.h>
 #include <validationinterface.h>
-#include <rialto.h>   // LitecoinCash: Rialto
+#include <rialto.h>   // Cascoin: Rialto
 #ifdef ENABLE_WALLET
 #include <wallet/init.h>
 #endif
@@ -186,7 +186,7 @@ void Shutdown()
     /// for example if the data directory was found to be locked.
     /// Be sure that anything that writes files or flushes caches only does this if the respective
     /// module was initialized.
-    RenameThread("litecoincash-shutoff");
+    RenameThread("cascoin-shutoff");
     mempool.AddTransactionsUpdated(1);
 
     StopHTTPRPC();
@@ -393,14 +393,14 @@ std::string HelpMessage(HelpMessageMode mode)
     strUsage += HelpMessageOpt("-listen", _("Accept connections from outside (default: 1 if no -proxy or -connect)"));
     strUsage += HelpMessageOpt("-listenonion", strprintf(_("Automatically create Tor hidden service (default: %d)"), DEFAULT_LISTEN_ONION));
     strUsage += HelpMessageOpt("-maxconnections=<n>", strprintf(_("Maintain at most <n> connections to peers (default: %u)"), DEFAULT_MAX_PEER_CONNECTIONS));
-    strUsage += HelpMessageOpt("-maxoutboundconnections=<n>", strprintf(_("Maximum number of automatic outgoing connections (default: %u)"), DEFAULT_MAX_OUTBOUND_CONNECTIONS));   // LitecoinCash: Parameterisation of max outbound connections
+    strUsage += HelpMessageOpt("-maxoutboundconnections=<n>", strprintf(_("Maximum number of automatic outgoing connections (default: %u)"), DEFAULT_MAX_OUTBOUND_CONNECTIONS));   // Cascoin: Parameterisation of max outbound connections
     strUsage += HelpMessageOpt("-maxreceivebuffer=<n>", strprintf(_("Maximum per-connection receive buffer, <n>*1000 bytes (default: %u)"), DEFAULT_MAXRECEIVEBUFFER));
     strUsage += HelpMessageOpt("-maxsendbuffer=<n>", strprintf(_("Maximum per-connection send buffer, <n>*1000 bytes (default: %u)"), DEFAULT_MAXSENDBUFFER));
     strUsage += HelpMessageOpt("-maxtimeadjustment", strprintf(_("Maximum allowed median peer time offset adjustment. Local perspective of time may be influenced by peers forward or backward by this amount. (default: %u seconds)"), DEFAULT_MAX_TIME_ADJUSTMENT));
     strUsage += HelpMessageOpt("-onion=<ip:port>", strprintf(_("Use separate SOCKS5 proxy to reach peers via Tor hidden services (default: %s)"), "-proxy"));
     strUsage += HelpMessageOpt("-onlynet=<net>", _("Only connect to nodes in network <net> (ipv4, ipv6 or onion)"));
     strUsage += HelpMessageOpt("-permitbaremultisig", strprintf(_("Relay non-P2SH multisig (default: %u)"), DEFAULT_PERMIT_BAREMULTISIG));
-    strUsage += HelpMessageOpt("-rialto", strprintf(_("Support Rialto message propagration (default: %u)"), DEFAULT_RIALTO_SUPPORT));   // LitecoinCash: Rialto
+    strUsage += HelpMessageOpt("-rialto", strprintf(_("Support Rialto message propagration (default: %u)"), DEFAULT_RIALTO_SUPPORT));   // Cascoin: Rialto
     strUsage += HelpMessageOpt("-peerbloomfilters", strprintf(_("Support filtering of blocks and transaction with bloom filters (default: %u)"), DEFAULT_PEERBLOOMFILTERS));
     strUsage += HelpMessageOpt("-port=<port>", strprintf(_("Listen for connections on <port> (default: %u or testnet: %u)"), defaultChainParams->GetDefaultPort(), testnetChainParams->GetDefaultPort()));
     strUsage += HelpMessageOpt("-proxy=<ip:port>", _("Connect through SOCKS5 proxy"));
@@ -519,20 +519,20 @@ std::string HelpMessage(HelpMessageMode mode)
         strUsage += HelpMessageOpt("-rpcservertimeout=<n>", strprintf("Timeout during HTTP requests (default: %d)", DEFAULT_HTTP_SERVER_TIMEOUT));
     }
 
-    // LitecoinCash: Hive: Mining optimisations
+    // Cascoin: Hive: Mining optimisations
     strUsage += HelpMessageOpt("-hivecheckdelay=<ms>", strprintf(_("Time between Hive checks in ms. This should be left at default unless performance degradation is observed (default: %u)"), DEFAULT_HIVE_CHECK_DELAY));
     strUsage += HelpMessageOpt("-hivecheckthreads=<threads>", strprintf(_("Number of threads to use when checking bees, -1 for all available cores, or -2 for one less than all available cores (default: %u)"), DEFAULT_HIVE_THREADS));
     strUsage += HelpMessageOpt("-hiveearlyabort", strprintf(_("Abort Hive checking as quickly as possible when a new block comes in. This should be left enabled unless performance degradation is observed. (default: %u)"), DEFAULT_HIVE_EARLY_OUT));
 
-    // LitecoinCash: MinotaurX+Hive1.2: Allow switching of default pow algo via conf / command line, for miners that can't easily adjust their getblocktemplate calls
+    // Cascoin: MinotaurX+Hive1.2: Allow switching of default pow algo via conf / command line, for miners that can't easily adjust their getblocktemplate calls
     strUsage += HelpMessageOpt("-powalgo=sha256d|minotaurx", strprintf(_("Default pow mining algorithm. Miners who can't easily adjust their getblocktemplate calls should use this argument to set their preferred mining algorithm. (default: %s)"), DEFAULT_POW_TYPE));
     return strUsage;
 }
 
 std::string LicenseInfo()
 {
-    const std::string URL_SOURCE_CODE = "<https://github.com/litecoincash-project/litecoincash>";
-    const std::string URL_WEBSITE = "<https://litecoinca.sh>";
+    const std::string URL_SOURCE_CODE = "<https://github.com/cascoin-project/cascoin>";
+    const std::string URL_WEBSITE = "<https://cascoin.net>";
 
     return CopyrightHolders(strprintf(_("Copyright (C) %i-%i"), 2011, COPYRIGHT_YEAR) + " ") + "\n" +
            "\n" +
@@ -636,7 +636,7 @@ void CleanupBlockRevFiles()
 void ThreadImport(std::vector<fs::path> vImportFiles)
 {
     const CChainParams& chainparams = Params();
-    RenameThread("litecoincash-loadblk");
+    RenameThread("cascoin-loadblk");
 
     {
     CImportingNow imp;
@@ -1118,7 +1118,7 @@ bool AppInitParameterInteraction()
     if (gArgs.GetBoolArg("-peerbloomfilters", DEFAULT_PEERBLOOMFILTERS))
         nLocalServices = ServiceFlags(nLocalServices | NODE_BLOOM);
 
-    // LitecoinCash: Rialto
+    // Cascoin: Rialto
     if (gArgs.GetBoolArg("-rialto", DEFAULT_RIALTO_SUPPORT))
         nLocalServices = ServiceFlags(nLocalServices | NODE_RIALTO);
 
@@ -1247,9 +1247,9 @@ bool AppInitMain()
     // Warn about relative -datadir path.
     if (gArgs.IsArgSet("-datadir") && !fs::path(gArgs.GetArg("-datadir", "")).is_absolute()) {
         LogPrintf("Warning: relative datadir option '%s' specified, which will be interpreted relative to the "
-                  "current working directory '%s'. This is fragile, because if litecoincash is started in the future "
+                  "current working directory '%s'. This is fragile, because if cascoin is started in the future "
                   "from a different location, it will be unable to locate the current data files. There could "
-                  "also be data loss if litecoincash is started while in a temporary directory.\n",
+                  "also be data loss if cascoin is started while in a temporary directory.\n",
             gArgs.GetArg("-datadir", ""), fs::current_path().string());
     }
 
@@ -1455,7 +1455,7 @@ bool AppInitMain()
                 pblocktree.reset();
                 pblocktree.reset(new CBlockTreeDB(nBlockTreeDBCache, false, fReset));
 
-                // LitecoinCash: Rialto
+                // Cascoin: Rialto
                 pwhitepages.reset();                                                            // Close in case it's open
                 pwhitepages.reset(new CRialtoWhitePagesDB("whitepages", 2 * 1048576, false, fReset)); // Create or open the global whitepages database
 
@@ -1465,7 +1465,7 @@ bool AppInitMain()
                 pblockednicks.reset();                                                          // Close in case it's open
                 pblockednicks.reset(new CRialtoWhitePagesDB("blocklist", 1048576, false, fReset));    // Create or open the local blocked nicks database
 
-                // LitecoinCash: Rialto: MAYBEDO: Have an allow list too. The first message(s) we get from a contact, hold until we allow.
+                // Cascoin: Rialto: MAYBEDO: Have an allow list too. The first message(s) we get from a contact, hold until we allow.
                 // This, along with the normal CHAT notifications, depends on being able to push to the client....
 
                 if (fReset) {
@@ -1722,7 +1722,7 @@ bool AppInitMain()
     CConnman::Options connOptions;
     connOptions.nLocalServices = nLocalServices;
     connOptions.nMaxConnections = nMaxConnections;
-    connOptions.nMaxOutbound = std::min((int)gArgs.GetArg("-maxoutboundconnections", DEFAULT_MAX_OUTBOUND_CONNECTIONS), connOptions.nMaxConnections);    // LitecoinCash: Parameterisation of max outbound connections
+    connOptions.nMaxOutbound = std::min((int)gArgs.GetArg("-maxoutboundconnections", DEFAULT_MAX_OUTBOUND_CONNECTIONS), connOptions.nMaxConnections);    // Cascoin: Parameterisation of max outbound connections
     connOptions.nMaxAddnode = MAX_ADDNODE_CONNECTIONS;
     connOptions.nMaxFeeler = 1;
     connOptions.nBestHeight = chain_active_height;
@@ -1777,7 +1777,7 @@ bool AppInitMain()
 
     // ********************************************************* Step 12: finished
 
-    // LitecoinCash: Hive: Start the mining thread
+    // Cascoin: Hive: Start the mining thread
 #ifdef ENABLE_WALLET
     threadGroup.create_thread(boost::bind(&BeeKeeper, boost::cref(chainparams)));
 #endif

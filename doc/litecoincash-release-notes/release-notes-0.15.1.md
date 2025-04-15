@@ -1,25 +1,25 @@
-LitecoinCash Core version *0.15.1* is now available from:
+Cascoin Core version *0.15.1* is now available from:
 
-  <https://download.litecoinca.sh/litecoincash-0.15.1/>
+  <https://download.cascoin.net/cascoin-0.15.1/>
 
 This is a new minor version release, including various bugfixes and
 performance improvements, as well as updated translations.
 
 Please report bugs using the issue tracker at GitHub:
 
-  <https://github.com/litecoincash-project/litecoincash/issues>
+  <https://github.com/cascoin-project/cascoin/issues>
 
 To receive security and update notifications, please subscribe to:
 
-  <https://groups.google.com/forum/#!forum/litecoincash-dev>
+  <https://groups.google.com/forum/#!forum/cascoin-dev>
 
 How to Upgrade
 ==============
 
 If you are running an older version, shut it down. Wait until it has completely
 shut down (which might take a few minutes for older versions), then run the 
-installer (on Windows) or just copy over `/Applications/LitecoinCash-Qt` (on Mac)
-or `litecoincashd`/`litecoincash-qt` (on Linux).
+installer (on Windows) or just copy over `/Applications/Cascoin-Qt` (on Mac)
+or `cascoind`/`cascoin-qt` (on Linux).
 
 The first time you run version 0.15.0 or higher, your chainstate database will
 be converted to a new format, which will take anywhere from a few minutes to
@@ -48,10 +48,10 @@ processing the entire blockchain.
 Compatibility
 ==============
 
-LitecoinCash Core is extensively tested on multiple operating systems using
+Cascoin Core is extensively tested on multiple operating systems using
 the Linux kernel, macOS 10.8+, and Windows Vista and later. Windows XP is not supported.
 
-LitecoinCash Core should also work on most other Unix-like systems but is not
+Cascoin Core should also work on most other Unix-like systems but is not
 frequently tested on them.
 
 
@@ -61,7 +61,7 @@ Notable changes
 Network fork safety enhancements
 --------------------------------
 
-A number of changes to the way LitecoinCash Core deals with peer connections and invalid blocks
+A number of changes to the way Cascoin Core deals with peer connections and invalid blocks
 have been made, as a safety precaution against blockchain forks and misbehaving peers.
 
 - Unrequested blocks with less work than the minimum-chain-work are now no longer processed even
@@ -92,7 +92,7 @@ descends from an invalid block is marked as such.
 Minimum relay fee lowered
 -------------------------
 
-The minimum relay fee `-minrelayfee` has been lowered to 0.01 lites per kB (0.00001 LCC). This is to prepare for dropping the minimum transaction fee to 0.1 lites per kB (0.0001 LCC) in the next release.
+The minimum relay fee `-minrelayfee` has been lowered to 0.01 lites per kB (0.00001 CAS). This is to prepare for dropping the minimum transaction fee to 0.1 lites per kB (0.0001 CAS) in the next release.
 
 Mempool replacement disabled by default
 ---------------------------------------

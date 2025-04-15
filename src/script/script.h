@@ -181,10 +181,10 @@ enum opcodetype
     OP_NOP9 = 0xb8,
     OP_NOP10 = 0xb9,
 
-    // LitecoinCash: Hive
+    // Cascoin: Hive
     OP_BEE = 0xbe,
 
-    // LitecoinCash: Rialto
+    // Cascoin: Rialto
     OP_NICK_CREATE = 0xbf,
 
     // template matching params
@@ -197,7 +197,7 @@ enum opcodetype
 };
 
 // Maximum value that an opcode can be
-static const unsigned int MAX_OPCODE = OP_NICK_CREATE;  // LitecoinCash: Rialto
+static const unsigned int MAX_OPCODE = OP_NICK_CREATE;  // Cascoin: Rialto
 
 const char* GetOpName(opcodetype opcode);
 
@@ -673,7 +673,7 @@ public:
         shrink_to_fit();
     }
 
-    // LitecoinCash: Hive: Check if script is a Bee Creation script and optionally get the honey scriptPubKey in scriptPubKeyHoney
+    // Cascoin: Hive: Check if script is a Bee Creation script and optionally get the honey scriptPubKey in scriptPubKeyHoney
     static bool IsBCTScript(CScript scriptPubKey, CScript scriptPubKeyBCF, CScript* scriptPubKeyHoney = nullptr) {
         // Check for correct size
         if (scriptPubKey.size() != 52)

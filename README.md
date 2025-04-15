@@ -1,33 +1,33 @@
-Litecoin Cash Core integration/staging tree
+Cascoin Core integration/staging tree
 ===========================================
 
-What is Litecoin Cash?
+What is Cascoin?
 ----------------------
 
-Litecoin Cash is a fork of Litecoin supporting SHA256 PoW and Hive Mining. For full details, as well as prebuilt binaries for Windows, Mac and Linux, please visit our website at https://litecoinca.sh.
+Cascoin is a fork of Litecoin supporting SHA256 PoW and Hive Mining. For full details, as well as prebuilt binaries for Windows, Mac and Linux, please visit our website at https://cascoin.net.
 
-Litecoin Cash Core is the full node software that makes up the backbone of the LCC network.
+Cascoin Core is the full node software that makes up the backbone of the CAS network.
 
 License
 -------
 
-Litecoin Cash Core is released under the terms of the MIT license. See [COPYING](COPYING) for more
+Cascoin Core is released under the terms of the MIT license. See [COPYING](COPYING) for more
 information or see https://opensource.org/licenses/MIT.
 
 Development Process
 -------------------
 
 The `master` branch is regularly built and tested, but is not guaranteed to be
-completely stable. [Tags](https://github.com/litecoincash-project/litecoincash/tags) are created
-regularly to indicate new official, stable release versions of Litecoin Cash Core.
+completely stable. [Tags](https://github.com/Casraw/Cascoin/tags) are created
+regularly to indicate new official, stable release versions of Cascoin Core.
 
 The contribution workflow is described in [CONTRIBUTING.md](CONTRIBUTING.md).
 
-The developer [mailing list](https://groups.google.com/forum/#!forum/litecoincash-dev)
+The developer [mailing list](https://groups.google.com/forum/#!forum/cascoin-dev)
 should be used to discuss complicated or controversial changes before working
 on a patch set.
 
-Developer IRC can be found on Freenode at #litecoincash-dev.
+Developer IRC can be found on Freenode at #cascoin-dev.
 
 Testing
 -------

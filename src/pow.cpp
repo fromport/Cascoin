@@ -10,20 +10,20 @@
 #include <primitives/block.h>
 #include <uint256.h>
 #include <util.h>
-#include <core_io.h>            // LitecoinCash: Hive
-#include <script/standard.h>    // LitecoinCash: Hive
-#include <base58.h>             // LitecoinCash: Hive
-#include <pubkey.h>             // LitecoinCash: Hive
-#include <hash.h>               // LitecoinCash: Hive
-#include <sync.h>               // LitecoinCash: Hive
-#include <validation.h>         // LitecoinCash: Hive
-#include <utilstrencodings.h>   // LitecoinCash: Hive
+#include <core_io.h>            // Cascoin: Hive
+#include <script/standard.h>    // Cascoin: Hive
+#include <base58.h>             // Cascoin: Hive
+#include <pubkey.h>             // Cascoin: Hive
+#include <hash.h>               // Cascoin: Hive
+#include <sync.h>               // Cascoin: Hive
+#include <validation.h>         // Cascoin: Hive
+#include <utilstrencodings.h>   // Cascoin: Hive
 
-BeePopGraphPoint beePopGraph[1024*40];       // LitecoinCash: Hive
+BeePopGraphPoint beePopGraph[1024*40];       // Cascoin: Hive
 
-// LitecoinCash: MinotaurX+Hive1.2: Diff adjustment for pow algos (post-MinotaurX activation)
+// Cascoin: MinotaurX+Hive1.2: Diff adjustment for pow algos (post-MinotaurX activation)
 // Modified LWMA-3
-// Copyright (c) 2017-2021 The Bitcoin Gold developers, Zawy, iamstenman (Microbitcoin), The Litecoin Cash developers
+// Copyright (c) 2017-2021 The Bitcoin Gold developers, Zawy, iamstenman (Microbitcoin), The Cascoin developers
 // MIT License
 // Algorithm by Zawy, a modification of WT-144 by Tom Harding
 // For updates see
@@ -37,7 +37,7 @@ unsigned int GetNextWorkRequiredLWMA(const CBlockIndex* pindexLast, const CBlock
     const int64_t height = pindexLast->nHeight;                                     // Block height
     
     // TESTNET ONLY: Allow minimum difficulty blocks if we haven't seen a block for ostensibly 10 blocks worth of time.
-    // Reading this code because you're porting LCC features? Considering doing this on your mainnet?
+    // Reading this code because you're porting CAS features? Considering doing this on your mainnet?
     // ***** THIS IS NOT SAFE TO DO ON YOUR MAINNET! *****
     if (params.fPowAllowMinDifficultyBlocks && pblock->GetBlockTime() > pindexLast->GetBlockTime() + T * 10) {
         if (verbose) LogPrintf("* GetNextWorkRequiredLWMA: Allowing %s pow limit (apparent testnet stall)\n", POW_TYPE_NAMES[powType]);
@@ -117,19 +117,19 @@ unsigned int GetNextWorkRequiredLWMA(const CBlockIndex* pindexLast, const CBlock
     return nextTarget.GetCompact();
 }
 
-// LitecoinCash: DarkGravity V3 (https://github.com/dashpay/dash/blob/master/src/pow.cpp#L82)
+// Cascoin: DarkGravity V3 (https://github.com/dashpay/dash/blob/master/src/pow.cpp#L82)
 // By Evan Duffield <evan@dash.org>
-// Used for sha256 from LCC fork point till MinotaurX activation
+// Used for sha256 from CAS fork point till MinotaurX activation
 unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const CBlockHeader *pblock, const Consensus::Params& params)
 {
     const arith_uint256 bnPowLimit = UintToArith256(params.powLimitSHA);
     int64_t nPastBlocks = 24;
 
-    // LitecoinCash: Allow minimum difficulty blocks if we haven't seen a block for ostensibly 10 blocks worth of time
+    // Cascoin: Allow minimum difficulty blocks if we haven't seen a block for ostensibly 10 blocks worth of time
     if (params.fPowAllowMinDifficultyBlocks && pblock->GetBlockTime() > pindexLast->GetBlockTime() + params.nPowTargetSpacing * 10)
         return bnPowLimit.GetCompact();
 
-    // LitecoinCash: Hive 1.1: Skip over Hivemined blocks at tip
+    // Cascoin: Hive 1.1: Skip over Hivemined blocks at tip
     if (IsHive11Enabled(pindexLast, params)) {
         while (pindexLast->GetBlockHeader().IsHiveMined(params)) {
             //LogPrintf("DarkGravityWave: Skipping hivemined block at %i\n", pindex->nHeight);
@@ -138,7 +138,7 @@ unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const CBlockHeader *
         }
     }
 
-    // LitecoinCash: Make sure we have at least (nPastBlocks + 1) blocks since the fork, otherwise just return powLimitSHA
+    // Cascoin: Make sure we have at least (nPastBlocks + 1) blocks since the fork, otherwise just return powLimitSHA
     if (!pindexLast || pindexLast->nHeight - params.lastScryptBlock < nPastBlocks)
         return bnPowLimit.GetCompact();
 
@@ -146,7 +146,7 @@ unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const CBlockHeader *
     arith_uint256 bnPastTargetAvg;
 
     for (unsigned int nCountBlocks = 1; nCountBlocks <= nPastBlocks; nCountBlocks++) {
-        // LitecoinCash: Hive: Skip over Hivemined blocks; we only want to consider PoW blocks
+        // Cascoin: Hive: Skip over Hivemined blocks; we only want to consider PoW blocks
         while (pindex->GetBlockHeader().IsHiveMined(params)) {
             //LogPrintf("DarkGravityWave: Skipping hivemined block at %i\n", pindex->nHeight);
             assert(pindex->pprev); // should never fail
@@ -194,7 +194,7 @@ unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHead
 {
     assert(pindexLast != nullptr);
 
-    // LitecoinCash: If past fork time, use Dark Gravity Wave
+    // Cascoin: If past fork time, use Dark Gravity Wave
     if (pindexLast->nHeight >= params.lastScryptBlock)
         return DarkGravityWave(pindexLast, pblock, params);
     else
@@ -230,7 +230,7 @@ unsigned int GetNextWorkRequiredLTC(const CBlockIndex* pindexLast, const CBlockH
     }
 
     // Go back by what we want to be 14 days worth of blocks
-    // LitecoinCash: This fixes an issue where a 51% attack can change difficulty at will.
+    // Cascoin: This fixes an issue where a 51% attack can change difficulty at will.
     // Go back the full period unless it's the first retarget after genesis. Code courtesy of Art Forz
     int blockstogoback = params.DifficultyAdjustmentInterval()-1;
     if ((pindexLast->nHeight+1) != params.DifficultyAdjustmentInterval())
@@ -264,7 +264,7 @@ unsigned int CalculateNextWorkRequired(const CBlockIndex* pindexLast, int64_t nF
     arith_uint256 bnOld;
     bnNew.SetCompact(pindexLast->nBits);
     bnOld = bnNew;
-    // LitecoinCash: intermediate uint256 can overflow by 1 bit
+    // Cascoin: intermediate uint256 can overflow by 1 bit
     const arith_uint256 bnPowLimit = UintToArith256(params.powLimit);
     bool fShift = bnNew.bits() > bnPowLimit.bits() - 1;
     if (fShift)
@@ -288,7 +288,7 @@ bool CheckProofOfWork(uint256 hash, unsigned int nBits, const Consensus::Params&
 
     bnTarget.SetCompact(nBits, &fNegative, &fOverflow);
 
-    // LitecoinCash: MinotaurX+Hive1.2: Use highest pow limit for limit check
+    // Cascoin: MinotaurX+Hive1.2: Use highest pow limit for limit check
     arith_uint256 powLimit = 0;
     for (int i = 0; i < NUM_BLOCK_TYPES; i++)
         if (UintToArith256(params.powTypeLimits[i]) > powLimit)
@@ -305,7 +305,7 @@ bool CheckProofOfWork(uint256 hash, unsigned int nBits, const Consensus::Params&
     return true;
 }
 
-// LitecoinCash: Hive 1.1: SMA Hive Difficulty Adjust
+// Cascoin: Hive 1.1: SMA Hive Difficulty Adjust
 unsigned int GetNextHive11WorkRequired(const CBlockIndex* pindexLast, const Consensus::Params& params) {
     const arith_uint256 bnPowLimit = UintToArith256(params.powLimitHive);
 
@@ -341,7 +341,7 @@ unsigned int GetNextHive11WorkRequired(const CBlockIndex* pindexLast, const Cons
     return beeHashTarget.GetCompact();
 }
 
-// LitecoinCash: MinotaurX+Hive1.2: Reset Hive difficulty after MinotaurX enable
+// Cascoin: MinotaurX+Hive1.2: Reset Hive difficulty after MinotaurX enable
 unsigned int GetNextHive12WorkRequired(const CBlockIndex* pindexLast, const Consensus::Params& params) {
     const arith_uint256 bnPowLimit = UintToArith256(params.powLimitHive);
 
@@ -377,12 +377,12 @@ unsigned int GetNextHive12WorkRequired(const CBlockIndex* pindexLast, const Cons
     return beeHashTarget.GetCompact();
 }
 
-// LitecoinCash: Hive: Get the current Bee Hash Target (Hive 1.0)
+// Cascoin: Hive: Get the current Bee Hash Target (Hive 1.0)
 unsigned int GetNextHiveWorkRequired(const CBlockIndex* pindexLast, const Consensus::Params& params) {
-    // LitecoinCash: MinotaurX+Hive1.2
+    // Cascoin: MinotaurX+Hive1.2
     if (IsMinotaurXEnabled(pindexLast, params))
         return GetNextHive12WorkRequired(pindexLast, params);
-    // LitecoinCash: Hive 1.1: Use SMA diff adjust
+    // Cascoin: Hive 1.1: Use SMA diff adjust
     if (IsHive11Enabled(pindexLast, params))
         return GetNextHive11WorkRequired(pindexLast, params);
 
@@ -431,7 +431,7 @@ unsigned int GetNextHiveWorkRequired(const CBlockIndex* pindexLast, const Consen
     return beeHashTarget.GetCompact();
 }
 
-// LitecoinCash: Hive: Get count of all live and gestating BCTs on the network
+// Cascoin: Hive: Get count of all live and gestating BCTs on the network
 bool GetNetworkHiveInfo(int& immatureBees, int& immatureBCTs, int& matureBees, int& matureBCTs, CAmount& potentialLifespanRewards, const Consensus::Params& consensusParams, bool recalcGraph) {
     int totalBeeLifespan = consensusParams.beeLifespanBlocks + consensusParams.beeGestationBlocks;
     immatureBees = immatureBCTs = matureBees = matureBCTs = 0;
@@ -440,12 +440,12 @@ bool GetNetworkHiveInfo(int& immatureBees, int& immatureBCTs, int& matureBees, i
     assert(pindexPrev != nullptr);
     int tipHeight = pindexPrev->nHeight;
 
-    // LitecoinCash: MinotaurX+Hive1.2: Get correct hive block reward
+    // Cascoin: MinotaurX+Hive1.2: Get correct hive block reward
     auto blockReward = GetBlockSubsidy(pindexPrev->nHeight, consensusParams);
     if (IsMinotaurXEnabled(pindexPrev, consensusParams))
         blockReward += blockReward >> 1;
 
-    // LitecoinCash: Hive 1.1: Use correct typical spacing
+    // Cascoin: Hive 1.1: Use correct typical spacing
     if (IsHive11Enabled(pindexPrev, consensusParams))
         potentialLifespanRewards = (consensusParams.beeLifespanBlocks * blockReward) / consensusParams.hiveBlockSpacingTargetTypical_1_1;
     else
@@ -486,7 +486,7 @@ bool GetNetworkHiveInfo(int& immatureBees, int& immatureBCTs, int& matureBees, i
                         if (tx->vout.size() > 1 && tx->vout[1].scriptPubKey == scriptPubKeyCF) {    // If it has a community fund contrib...
                             CAmount donationAmount = tx->vout[1].nValue;
                             CAmount expectedDonationAmount = (beeFeePaid + donationAmount) / consensusParams.communityContribFactor;  // ...check for valid donation amount
-                            // LitecoinCash: MinotaurX+Hive1.2
+                            // Cascoin: MinotaurX+Hive1.2
                             if (IsMinotaurXEnabled(pindexPrev, consensusParams))
                                 expectedDonationAmount += expectedDonationAmount >> 1;
                             if (donationAmount != expectedDonationAmount)
@@ -544,7 +544,7 @@ bool GetNetworkHiveInfo(int& immatureBees, int& immatureBCTs, int& matureBees, i
     return true;
 }
 
-// LitecoinCash: Hive: Check the hive proof for given block
+// Cascoin: Hive: Check the hive proof for given block
 bool CheckHiveProof(const CBlock* pblock, const Consensus::Params& consensusParams) {
     bool verbose = LogAcceptCategory(BCLog::HIVE);
 
@@ -572,7 +572,7 @@ bool CheckHiveProof(const CBlock* pblock, const Consensus::Params& consensusPara
         return false;
     }
 
-    // LitecoinCash: Hive 1.1: Check that there aren't too many consecutive Hive blocks
+    // Cascoin: Hive 1.1: Check that there aren't too many consecutive Hive blocks
     if (IsHive11Enabled(pindexPrev, consensusParams)) {
         int hiveBlocksAtTip = 0;
         CBlockIndex* pindexTemp = pindexPrev;
@@ -657,7 +657,7 @@ bool CheckHiveProof(const CBlock* pblock, const Consensus::Params& consensusPara
     if (verbose)
         LogPrintf("CheckHiveProof: beeHashTarget       = %s\n", beeHashTarget.ToString());
     
-    // LitecoinCash: MinotaurX+Hive1.2: Use the correct inner Hive hash
+    // Cascoin: MinotaurX+Hive1.2: Use the correct inner Hive hash
     if (!IsMinotaurXEnabled(pindexPrev, consensusParams)) {
         std::string hashHex = (CHashWriter(SER_GETHASH, 0) << deterministicRandString << txidStr << beeNonce).GetHash().GetHex();
         arith_uint256 beeHash = arith_uint256(hashHex);
@@ -719,7 +719,7 @@ bool CheckHiveProof(const CBlock* pblock, const Consensus::Params& consensusPara
     uint32_t bctFoundHeight;
     CAmount bctValue;
     CScript bctScriptPubKey;
-    bool bctWasMinotaurXEnabled;    // LitecoinCash: MinotaurX+Hive1.2: Track whether Hive 1.2 was enabled at BCT creation time
+    bool bctWasMinotaurXEnabled;    // Cascoin: MinotaurX+Hive1.2: Track whether Hive 1.2 was enabled at BCT creation time
     {
         LOCK(cs_main);
 
@@ -735,7 +735,7 @@ bool CheckHiveProof(const CBlock* pblock, const Consensus::Params& consensusPara
             bctValue = coin.out.nValue;
             bctScriptPubKey = coin.out.scriptPubKey;
             bctFoundHeight = coin.nHeight;
-            bctWasMinotaurXEnabled = IsMinotaurXEnabled(chainActive[bctFoundHeight], consensusParams);  // LitecoinCash: MinotaurX+Hive1.2: Track whether Hive 1.2 was enabled at BCT creation time
+            bctWasMinotaurXEnabled = IsMinotaurXEnabled(chainActive[bctFoundHeight], consensusParams);  // Cascoin: MinotaurX+Hive1.2: Track whether Hive 1.2 was enabled at BCT creation time
         } else {                                                            // UTXO set isn't available when eg reindexing, so drill into block db (not too bad, since Alice put her BCT height in the coinbase tx)
             if (verbose)
                 LogPrintf("! CheckHiveProof: Warn: Using deep drill for outBeeCreation\n");
@@ -747,7 +747,7 @@ bool CheckHiveProof(const CBlock* pblock, const Consensus::Params& consensusPara
             bctFoundHeight = foundAt.nHeight;
             bctValue = bct->vout[0].nValue;
             bctScriptPubKey = bct->vout[0].scriptPubKey;
-            bctWasMinotaurXEnabled = IsMinotaurXEnabled(&foundAt, consensusParams); // LitecoinCash: MinotaurX+Hive1.2: Track whether Hive 1.2 was enabled at BCT creation time
+            bctWasMinotaurXEnabled = IsMinotaurXEnabled(&foundAt, consensusParams); // Cascoin: MinotaurX+Hive1.2: Track whether Hive 1.2 was enabled at BCT creation time
         }
 
         if (communityContrib) {
@@ -784,7 +784,7 @@ bool CheckHiveProof(const CBlock* pblock, const Consensus::Params& consensusPara
             // Check for valid donation amount
             CAmount expectedDonationAmount = (bctValue + donationAmount) / consensusParams.communityContribFactor;
 
-            // LitecoinCash: MinotaurX+Hive1.2
+            // Cascoin: MinotaurX+Hive1.2
             if (bctWasMinotaurXEnabled)
                 expectedDonationAmount += expectedDonationAmount >> 1;
 

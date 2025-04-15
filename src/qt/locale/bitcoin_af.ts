@@ -62,12 +62,12 @@
         <translation>Ontvanger adresse</translation>
     </message>
     <message>
-        <source>These are your LitecoinCash addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation>Hierdie is die adresse vanwaar u LitecoinCash betalings stuur. U moet altyd die bedrag en die adres van die ontvanger nagaan voordat u enige munte stuur.</translation>
+        <source>These are your Cascoin addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
+        <translation>Hierdie is die adresse vanwaar u Cascoin betalings stuur. U moet altyd die bedrag en die adres van die ontvanger nagaan voordat u enige munte stuur.</translation>
     </message>
     <message>
-        <source>These are your LitecoinCash addresses for receiving payments. It is recommended to use a new receiving address for each transaction.</source>
-        <translation>Hierdie is die adresse waar u LitecoinCash sal ontvang. Ons beveel aan dat u 'n nuwe adres kies vir elke transaksie</translation>
+        <source>These are your Cascoin addresses for receiving payments. It is recommended to use a new receiving address for each transaction.</source>
+        <translation>Hierdie is die adresse waar u Cascoin sal ontvang. Ons beveel aan dat u 'n nuwe adres kies vir elke transaksie</translation>
     </message>
     <message>
         <source>&amp;Copy Address</source>
@@ -172,8 +172,8 @@
         <translation>Bevestig dat die beursie gekodifiseer is</translation>
     </message>
     <message>
-        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR LITECOINCASH&lt;/b&gt;!</source>
-        <translation>Waarskuwing: Indien u die beursie kodifiseer en u vergeet u wagwoord &lt;b&gt;VERLOOR U AL U LITECOINCASH&lt;/b&gt;!</translation>
+        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR CASCOIN&lt;/b&gt;!</source>
+        <translation>Waarskuwing: Indien u die beursie kodifiseer en u vergeet u wagwoord &lt;b&gt;VERLOOR U AL U CASCOIN&lt;/b&gt;!</translation>
     </message>
     <message>
         <source>Are you sure you wish to encrypt your wallet?</source>
@@ -334,8 +334,8 @@
         <translation>Besig met herindeksering van blokke op hardeskyf...</translation>
     </message>
     <message>
-        <source>Send coins to a LitecoinCash address</source>
-        <translation>Stuur munte na 'n LitecoinCash adres</translation>
+        <source>Send coins to a Cascoin address</source>
+        <translation>Stuur munte na 'n Cascoin adres</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -358,8 +358,8 @@
         <translation>&amp;Verifieer boodskap...</translation>
     </message>
     <message>
-        <source>LitecoinCash</source>
-        <translation>Litecoin Cash</translation>
+        <source>Cascoin</source>
+        <translation>Cascoin</translation>
     </message>
     <message>
         <source>Wallet</source>
@@ -386,12 +386,12 @@
         <translation>Kodifiseer die private sleutes wat aan jou beursie gekoppel is.</translation>
     </message>
     <message>
-        <source>Sign messages with your LitecoinCash addresses to prove you own them</source>
-        <translation>Onderteken boodskappe met u LitecoinCash adresse om u eienaarskap te bewys</translation>
+        <source>Sign messages with your Cascoin addresses to prove you own them</source>
+        <translation>Onderteken boodskappe met u Cascoin adresse om u eienaarskap te bewys</translation>
     </message>
     <message>
-        <source>Verify messages to ensure they were signed with specified LitecoinCash addresses</source>
-        <translation>Verifieër boodskappe om seker te maak dat dit met die gespesifiseerde LitecoinCash adresse</translation>
+        <source>Verify messages to ensure they were signed with specified Cascoin addresses</source>
+        <translation>Verifieër boodskappe om seker te maak dat dit met die gespesifiseerde Cascoin adresse</translation>
     </message>
     <message>
         <source>&amp;File</source>
@@ -410,8 +410,8 @@
         <translation>Orebalk</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and litecoincash: URIs)</source>
-        <translation>Versoek betalings (genereer QR-kodes en litecoincash: URI's)</translation>
+        <source>Request payments (generates QR codes and cascoin: URIs)</source>
+        <translation>Versoek betalings (genereer QR-kodes en cascoin: URI's)</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -422,8 +422,8 @@
         <translation>Vertoon die lys van gebruikte ontvangers-adresse en etikette</translation>
     </message>
     <message>
-        <source>Open a litecoincash: URI or payment request</source>
-        <translation>Skep 'n litecoincash: URI of betalingsversoek</translation>
+        <source>Open a cascoin: URI or payment request</source>
+        <translation>Skep 'n cascoin: URI of betalingsversoek</translation>
     </message>
     <message>
         <source>&amp;Command-line options</source>
@@ -516,8 +516,8 @@
         <translation>Inkomende transaksie</translation>
     </message>
     <message>
-        <source>A fatal error occurred. LitecoinCash can no longer continue safely and will quit.</source>
-        <translation>'N fatale fout het voorgekom. LitecoinCash kan nie meer veilig voortgaan nie en sal nou toemaak.</translation>
+        <source>A fatal error occurred. Cascoin can no longer continue safely and will quit.</source>
+        <translation>'N fatale fout het voorgekom. Cascoin kan nie meer veilig voortgaan nie en sal nou toemaak.</translation>
     </message>
 </context>
 <context>
@@ -710,8 +710,8 @@
         <translation>Wysig stuur adres</translation>
     </message>
     <message>
-        <source>The entered address "%1" is not a valid LitecoinCash address.</source>
-        <translation>Die ingevoerde adres "%1" is nie 'n geldige LitecoinCash adres nie.</translation>
+        <source>The entered address "%1" is not a valid Cascoin address.</source>
+        <translation>Die ingevoerde adres "%1" is nie 'n geldige Cascoin adres nie.</translation>
     </message>
     <message>
         <source>The entered address "%1" is already in the address book.</source>
@@ -823,8 +823,8 @@
         <translation>Gebruik 'n persoonlike data gids:</translation>
     </message>
     <message>
-        <source>LitecoinCash</source>
-        <translation>Litecoin Cash</translation>
+        <source>Cascoin</source>
+        <translation>Cascoin</translation>
     </message>
     <message>
         <source>The wallet will also be stored in this directory.</source>
@@ -1188,8 +1188,8 @@
         <translation>Bedrag</translation>
     </message>
     <message>
-        <source>Enter a LitecoinCash address (e.g. %1)</source>
-        <translation>Voer in 'n LitecoinCash adres (bv. %1)</translation>
+        <source>Enter a Cascoin address (e.g. %1)</source>
+        <translation>Voer in 'n Cascoin adres (bv. %1)</translation>
     </message>
     <message>
         <source>%1 d</source>
@@ -1918,8 +1918,8 @@
         <translation>Opsies:</translation>
     </message>
     <message>
-        <source>Litecoin Cash Core</source>
-        <translation>Litecoin Cash Kern</translation>
+        <source>Cascoin Core</source>
+        <translation>Cascoin Kern</translation>
     </message>
     <message>
         <source>Connection options:</source>

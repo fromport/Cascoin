@@ -58,10 +58,7 @@ case $build in
   ;;
 esac
 
-AC_CONFIG_FILES([
-    Makefile
-    pc/libunivalue.pc
-    pc/libunivalue-uninstalled.pc])
+AC_CONFIG_FILES([Makefile])
 
 AC_SUBST(LIBTOOL_APP_LDFLAGS)
 AC_SUBST(BUILD_EXEEXT)

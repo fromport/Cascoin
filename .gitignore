@@ -1,13 +1,13 @@
 *.tar.gz
 
 *.exe
-src/litecoincash
-src/litecoincashd
-src/litecoincash-cli
-src/litecoincash-tx
-src/test/test_litecoincash
-src/test/test_litecoincash_fuzzy
-src/qt/test/test_litecoincash-qt
+src/cascoin
+src/cascoind
+src/cascoin-cli
+src/cascoin-tx
+src/test/test_cascoin
+src/test/test_cascoin_fuzzy
+src/qt/test/test_cascoin-qt
 
 # autoreconf
 Makefile.in
@@ -80,13 +80,13 @@ src/qt/bitcoin-qt.includes
 # Compilation and Qt preprocessor part
 *.qm
 Makefile
-litecoincash-qt
-litecoincash-Qt.app
+cascoin-qt
+cascoin-Qt.app
 background.tiff*
 
 # Unit-tests
 Makefile.test
-litecoincash-qt_test
+cascoin-qt_test
 
 # Resources cpp
 qrc_*.cpp
@@ -98,7 +98,7 @@ build
 *.gcno
 *.gcda
 /*.info
-test_litecoincash.coverage/
+test_cascoin.coverage/
 total.coverage/
 coverage_percent.txt
 

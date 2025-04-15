@@ -29,10 +29,10 @@
 #include <util.h>
 #include <utilmoneystr.h>
 #include <utilstrencodings.h>
-#include <rialto.h> // LitecoinCash: Rialto
+#include <rialto.h> // Cascoin: Rialto
 
 #if defined(NDEBUG)
-# error "LitecoinCash cannot be compiled without assertions."
+# error "Cascoin cannot be compiled without assertions."
 #endif
 
 std::atomic<int64_t> nTimeBestReceived(0); // Used only to inform the wallet of when we last received a block
@@ -137,7 +137,7 @@ namespace {
     /** Expiration-time ordered list of (expire time, relay map entry) pairs, protected by cs_main). */
     std::deque<std::pair<int64_t, MapRelay::iterator>> vRelayExpiration;
 
-    // LitecoinCash: Rialto
+    // Cascoin: Rialto
     // Message relay map, protected by cs_main
     typedef std::map<uint256, std::string> MapMessageRelay;
     MapMessageRelay mapMessageRelay;
@@ -996,7 +996,7 @@ bool static AlreadyHave(const CInv& inv) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
     case MSG_BLOCK:
     case MSG_WITNESS_BLOCK:
         return mapBlockIndex.count(inv.hash);
-    // LitecoinCash: Rialto
+    // Cascoin: Rialto
     case MSG_RIALTO:
         return (mapMessageRelay.count(inv.hash) > 0);
     }
@@ -1013,7 +1013,7 @@ static void RelayTransaction(const CTransaction& tx, CConnman* connman)
     });
 }
 
-// LitecoinCash: Rialto: Relay a Rialto message by adding to Rialto inventory for all peers apart from origin
+// Cascoin: Rialto: Relay a Rialto message by adding to Rialto inventory for all peers apart from origin
 void RelayRialtoMessage(const CRialtoMessage message, CConnman* connman, CNode* originNode)
 {
     if ((connman->GetLocalServices() & NODE_RIALTO) != NODE_RIALTO) {
@@ -1230,7 +1230,7 @@ void static ProcessGetData(CNode* pfrom, const Consensus::Params& consensusParam
     {
         LOCK(cs_main);
 
-        // LitecoinCash: Rialto
+        // Cascoin: Rialto
         //while (it != pfrom->vRecvGetData.end() && (it->type == MSG_TX || it->type == MSG_WITNESS_TX)) {
         while (it != pfrom->vRecvGetData.end() && (it->type == MSG_TX || it->type == MSG_WITNESS_TX || it->type == MSG_RIALTO)) {
             if (interruptMsgProc)
@@ -1952,7 +1952,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
             else
             {
                 pfrom->AddInventoryKnown(inv);
-                // LitecoinCash: Rialto: Don't allow Rialto messages from peers claiming to not support relaying, or unsolicited Rialto invs if we're not supporting relaying
+                // Cascoin: Rialto: Don't allow Rialto messages from peers claiming to not support relaying, or unsolicited Rialto invs if we're not supporting relaying
                 if ((connman->GetLocalServices() & NODE_RIALTO) != NODE_RIALTO) {
                     LogPrint(BCLog::NET, "rialto message (%s) inv sent, but we're not relaying. peer=%d\n", inv.hash.ToString(), pfrom->GetId());
                     Misbehaving(pfrom->GetId(), 20);
@@ -2907,7 +2907,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         // message would be undesirable as we transmit it ourselves.
     }
 
-    // LitecoinCash: Rialto
+    // Cascoin: Rialto
     else if (strCommand == NetMsgType::RIALTO) {
         // Check if Rialto enabled on this node
         if ((g_connman->GetLocalServices() & NODE_RIALTO) != NODE_RIALTO) {
@@ -3511,13 +3511,13 @@ bool PeerLogicValidation::SendMessages(CNode* pto, std::atomic<bool>& interruptM
             LOCK(pto->cs_inventory);
             vInv.reserve(std::max<size_t>(pto->vInventoryBlockToSend.size(), INVENTORY_BROADCAST_MAX));
 
-            // LitecoinCash: Rialto: Add messages (Note: We already gated on their NODE_RIALTO support when adding to the inventory)
+            // Cascoin: Rialto: Add messages (Note: We already gated on their NODE_RIALTO support when adding to the inventory)
             for (const uint256& hash : pto->rialtoInventoryToSend)
                 vInv.push_back(CInv(MSG_RIALTO, hash));
             pto->rialtoInventoryToSend.clear();
 
             // Expire old relay messages
-            // LitecoinCash: Rialto: TODO: Maybe not here though? Also figure out why joining clients don't get these (we never add to their inventories I guess)
+            // Cascoin: Rialto: TODO: Maybe not here though? Also figure out why joining clients don't get these (we never add to their inventories I guess)
             /*
             while (!vMessageRelayExpiration.empty() && vMessageRelayExpiration.front().first < nNow)
             {

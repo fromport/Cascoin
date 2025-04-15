@@ -1,9 +1,9 @@
-// Copyright (c) 2019-2021 The Litecoin Cash Core developers
+// Copyright (c) 2019-2021 The Cascoin Core developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef LCC_CRYPTO_MINOTAURX_MINOTAUR_H
-#define LCC_CRYPTO_MINOTAURX_MINOTAUR_H
+#ifndef CAS_CRYPTO_MINOTAURX_MINOTAUR_H
+#define CAS_CRYPTO_MINOTAURX_MINOTAUR_H
 
 #include <uint256.h>
 
@@ -247,4 +247,4 @@ template<typename T> uint256 Minotaur(const T begin, const T end, bool minotaurX
     return uint256(hash);
 }
 
-#endif // LCC_CRYPTO_MINOTAURX_MINOTAUR_H
+#endif // CAS_CRYPTO_MINOTAURX_MINOTAUR_H

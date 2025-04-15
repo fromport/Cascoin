@@ -1,4 +1,4 @@
-// LitecoinCash: Hexagon pie :)
+// Cascoin: Hexagon pie :)
 
 #ifndef BITCOIN_QT_TINYPIE_H
 #define BITCOIN_QT_TINYPIE_H

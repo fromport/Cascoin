@@ -238,7 +238,7 @@ extern const char *GETBLOCKTXN;
  */
 extern const char *BLOCKTXN;
 
-// LitecoinCash: Rialto: A Rialto message, sent in response to a getdata request.
+// Cascoin: Rialto: A Rialto message, sent in response to a getdata request.
 extern const char *RIALTO;
 };
 
@@ -267,7 +267,7 @@ enum ServiceFlags : uint64_t {
     // If this is turned off then the node will not service nor make xthin requests
     NODE_XTHIN = (1 << 4),
 
-    // LitecoinCash: Rialto: NODE_RIALTO means the node supports propagation of Rialto messages
+    // Cascoin: Rialto: NODE_RIALTO means the node supports propagation of Rialto messages
     NODE_RIALTO = (1 << 5),
 
     // NODE_NETWORK_LIMITED means the same as NODE_NETWORK with the limitation of only
@@ -385,7 +385,7 @@ enum GetDataMsg
     MSG_WITNESS_TX = MSG_TX | MSG_WITNESS_FLAG,       //!< Defined in BIP144
     MSG_FILTERED_WITNESS_BLOCK = MSG_FILTERED_BLOCK | MSG_WITNESS_FLAG,
 
-    MSG_RIALTO = 5, // LitecoinCash: Rialto message
+    MSG_RIALTO = 5, // Cascoin: Rialto message
 };
 
 /** inv message data */

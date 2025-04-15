@@ -2,7 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-// LitecoinCash: Hive
+// Cascoin: Hive
 
 #include <wallet/wallet.h>
 #include <wallet/fees.h>
@@ -23,7 +23,7 @@
 #include <qt/tinypie.h>
 #include <qt/qcustomplot.h>
 
-#include <qt/optionsdialog.h> // LitecoinCash: Hive: Mining optimisations
+#include <qt/optionsdialog.h> // Cascoin: Hive: Mining optimisations
 
 #include <QAction>
 #include <QCursor>
@@ -196,7 +196,7 @@ void HiveDialog::updateData(bool forceGlobalSummaryUpdate) {
         // Set icon and tooltip for tray icon
         QString tooltip, icon;
         if (clientModel && clientModel->getNumConnections() == 0) {
-            tooltip = "Litecoin Cash is not connected";
+            tooltip = "Cascoin is not connected";
             icon = ":/icons/hivestatus_disabled";
         } else if (!model->isHiveEnabled()) {
             tooltip = "The Hive is not enabled on the network";
@@ -331,11 +331,11 @@ void HiveDialog::on_createBeesButton_clicked() {
 		WalletModel::UnlockContext ctx(model->requestUnlock());
 		if(!ctx.isValid())
 			return;     // Unlock wallet was cancelled
-        model->createBees(ui->beeCountSpinner->value(), clientModel->getOptionsModel()->getHiveContribCF(), this, beePopIndex); // LitecoinCash: MinotaurX+Hive1.2
+        model->createBees(ui->beeCountSpinner->value(), clientModel->getOptionsModel()->getHiveContribCF(), this, beePopIndex); // Cascoin: MinotaurX+Hive1.2
     }
 }
 
-// LitecoinCash: Hive: Mining optimisations: Shortcut to Hive mining options
+// Cascoin: Hive: Mining optimisations: Shortcut to Hive mining options
 void HiveDialog::on_showHiveOptionsButton_clicked() {
     if(!clientModel || !clientModel->getOptionsModel())
         return;

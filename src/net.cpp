@@ -1507,7 +1507,7 @@ void ThreadMapPort()
             }
         }
 
-        std::string strDesc = "LitecoinCash " + FormatFullVersion();
+        std::string strDesc = "Cascoin " + FormatFullVersion();
 
         try {
             while (true) {
@@ -2689,7 +2689,7 @@ CNode::CNode(NodeId idIn, ServiceFlags nLocalServicesIn, int nMyStartingHeightIn
     nKeyedNetGroup(nKeyedNetGroupIn),
     addrKnown(5000, 0.001),
     filterInventoryKnown(50000, 0.000001),
-    filterInventoryKnownRialto(50000, 0.00001), // LitecoinCash: Rialto: Last 50K entries, 0.001% false positive
+    filterInventoryKnownRialto(50000, 0.00001), // Cascoin: Rialto: Last 50K entries, 0.001% false positive
     id(idIn),
     nLocalHostNonce(nLocalHostNonceIn),
     nLocalServices(nLocalServicesIn),

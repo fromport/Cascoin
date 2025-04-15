@@ -86,10 +86,10 @@ enum RPCErrorCode
     RPC_WALLET_NOT_FOUND            = -18, //!< Invalid wallet specified
     RPC_WALLET_NOT_SPECIFIED        = -19, //!< No wallet specified (error when there are multiple wallets loaded)
 
-    // LitecoinCash: Hive: RPC errors
+    // Cascoin: Hive: RPC errors
     RPC_WALLET_BCT_FAIL             = -64,  // Wallet couldn't create a BCT (not enough funds, etc)
 
-    // LitecoinCash: Rialto: RPC errors
+    // Cascoin: Rialto: RPC errors
     RPC_WALLET_NCT_FAIL             = -65,  // Wallet couldn't create an NCT (not enough funds, etc)
     RPC_RIALTO_ERROR                = -66,  // General Rialto error (not activated yet, etc)
 };

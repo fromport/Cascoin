@@ -39,11 +39,11 @@
 #include <utilstrencodings.h>
 #include <validationinterface.h>
 #include <warnings.h>
-#include <rialto.h>         // LitecoinCash: Rialto
-#include <script/ismine.h>  // LitecoinCash: Rialto
-#include <rpc/server.h>     // LitecoinCash: Rialto
-#include <wallet/wallet.h>  // LitecoinCash: Rialto
-#include <base58.h>         // LitecoinCash: Rialto: for DecodeDestination()
+#include <rialto.h>         // Cascoin: Rialto
+#include <script/ismine.h>  // Cascoin: Rialto
+#include <rpc/server.h>     // Cascoin: Rialto
+#include <wallet/wallet.h>  // Cascoin: Rialto
+#include <base58.h>         // Cascoin: Rialto: for DecodeDestination()
 
 #include <future>
 #include <sstream>
@@ -52,11 +52,11 @@
 #include <boost/algorithm/string/join.hpp>
 #include <boost/thread.hpp>
 
-#include <miner.h>  // LitecoinCash: Hive
-#include <merkleblock.h> // LitecoinCash: Hive for merkle transaction check in block
+#include <miner.h>  // Cascoin: Hive
+#include <merkleblock.h> // Cascoin: Hive for merkle transaction check in block
 
 #if defined(NDEBUG)
-# error "LitecoinCash cannot be compiled without assertions."
+# error "Cascoin cannot be compiled without assertions."
 #endif
 
 #define MICRO 0.000001
@@ -239,7 +239,7 @@ CTxMemPool mempool(&feeEstimator);
 /** Constant stuff for coinbase transactions we create: */
 CScript COINBASE_FLAGS;
 
-const std::string strMessageMagic = "Litecoin Signed Message:\n";   // LitecoinCash: Should still use LTC's strMessageMagic so that pre-fork sigs validate
+const std::string strMessageMagic = "Litecoin Signed Message:\n";   // Cascoin: Should still use LTC's strMessageMagic so that pre-fork sigs validate
 
 // Internal stuff
 namespace {
@@ -287,9 +287,9 @@ CBlockIndex* FindForkInGlobalIndex(const CChain& chain, const CBlockLocator& loc
 std::unique_ptr<CCoinsViewDB> pcoinsdbview;
 std::unique_ptr<CCoinsViewCache> pcoinsTip;
 std::unique_ptr<CBlockTreeDB> pblocktree;
-std::unique_ptr<CRialtoWhitePagesDB> pwhitepages;     // LitecoinCash: Rialto: Global white pages
-std::unique_ptr<CRialtoWhitePagesDB> pmynicks;        // LitecoinCash: Rialto: Our own nicks
-std::unique_ptr<CRialtoWhitePagesDB> pblockednicks;   // LitecoinCash: Rialto: Blocked nicks we'll ignore messages from
+std::unique_ptr<CRialtoWhitePagesDB> pwhitepages;     // Cascoin: Rialto: Global white pages
+std::unique_ptr<CRialtoWhitePagesDB> pmynicks;        // Cascoin: Rialto: Our own nicks
+std::unique_ptr<CRialtoWhitePagesDB> pblockednicks;   // Cascoin: Rialto: Blocked nicks we'll ignore messages from
 
 enum FlushStateMode {
     FLUSH_STATE_NONE,
@@ -948,7 +948,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
         // Remove conflicting transactions from the mempool
         for (const CTxMemPool::txiter it : allConflicting)
         {
-            LogPrint(BCLog::MEMPOOL, "replacing tx %s with %s for %s LCC additional fees, %d delta bytes\n",
+            LogPrint(BCLog::MEMPOOL, "replacing tx %s with %s for %s CAS additional fees, %d delta bytes\n",
                     it->GetTx().GetHash().ToString(),
                     hash.ToString(),
                     FormatMoney(nModifiedFees - nConflictingFees),
@@ -1114,7 +1114,7 @@ bool ReadBlockFromDisk(CBlock& block, const CDiskBlockPos& pos, const Consensus:
         return error("%s: Deserialize or I/O error - %s at %s", __func__, e.what(), pos.ToString());
     }
 
-    // LitecoinCash: Hive: Check PoW or Hive work depending on blocktype
+    // Cascoin: Hive: Check PoW or Hive work depending on blocktype
     if (block.IsHiveMined(consensusParams)) {
         if (!CheckHiveProof(&block, consensusParams))
             return error("ReadBlockFromDisk: Errors in Hive block header at %s", pos.ToString());
@@ -1144,12 +1144,12 @@ bool ReadBlockFromDisk(CBlock& block, const CBlockIndex* pindex, const Consensus
 
 CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams)
 {
-    // LitecoinCash: Issue premine on 1st post-fork block
+    // Cascoin: Issue premine on 1st post-fork block
     if (nHeight == consensusParams.lastScryptBlock + 1)
         return consensusParams.premineAmount * COIN * COIN_SCALE;
 
     int halvings = nHeight / consensusParams.nSubsidyHalvingInterval;
-    // LitecoinCash: Force block reward to zero when right shift is undefined, and don't attempt to issue past total money supply
+    // Cascoin: Force block reward to zero when right shift is undefined, and don't attempt to issue past total money supply
     if (halvings >= 64 || nHeight >= consensusParams.totalMoneySupplyHeight)
         return 0;
 
@@ -1157,7 +1157,7 @@ CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams)
     // Subsidy is cut in half every 840,000 blocks which will occur approximately every 4 years.
     nSubsidy >>= halvings;
 
-    // LitecoinCash: Slow-start the first n blocks to prevent early miners having an unfair advantage
+    // Cascoin: Slow-start the first n blocks to prevent early miners having an unfair advantage
     int64_t blocksSinceFork = nHeight - consensusParams.lastScryptBlock;
     if (blocksSinceFork > 0 && blocksSinceFork < consensusParams.slowStartBlocks) {
         CAmount incrementPerBlock = nSubsidy / consensusParams.slowStartBlocks;
@@ -1167,13 +1167,13 @@ CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams)
     return nSubsidy;
 }
 
-// LitecoinCash: Hive: Return the current cost for a single worker bee
+// Cascoin: Hive: Return the current cost for a single worker bee
 CAmount GetBeeCost(int nHeight, const Consensus::Params& consensusParams)
 {
     if(nHeight >= consensusParams.totalMoneySupplyHeight)
         return consensusParams.minBeeCost;
 
-    // LitecoinCash: MinotaurX+Hive1.2: Note that this doesn't change; bee cost remains calculated against the base subsidy. Great!
+    // Cascoin: MinotaurX+Hive1.2: Note that this doesn't change; bee cost remains calculated against the base subsidy. Great!
     CAmount blockReward = GetBlockSubsidy(nHeight, consensusParams);
     CAmount beeCost = blockReward / consensusParams.beeCostFactor;
     return beeCost <= consensusParams.minBeeCost ? consensusParams.minBeeCost : beeCost;
@@ -1707,7 +1707,7 @@ static bool WriteTxIndexDataForBlock(const CBlock& block, CValidationState& stat
 static CCheckQueue<CScriptCheck> scriptcheckqueue(128);
 
 void ThreadScriptCheck() {
-    RenameThread("litecoincash-scriptch");
+    RenameThread("cascoin-scriptch");
     scriptcheckqueue.Thread();
 }
 
@@ -1719,7 +1719,7 @@ int32_t ComputeBlockVersion(const CBlockIndex* pindexPrev, const Consensus::Para
     LOCK(cs_main);
     int32_t nVersion = VERSIONBITS_TOP_BITS;
 
-    // LitecoinCash: MinotaurX+Hive1.2: Set bit 29 to 0
+    // Cascoin: MinotaurX+Hive1.2: Set bit 29 to 0
     if (IsMinotaurXEnabled(pindexPrev, params))
         nVersion = 0;
 
@@ -1751,7 +1751,7 @@ public:
 
     bool Condition(const CBlockIndex* pindex, const Consensus::Params& params) const override
     {
-        // LitecoinCash: MinotaurX+Hive1.2: Versionbits always active since powforktime and high bits repurposed at minotaurx UASF activation;
+        // Cascoin: MinotaurX+Hive1.2: Versionbits always active since powforktime and high bits repurposed at minotaurx UASF activation;
         // So, don't use VERSIONBITS_TOP_MASK any time past powforktime
         if (pindex->nTime > params.powForkTime)
             return ((pindex->nVersion >> bit) & 1) != 0 &&
@@ -1797,7 +1797,7 @@ static unsigned int GetBlockScriptFlags(const CBlockIndex* pindex, const Consens
         flags |= SCRIPT_VERIFY_NULLDUMMY;
     }
 
-    // LitecoinCash: Enforce use of correct fork ID
+    // Cascoin: Enforce use of correct fork ID
     if (pindex->nHeight > consensusparams.lastScryptBlock) {
         flags |= SCRIPT_VERIFY_STRICTENC;
         flags |= SCRIPT_ENABLE_SIGHASH_FORKID;
@@ -2011,7 +2011,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     int64_t nTime3 = GetTimeMicros(); nTimeConnect += nTime3 - nTime2;
     LogPrint(BCLog::BENCH, "      - Connect %u transactions: %.2fms (%.3fms/tx, %.3fms/txin) [%.2fs (%.2fms/blk)]\n", (unsigned)block.vtx.size(), MILLI * (nTime3 - nTime2), MILLI * (nTime3 - nTime2) / block.vtx.size(), nInputs <= 1 ? 0 : MILLI * (nTime3 - nTime2) / (nInputs-1), nTimeConnect * MICRO, nTimeConnect * MILLI / nBlocksTotal);
 
-    // LitecoinCash: MinotaurX+Hive1.2: Get correct block reward
+    // Cascoin: MinotaurX+Hive1.2: Get correct block reward
     CAmount blockReward = GetBlockSubsidy(pindex->nHeight, chainparams.GetConsensus());
     if (IsMinotaurXEnabled(pindex->pprev, chainparams.GetConsensus())) {
         if (block.IsHiveMined(chainparams.GetConsensus()))
@@ -2028,7 +2028,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
                                block.vtx[0]->GetValueOut(), blockReward),
                                REJECT_INVALID, "bad-cb-amount");
 
-    // LitecoinCash: Ensure that lastScryptBlock+1 coinbase TX pays to the premine address
+    // Cascoin: Ensure that lastScryptBlock+1 coinbase TX pays to the premine address
     if (pindex->nHeight == chainparams.GetConsensus().lastScryptBlock+1) {
         if (block.vtx[0]->vout[0].scriptPubKey.size() == 1) {
             LogPrintf("ConnectBlock(): allowing mine\n");
@@ -2238,13 +2238,13 @@ void static UpdateTip(const CBlockIndex *pindexNew, const CChainParams& chainPar
         for (int i = 0; i < 100 && pindex != nullptr; i++)
         {
             int32_t nExpectedVersion = ComputeBlockVersion(pindex->pprev, chainParams.GetConsensus());
-            // LitecoinCash: MinotaurX+Hive1.2: Mask out blocktype before checking for possible unknown upgrade
+            // Cascoin: MinotaurX+Hive1.2: Mask out blocktype before checking for possible unknown upgrade
             if (IsMinotaurXEnabled(pindex, chainParams.GetConsensus())) {
-                // LitecoinCash: Rialto: Added explicit cast to prevent compile warning
+                // Cascoin: Rialto: Added explicit cast to prevent compile warning
                 if ((pindex->nVersion & (int32_t)0xFF00FFFF) != nExpectedVersion && !pindex->GetBlockHeader().IsHiveMined(chainParams.GetConsensus()))
                     ++nUpgraded;
             } else {
-                // LitecoinCash: Hive: Don't warn about unexpected version in Hivemined blocks
+                // Cascoin: Hive: Don't warn about unexpected version in Hivemined blocks
                 if (pindex->nVersion > VERSIONBITS_LAST_OLD_BLOCK_VERSION && (pindex->nVersion & ~nExpectedVersion) != 0 && !pindex->GetBlockHeader().IsHiveMined(chainParams.GetConsensus()))
                     ++nUpgraded;
             }
@@ -2291,7 +2291,7 @@ bool CChainState::DisconnectTip(CValidationState& state, const CChainParams& cha
     // Apply the block atomically to the chain state.
     int64_t nStart = GetTimeMicros();
     {
-        // LitecoinCash: Rialto
+        // Cascoin: Rialto
         // This could be annoying IF we allow a change-of-key operation on a per-nick basis, but it's otherwise safe to just delete from the White Pages
         CScript scriptPubKeyNCF = GetScriptForDestination(DecodeDestination(chainparams.GetConsensus().nickCreationAddress));
 
@@ -2467,7 +2467,7 @@ bool CChainState::ConnectTip(CValidationState& state, const CChainParams& chainp
     mempool.removeForBlock(blockConnecting.vtx, pindexNew->nHeight);
     disconnectpool.removeForBlock(blockConnecting.vtx);
 
-    // LitecoinCash: Rialto: Check for nick creation txs
+    // Cascoin: Rialto: Check for nick creation txs
     if (IsRialtoEnabled(pindexNew, chainparams.GetConsensus())) {
         CScript scriptPubKeyNCF = GetScriptForDestination(DecodeDestination(chainparams.GetConsensus().nickCreationAddress));
 
@@ -3105,7 +3105,7 @@ static bool FindUndoPos(CValidationState &state, int nFile, CDiskBlockPos &pos, 
 
 static bool CheckBlockHeader(const CBlockHeader& block, CValidationState& state, const Consensus::Params& consensusParams, bool fCheckPOW = true)
 {
-    // LitecoinCash: Hive: Check PoW or Hive work depending on blocktype
+    // Cascoin: Hive: Check PoW or Hive work depending on blocktype
     if (fCheckPOW && !block.IsHiveMined(consensusParams)) {
         if (!CheckProofOfWork(block.GetPoWHash(), block.nBits, consensusParams))
             return state.DoS(50, false, REJECT_INVALID, "high-hash", false, "proof of work failed");
@@ -3126,7 +3126,7 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
     if (!CheckBlockHeader(block, state, consensusParams, fCheckPOW))
         return false;
 
-    // LitecoinCash: Hive: Check Hive proof
+    // Cascoin: Hive: Check Hive proof
     if (block.IsHiveMined(consensusParams))
         if (!CheckHiveProof(&block, consensusParams))
             return state.DoS(100, false, REJECT_INVALID, "bad-hive-proof", false, "proof of hive failed");
@@ -3164,7 +3164,7 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
 
     // Check transactions
     for (const auto& tx : block.vtx)
-        if (!CheckTransaction(*tx, state, true))    // LitecoinCash: Fix CVE-2018-17144
+        if (!CheckTransaction(*tx, state, true))    // Cascoin: Fix CVE-2018-17144
             return state.Invalid(false, state.GetRejectCode(), state.GetRejectReason(),
                                  strprintf("Transaction check failed (tx hash %s) %s", tx->GetHash().ToString(), state.GetDebugMessage()));
 
@@ -3188,84 +3188,84 @@ bool IsWitnessEnabled(const CBlockIndex* pindexPrev, const Consensus::Params& pa
     return (VersionBitsState(pindexPrev, params, Consensus::DEPLOYMENT_SEGWIT, versionbitscache) == THRESHOLD_ACTIVE);
 }
 
-// LitecoinCash: Hive: Check if Hive is activated at given point
+// Cascoin: Hive: Check if Hive is activated at given point
 bool IsHiveEnabled(const CBlockIndex* pindexPrev, const Consensus::Params& params)
 {
     LOCK(cs_main);
     return (VersionBitsState(pindexPrev, params, Consensus::DEPLOYMENT_HIVE, versionbitscache) == THRESHOLD_ACTIVE);
 }
 
-// LitecoinCash: Hive: Check if Hive 1.1 is activated at given point
+// Cascoin: Hive: Check if Hive 1.1 is activated at given point
 bool IsHive11Enabled(const CBlockIndex* pindexPrev, const Consensus::Params& params)
 {
     LOCK(cs_main);
     return (VersionBitsState(pindexPrev, params, Consensus::DEPLOYMENT_HIVE_1_1, versionbitscache) == THRESHOLD_ACTIVE);
 }
 
-// LitecoinCash: MinotaurX+Hive1.2: Check if MinotaurX is activated at given point
+// Cascoin: MinotaurX+Hive1.2: Check if MinotaurX is activated at given point
 bool IsMinotaurXEnabled(const CBlockIndex* pindexPrev, const Consensus::Params& params)
 {
     LOCK(cs_main);
     return (VersionBitsState(pindexPrev, params, Consensus::DEPLOYMENT_MINOTAURX, versionbitscache) == THRESHOLD_ACTIVE);
 }
 
-// LitecoinCash: Rialto: Check if Rialto is activated at given point
+// Cascoin: Rialto: Check if Rialto is activated at given point
 bool IsRialtoEnabled(const CBlockIndex* pindexPrev, const Consensus::Params& params) {
     LOCK(cs_main);
     return (VersionBitsState(pindexPrev, params, Consensus::DEPLOYMENT_RIALTO, versionbitscache) == THRESHOLD_ACTIVE);
 }
 
-// LitecoinCash: Rialto: Check if a nick is already registered (helper to provide access to White Pages DB)
+// Cascoin: Rialto: Check if a nick is already registered (helper to provide access to White Pages DB)
 bool RialtoNickExists(const std::string nick) {
     LOCK(cs_main);
     return pwhitepages->NickExists(nick);
 }
 
-// LitecoinCash: Rialto: Check if a nick is ours
+// Cascoin: Rialto: Check if a nick is ours
 bool RialtoNickIsLocal(const std::string nick) {
     LOCK(cs_main);
     return pmynicks->NickExists(nick);
 }
 
-// LitecoinCash: Rialto: Grab rialto pubkey for given nick, using global White Pages
+// Cascoin: Rialto: Grab rialto pubkey for given nick, using global White Pages
 bool RialtoGetGlobalPubKeyForNick(const std::string nick, std::string &pubKey) {
     LOCK(cs_main);
     return pwhitepages->GetPubKeyForNick(nick, pubKey);
 }
 
 /*
-// LitecoinCash: Rialto: Grab rialto pubkey for given nick, using local White Pages
+// Cascoin: Rialto: Grab rialto pubkey for given nick, using local White Pages
 bool RialtoGetLocalPubKeyForNick(const std::string nick, std::string &pubKey) {
     LOCK(cs_main);
     return pmynicks->GetPubKeyForNick(nick, pubKey);
 }
 */
 
-// LitecoinCash: Rialto: Get all local nick/pubkey pairs
+// Cascoin: Rialto: Get all local nick/pubkey pairs
 std::vector<std::pair<std::string, std::string>> RialtoGetAllLocal() {
     LOCK(cs_main);
     return pmynicks->GetAll();
 }
 
-// LitecoinCash: Rialto: Check if a given nick is blocked
+// Cascoin: Rialto: Check if a given nick is blocked
 bool RialtoNickIsBlocked(const std::string nick) {
     LOCK(cs_main);
     return pblockednicks->NickExists(nick);
 }
 
-// LitecoinCash: Rialto: Block given nick
+// Cascoin: Rialto: Block given nick
 bool RialtoBlockNick(const std::string nick) {
     LOCK(cs_main);
     return pblockednicks->SetPubKeyForNick(nick, "blocked");
 }
 
-// LitecoinCash: Rialto: Unblock given nick
+// Cascoin: Rialto: Unblock given nick
 bool RialtoUnblockNick(const std::string nick) {
     LOCK(cs_main);
     return pblockednicks->RemoveNick(nick);
 }
 
-// LitecoinCash: Rialto: Get all blocked nicks
+// Cascoin: Rialto: Get all blocked nicks
 std::vector<std::string> RialtoGetBlockedNicks() {
     LOCK(cs_main);
     std::vector<std::pair<std::string, std::string>> blockedNickPairs = pblockednicks->GetAll();
@@ -3277,7 +3277,7 @@ std::vector<std::string> RialtoGetBlockedNicks() {
     return blockedNicks;
 }
 
-// LitecoinCash: Rialto: Grab rialto privkey for given nick, using local White Pages and wallet.
+// Cascoin: Rialto: Grab rialto privkey for given nick, using local White Pages and wallet.
 // Should only be used to get a privkey into a buffer secured with a secure memory allocator.
 bool RialtoGetLocalPrivKeyForNick(const std::string nick, unsigned char* privKey) {
     LOCK(cs_main);
@@ -3312,7 +3312,7 @@ bool RialtoGetLocalPrivKeyForNick(const std::string nick, unsigned char* privKey
     return false;
 }
 
-// LitecoinCash: Hive: Get the well-rooted deterministic random string (see whitepaper section 4.1)
+// Cascoin: Hive: Get the well-rooted deterministic random string (see whitepaper section 4.1)
 std::string GetDeterministicRandString(const CBlockIndex* pindexPrev) {
     //LOCK(cs_main);  // Lock maybe not needed
 
@@ -3335,7 +3335,7 @@ std::string GetDeterministicRandString(const CBlockIndex* pindexPrev) {
     return deterministicRandString;
 }
 
-// LitecoinCash: Hive: Get tx by given hash, from a block at given chain height
+// Cascoin: Hive: Get tx by given hash, from a block at given chain height
 bool GetTxByHashAndHeight(const uint256 txHash, const int nHeight, CTransactionRef& txNew, CBlockIndex& foundAtOut, CBlockIndex* pindex, const Consensus::Params& consensusParams) {
     // Check that we are stepping back from a point AFTER the requested height
     if (pindex->nHeight < nHeight)
@@ -3440,13 +3440,13 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationSta
     assert(pindexPrev != nullptr);
     const int nHeight = pindexPrev->nHeight + 1;
 
-    // LitecoinCash: Hive: Check appropriate Hive or PoW target
+    // Cascoin: Hive: Check appropriate Hive or PoW target
     const Consensus::Params& consensusParams = params.GetConsensus();
     if (block.IsHiveMined(consensusParams)) {
         if (block.nBits != GetNextHiveWorkRequired(pindexPrev, consensusParams))
             return state.DoS(100, false, REJECT_INVALID, "bad-hive-diffbits", false, "incorrect hive difficulty in block");
     } else {
-        // LitecoinCash: MinotaurX+Hive1.2: Handle pow type
+        // Cascoin: MinotaurX+Hive1.2: Handle pow type
         if (IsMinotaurXEnabled(pindexPrev, consensusParams)) {
             POW_TYPE powType = block.GetPoWType();
 
@@ -3475,12 +3475,12 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationSta
         return state.Invalid(false, REJECT_INVALID, "time-too-old", "block's timestamp is too early");
 
     // Check timestamp
-    // LitecoinCash: MinotaurX+Hive1.2: Use alternative MAX_FUTURE_BLOCK_TIME after fork
+    // Cascoin: MinotaurX+Hive1.2: Use alternative MAX_FUTURE_BLOCK_TIME after fork
     int64_t max_future_block_time = IsMinotaurXEnabled(pindexPrev, consensusParams) ? MAX_FUTURE_BLOCK_TIME_MINOTAURX : MAX_FUTURE_BLOCK_TIME;
     if (block.GetBlockTime() > nAdjustedTime + max_future_block_time)
         return state.Invalid(false, REJECT_INVALID, "time-too-new", "block timestamp too far in the future");
     
-    // LitecoinCash: MinotaurX+Hive1.2: Handle nVersion differently after activation
+    // Cascoin: MinotaurX+Hive1.2: Handle nVersion differently after activation
     if (!IsMinotaurXEnabled(pindexPrev,consensusParams)) {
         // Reject outdated version blocks when 95% (75% on testnet) of the network has upgraded:
         // check for version 2, 3 and 4 upgrades

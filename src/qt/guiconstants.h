@@ -48,9 +48,9 @@ static const int MAX_URI_LENGTH = 255;
 /* Number of frames in spinner animation */
 #define SPINNER_FRAMES 36
 
-#define QAPP_ORG_NAME "Litecoin Cash"
-#define QAPP_ORG_DOMAIN "litecoinca.sh"
-#define QAPP_APP_NAME_DEFAULT "LitecoinCash-Qt"
-#define QAPP_APP_NAME_TESTNET "LitecoinCash-Qt-testnet"
+#define QAPP_ORG_NAME "Cascoin"
+#define QAPP_ORG_DOMAIN "cascoin.net"
+#define QAPP_APP_NAME_DEFAULT "Cascoin-Qt"
+#define QAPP_APP_NAME_TESTNET "Cascoin-Qt-testnet"
 
 #endif // BITCOIN_QT_GUICONSTANTS_H

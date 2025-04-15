@@ -14,8 +14,8 @@
 #include <qt/transactionfilterproxy.h>
 #include <qt/transactiontablemodel.h>
 #include <qt/walletmodel.h>
-#include <qt/hivetablemodel.h>  // LitecoinCash: Hive
-#include <qt/hivedialog.h>      // LitecoinCash: Hive: For formatLargeNoLocale()
+#include <qt/hivetablemodel.h>  // Cascoin: Hive
+#include <qt/hivedialog.h>      // Cascoin: Hive: For formatLargeNoLocale()
 
 #include <QAbstractItemDelegate>
 #include <QPainter>
@@ -144,7 +144,7 @@ OverviewPage::OverviewPage(const PlatformStyle *platformStyle, QWidget *parent) 
     connect(ui->labelWalletStatus, SIGNAL(clicked()), this, SLOT(handleOutOfSyncWarningClicks()));
     connect(ui->labelTransactionsStatus, SIGNAL(clicked()), this, SLOT(handleOutOfSyncWarningClicks()));
 
-    // LitecoinCash: Hive
+    // Cascoin: Hive
     cost = rewardsPaid = profit = 0;
 }
 
@@ -193,7 +193,7 @@ void OverviewPage::setBalance(const CAmount& balance, const CAmount& unconfirmed
     ui->labelWatchImmature->setVisible(showWatchOnlyImmature); // show watch-only immature balance
 }
 
-// LitecoinCash: Rialto
+// Cascoin: Rialto
 void OverviewPage::setEncryptionStatus(int status) {
     switch(status) {
         case WalletModel::Unencrypted:
@@ -258,10 +258,10 @@ void OverviewPage::setWalletModel(WalletModel *model)
         updateWatchOnlyLabels(model->haveWatchOnly());
         connect(model, SIGNAL(notifyWatchonlyChanged(bool)), this, SLOT(updateWatchOnlyLabels(bool)));
 
-        // LitecoinCash: Hive: Connect summary updater
+        // Cascoin: Hive: Connect summary updater
         connect(model, SIGNAL(newHiveSummaryAvailable()), this, SLOT(updateHiveSummary()));
 
-        // LitecoinCash: Rialto: Connect wallet unlock button
+        // Cascoin: Rialto: Connect wallet unlock button
         if (model->getEncryptionStatus() != WalletModel::Locked)
             ui->unlockWalletButton->hide();
         connect(model, SIGNAL(encryptionStatusChanged(int)), this, SLOT(setEncryptionStatus(int)));
@@ -271,7 +271,7 @@ void OverviewPage::setWalletModel(WalletModel *model)
     updateDisplayUnit();
 }
 
-// LitecoinCash: Hive: Update the hive summary
+// Cascoin: Hive: Update the hive summary
 void OverviewPage::updateHiveSummary() {
     if (walletModel && walletModel->getHiveTableModel()) {
         int immature, mature, dead, blocksFound;
@@ -322,7 +322,7 @@ void OverviewPage::updateDisplayUnit()
 
         ui->listTransactions->update();
 
-        // LitecoinCash: Hive: Update CAmounts in hive summary
+        // Cascoin: Hive: Update CAmounts in hive summary
         ui->rewardsPaidLabel->setText(
             BitcoinUnits::format(walletModel->getOptionsModel()->getDisplayUnit(), rewardsPaid)
             + " "
@@ -353,12 +353,12 @@ void OverviewPage::showOutOfSyncWarning(bool fShow)
     ui->labelTransactionsStatus->setVisible(fShow);
 }
 
-// LitecoinCash: Hive: Handle bee button click
+// Cascoin: Hive: Handle bee button click
 void OverviewPage::on_beeButton_clicked() {
     Q_EMIT beeButtonClicked();
 }
 
-// LitecoinCash: Rialto: Handle unlock wallet button click
+// Cascoin: Rialto: Handle unlock wallet button click
 void OverviewPage::on_unlockWalletButton_clicked() {
     if(walletModel)
         walletModel->requestUnlock(true);
