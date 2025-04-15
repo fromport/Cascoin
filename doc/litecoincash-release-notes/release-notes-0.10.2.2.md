@@ -51,7 +51,7 @@ is included in as separate release-notes.  This section describes the Cascoin-sp
 
 Protocol:
 - Scrypt Proof-of-Work instead of sha256d, however block hashes are sha256d for performance reasons.
-- Cascoin TCP port 9333 (instead of 62458)
+- Cascoin TCP port 9333 (instead of 22222)
 - RPC TCP port 62457 (instead of 8332)
 - Testnet TCP port 19333 (instead of 62456)
 - Testnet RPC TCP port 62455 (instead of 18332)

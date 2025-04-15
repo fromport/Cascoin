@@ -350,7 +350,7 @@ public:
         assert(genesis.hashMerkleRoot == uint256S("0xc72b13e3a223fdb212be39837f9b997f367eac7b076af3a5ce883db067fcf0d8"));
 
         vFixedSeeds.clear();
-        vSeeds.emplace_back("testseeds.mining-pool.io");
+        vSeeds.emplace_back("testseed.cascoin.net");
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1, 40);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1, 8);
