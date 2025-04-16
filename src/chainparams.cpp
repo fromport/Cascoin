@@ -113,12 +113,12 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_HIVE_1_1].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;    // Sept 20, 2020
 
         // Cascoin: MinotaurX+Hive1.2: Deployment
-        consensus.vDeployments[Consensus::DEPLOYMENT_MINOTAURX].bit = 7;
+        consensus.vDeployments[Consensus::DEPLOYMENT_MINOTAURX].bit = 2;
         consensus.vDeployments[Consensus::DEPLOYMENT_MINOTAURX].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;  // 1200 UTC Sept 16, 2021
         consensus.vDeployments[Consensus::DEPLOYMENT_MINOTAURX].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;  // Start + 1 year
 
         // Cascoin: Rialto: Deployment
-        consensus.vDeployments[Consensus::DEPLOYMENT_RIALTO].bit = 9;
+        consensus.vDeployments[Consensus::DEPLOYMENT_RIALTO].bit = 3;
         consensus.vDeployments[Consensus::DEPLOYMENT_RIALTO].nStartTime = 2000000000;               // Far future (2033)
         consensus.vDeployments[Consensus::DEPLOYMENT_RIALTO].nTimeout = 2000000000 + 31536000;      // Start + 1 year
 
@@ -273,7 +273,7 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_HIVE_1_1].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;    // Start + 1 year
 
         // Cascoin: MinotaurX+Hive1.2: Deployment
-        consensus.vDeployments[Consensus::DEPLOYMENT_MINOTAURX].bit = 7;
+        consensus.vDeployments[Consensus::DEPLOYMENT_MINOTAURX].bit = 2;
         consensus.vDeployments[Consensus::DEPLOYMENT_MINOTAURX].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;            // Feb 13, 2024 (but later than the above 4!)
         consensus.vDeployments[Consensus::DEPLOYMENT_MINOTAURX].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;   // Start + 1 year
 
