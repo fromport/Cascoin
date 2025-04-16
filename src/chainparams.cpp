@@ -89,8 +89,8 @@ public:
         consensus.nRuleChangeActivationThreshold = 6048; // 75% of 8064
         consensus.nMinerConfirmationWindow = 8064; // nPowTargetTimespan / nPowTargetSpacing * 4
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = 1746108117; // January 1, 2008
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = 2000000000; // December 31, 2008
+        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE; // January 1, 2008
+        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT; // December 31, 2008
 
         // Deployment of BIP68, BIP112, and BIP113.
         consensus.vDeployments[Consensus::DEPLOYMENT_CSV].bit = 0;
@@ -99,23 +99,23 @@ public:
 
         // Deployment of SegWit (BIP141, BIP143, and BIP147)
         consensus.vDeployments[Consensus::DEPLOYMENT_SEGWIT].bit = 1;
-        consensus.vDeployments[Consensus::DEPLOYMENT_SEGWIT].nStartTime = 1746108117; // January 28, 2017
-        consensus.vDeployments[Consensus::DEPLOYMENT_SEGWIT].nTimeout = 2000000000; // January 31st, 2018
+        consensus.vDeployments[Consensus::DEPLOYMENT_SEGWIT].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE; // January 28, 2017
+        consensus.vDeployments[Consensus::DEPLOYMENT_SEGWIT].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT; // January 31st, 2018
 
         // Cascoin: Hive: Deployment
         consensus.vDeployments[Consensus::DEPLOYMENT_HIVE].bit = 7;
-        consensus.vDeployments[Consensus::DEPLOYMENT_HIVE].nStartTime = 1746108117; // Dec 26, 2018
-        consensus.vDeployments[Consensus::DEPLOYMENT_HIVE].nTimeout = 2000000000; // Dec 26, 2019
+        consensus.vDeployments[Consensus::DEPLOYMENT_HIVE].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE; // Dec 26, 2018
+        consensus.vDeployments[Consensus::DEPLOYMENT_HIVE].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT; // Dec 26, 2019
 
         // Cascoin: Hive 1.1: Deployment
         consensus.vDeployments[Consensus::DEPLOYMENT_HIVE_1_1].bit = 9;
-        consensus.vDeployments[Consensus::DEPLOYMENT_HIVE_1_1].nStartTime = 1746108117;  // Sept 20, 2019
-        consensus.vDeployments[Consensus::DEPLOYMENT_HIVE_1_1].nTimeout = 1600560000;    // Sept 20, 2020
+        consensus.vDeployments[Consensus::DEPLOYMENT_HIVE_1_1].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;  // Sept 20, 2019
+        consensus.vDeployments[Consensus::DEPLOYMENT_HIVE_1_1].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;    // Sept 20, 2020
 
         // Cascoin: MinotaurX+Hive1.2: Deployment
         consensus.vDeployments[Consensus::DEPLOYMENT_MINOTAURX].bit = 7;
-        consensus.vDeployments[Consensus::DEPLOYMENT_MINOTAURX].nStartTime = 1746108117;  // 1200 UTC Sept 16, 2021
-        consensus.vDeployments[Consensus::DEPLOYMENT_MINOTAURX].nTimeout = 2000000000;  // Start + 1 year
+        consensus.vDeployments[Consensus::DEPLOYMENT_MINOTAURX].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;  // 1200 UTC Sept 16, 2021
+        consensus.vDeployments[Consensus::DEPLOYMENT_MINOTAURX].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;  // Start + 1 year
 
         // Cascoin: Rialto: Deployment
         consensus.vDeployments[Consensus::DEPLOYMENT_RIALTO].bit = 9;
@@ -249,38 +249,38 @@ public:
         consensus.nRuleChangeActivationThreshold = 15; // Require 75% of last 20 blocks to activate rulechanges
         consensus.nMinerConfirmationWindow = 20;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = 1199145601; // January 1, 2008
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = 1230767999; // December 31, 2008
+        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE; // January 1, 2008
+        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT; // December 31, 2008
 
         // Deployment of BIP68, BIP112, and BIP113.
         consensus.vDeployments[Consensus::DEPLOYMENT_CSV].bit = 0;
-        consensus.vDeployments[Consensus::DEPLOYMENT_CSV].nStartTime = 1707828286;                  // Feb 13, 2024
-        consensus.vDeployments[Consensus::DEPLOYMENT_CSV].nTimeout = 1707828286 + 31536000;         // Start + 1 year
+        consensus.vDeployments[Consensus::DEPLOYMENT_CSV].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;                  // Feb 13, 2024
+        consensus.vDeployments[Consensus::DEPLOYMENT_CSV].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;         // Start + 1 year
 
         // Deployment of SegWit (BIP141, BIP143, and BIP147)
         consensus.vDeployments[Consensus::DEPLOYMENT_SEGWIT].bit = 1;
-        consensus.vDeployments[Consensus::DEPLOYMENT_SEGWIT].nStartTime = 1707828286;               // Feb 13, 2024
-        consensus.vDeployments[Consensus::DEPLOYMENT_SEGWIT].nTimeout = 1707828286 + 31536000;      // Start + 1 year
+        consensus.vDeployments[Consensus::DEPLOYMENT_SEGWIT].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;               // Feb 13, 2024
+        consensus.vDeployments[Consensus::DEPLOYMENT_SEGWIT].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;      // Start + 1 year
 
         // Cascoin: Hive: Deployment
         consensus.vDeployments[Consensus::DEPLOYMENT_HIVE].bit = 7;
-        consensus.vDeployments[Consensus::DEPLOYMENT_HIVE].nStartTime = 1707828286;                 // Feb 13, 2024
-        consensus.vDeployments[Consensus::DEPLOYMENT_HIVE].nTimeout = 1707828286 + 31536000;        // Start + 1 year
+        consensus.vDeployments[Consensus::DEPLOYMENT_HIVE].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;                 // Feb 13, 2024
+        consensus.vDeployments[Consensus::DEPLOYMENT_HIVE].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;        // Start + 1 year
 
         // Cascoin: Hive 1.1: Deployment
         consensus.vDeployments[Consensus::DEPLOYMENT_HIVE_1_1].bit = 9;
-        consensus.vDeployments[Consensus::DEPLOYMENT_HIVE_1_1].nStartTime = 1707828695;             // Feb 13, 2024 (but later than the above 3)
-        consensus.vDeployments[Consensus::DEPLOYMENT_HIVE_1_1].nTimeout = 1707828695 + 31536000;    // Start + 1 year
+        consensus.vDeployments[Consensus::DEPLOYMENT_HIVE_1_1].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;             // Feb 13, 2024 (but later than the above 3)
+        consensus.vDeployments[Consensus::DEPLOYMENT_HIVE_1_1].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;    // Start + 1 year
 
         // Cascoin: MinotaurX+Hive1.2: Deployment
         consensus.vDeployments[Consensus::DEPLOYMENT_MINOTAURX].bit = 7;
-        consensus.vDeployments[Consensus::DEPLOYMENT_MINOTAURX].nStartTime = 1707829366;            // Feb 13, 2024 (but later than the above 4!)
-        consensus.vDeployments[Consensus::DEPLOYMENT_MINOTAURX].nTimeout = 1707829366 + 31536000;   // Start + 1 year
+        consensus.vDeployments[Consensus::DEPLOYMENT_MINOTAURX].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;            // Feb 13, 2024 (but later than the above 4!)
+        consensus.vDeployments[Consensus::DEPLOYMENT_MINOTAURX].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;   // Start + 1 year
 
         // Cascoin: Rialto: Deployment
         consensus.vDeployments[Consensus::DEPLOYMENT_RIALTO].bit = 9;
-        consensus.vDeployments[Consensus::DEPLOYMENT_RIALTO].nStartTime = 1707923363;               // Feb 14, 2024
-        consensus.vDeployments[Consensus::DEPLOYMENT_RIALTO].nTimeout = 1707923363 + 31536000;      // Start + 1 year
+        consensus.vDeployments[Consensus::DEPLOYMENT_RIALTO].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;               // Feb 14, 2024
+        consensus.vDeployments[Consensus::DEPLOYMENT_RIALTO].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;      // Start + 1 year
 
         // Cascoin fields
         consensus.powForkTime = 1707828195;                 // Time of PoW hash method change (block 50)
