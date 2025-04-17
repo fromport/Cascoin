@@ -78,7 +78,7 @@ public:
         consensus.nSubsidyHalvingInterval = 840000;
         consensus.BIP16Height = 0; // 87afb798a3ad9378fcd56123c81fb31cfd9a8df4719b9774d71730c16315a092 - October 1, 2012
         consensus.BIP34Height = 0;
-        consensus.BIP34Hash = uint256S("e03ffe0d585f32f226bbaa500e7c96fbe20677da4707da71ebc19ce480e6ebe8");
+        consensus.BIP34Hash = uint256S("00000de2f360327f8be16db496f3b89dc456280426325597a7c1a066f7a5c915");
         consensus.BIP65Height = 0; // bab3041e8977e0dc3eeff63fe707b92bde1dd449d8efafb248c27c8264cc311a
         consensus.BIP66Height = 0; // 7aceee012833fa8952f8835d8b1b3ae233cd6ab08fdb27a771d2bd7bdc491894
         consensus.powLimit = uint256S("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
@@ -238,7 +238,7 @@ public:
         consensus.nSubsidyHalvingInterval = 840000;
         consensus.BIP16Height = 1; // always enforce BIP16
         consensus.BIP34Height = 1;
-        consensus.BIP34Hash = uint256S("0x00000025140b1236292bc21b2afa9f3bd5c3d4a8cc1d0e3d1ba0ba7fdefc92eb"); // Block hash at block 48
+        consensus.BIP34Hash = uint256S("00000025140b1236292bc21b2afa9f3bd5c3d4a8cc1d0e3d1ba0ba7fdefc92eb"); // Block hash at block 48
         consensus.BIP65Height = 1;
         consensus.BIP66Height = 1;
         consensus.powLimit = uint256S("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
