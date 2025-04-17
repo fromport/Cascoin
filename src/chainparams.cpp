@@ -214,7 +214,7 @@ public:
 
         checkpointData = {
             {
-                {0, uint256S("0x00000666c27e333cad657bd3b90968c2e45d0ffd20da5aea32568c6e5a0c9e38")}
+                {0, uint256S("0x00000de2f360327f8be16db496f3b89dc456280426325597a7c1a066f7a5c915")}
             }
         };
 
@@ -369,7 +369,7 @@ public:
 
         checkpointData = (CCheckpointData) {
             {
-                {0, uint256S("0x00000b5096d31f88b91d4589ce5c10e40771c506e763242ff4e12c0595bc0f0a")}
+                {0, uint256S("0x00000af9cfc0bc5e04afbd67a6e908f0b4be45f347ad055fb0874f282a4bf7ee")}
             }
         };
 
@@ -449,7 +449,7 @@ public:
 
         checkpointData = {
             {
-                {0, uint256S("0xc72b13e3a223fdb212be39837f9b997f367eac7b076af3a5ce883db067fcf0d8")}
+                {0, uint256S("0x1386cda6706b15d776b4439500766906f15176c63f5033272be2604658fdc118")}
             }
         };
 
