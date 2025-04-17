@@ -78,7 +78,7 @@ public:
         consensus.nSubsidyHalvingInterval = 840000;
         consensus.BIP16Height = 0; // 87afb798a3ad9378fcd56123c81fb31cfd9a8df4719b9774d71730c16315a092 - October 1, 2012
         consensus.BIP34Height = 0;
-        consensus.BIP34Hash = uint256S("fa09d204a83a768ed5a7c8d441fa62f2043abf420cff1226c7b4329aeb9d51cf");
+        consensus.BIP34Hash = uint256S("e03ffe0d585f32f226bbaa500e7c96fbe20677da4707da71ebc19ce480e6ebe8");
         consensus.BIP65Height = 0; // bab3041e8977e0dc3eeff63fe707b92bde1dd449d8efafb248c27c8264cc311a
         consensus.BIP66Height = 0; // 7aceee012833fa8952f8835d8b1b3ae233cd6ab08fdb27a771d2bd7bdc491894
         consensus.powLimit = uint256S("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
@@ -123,12 +123,12 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_RIALTO].nTimeout = 2000000000 + 31536000;      // Start + 1 year
 
         // Cascoin fields
-        consensus.powForkTime = 1518982404;                 // Time of PoW hash method change
+        consensus.powForkTime = 0;                 // Time of PoW hash method change
         consensus.lastScryptBlock = 0;                // Height of last scrypt block
         consensus.powLimitSHA = uint256S("00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff");   // Initial hash target at fork
         consensus.slowStartBlocks = 2000;                   // Scale post-fork block reward up over this many blocks
         consensus.premineAmount = 0;                   // Premine amount (less than 1% of issued currency at fork time)
-        std::vector<unsigned char> vch = ParseHex("76a914c9f3305556963e2976ccf3348b89a6cc736b6a4e88ac");
+        std::vector<unsigned char> vch = ParseHex("cas1qv2drkwum2ytsl7zzx048ss66a9p7jht7tgcrck");
         consensus.premineOutputScript = CScript(vch.begin(), vch.end());	// Output script for premine block (CashierDaZEsyBQkuvv4c2uPZFx6m2XTgT)
         consensus.totalMoneySupplyHeight = 6215968;         // Height at which TMS is reached, do not issue rewards past this point
 
@@ -283,9 +283,9 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_RIALTO].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;      // Start + 1 year
 
         // Cascoin fields
-        consensus.powForkTime = 1707828195;                 // Time of PoW hash method change (block 50)
-        consensus.lastScryptBlock = 10;                     // Height of last scrypt block
-        consensus.powLimitSHA = uint256S("000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");   // Initial hash target at fork
+        consensus.powForkTime = 0;                 // Time of PoW hash method change (block 50)
+        consensus.lastScryptBlock = 0;                     // Height of last scrypt block
+        consensus.powLimitSHA = uint256S("00000af9cfc0bc5e04afbd67a6e908f0b4be45f347ad055fb0874f282a4bf7ee");   // Initial hash target at fork
         consensus.slowStartBlocks = 40;                     // Scale post-fork block reward up over this many blocks
         consensus.premineAmount = 0;                   // Premine amount (less than 1% of issued currency at fork time)
         std::vector<unsigned char> vch = ParseHex("76a91424af51d38b740a6dc2868dfd70fc16d76901e1e088ac");
@@ -389,11 +389,11 @@ public:
     CRegTestParams() {
         strNetworkID = "regtest";
         consensus.nSubsidyHalvingInterval = 150;
-        consensus.BIP16Height = 1; // always enforce P2SH BIP16 on regtest
-        consensus.BIP34Height = 1; // BIP34 has not activated on regtest (far in the future so block v1 are not rejected in tests)
+        consensus.BIP16Height = 0; // always enforce P2SH BIP16 on regtest
+        consensus.BIP34Height = 0; // BIP34 has not activated on regtest (far in the future so block v1 are not rejected in tests)
         consensus.BIP34Hash = uint256();
-        consensus.BIP65Height = 1; // BIP65 activated on regtest (Used in rpc activation tests)
-        consensus.BIP66Height = 1; // BIP66 activated on regtest (Used in rpc activation tests)
+        consensus.BIP65Height = 0; // BIP65 activated on regtest (Used in rpc activation tests)
+        consensus.BIP66Height = 0; // BIP66 activated on regtest (Used in rpc activation tests)
         consensus.powLimit = uint256S("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         consensus.nPowTargetTimespan = 3.5 * 24 * 60 * 60; // two weeks
         consensus.nPowTargetSpacing = 2.5 * 60;
