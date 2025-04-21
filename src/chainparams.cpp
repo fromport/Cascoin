@@ -130,7 +130,7 @@ public:
         consensus.premineAmount = 0;                   // Premine amount (less than 1% of issued currency at fork time)
 //        std::vector<unsigned char> vch = ParseHex("HF2sgFXX5NgDojHhTPCTFknc6bqh3xCd8u");
 //        consensus.premineOutputScript = CScript(vch.begin(), vch.end());	// Output script for premine block (CashierDaZEsyBQkuvv4c2uPZFx6m2XTgT)
-        consensus.premineOutputScript.clear();
+        consensus.premineOutputScript = CScript();
         consensus.totalMoneySupplyHeight = 6215968;         // Height at which TMS is reached, do not issue rewards past this point
 
         // Cascoin: Hive: Consensus Fields
@@ -287,10 +287,11 @@ public:
         consensus.powForkTime = 0;                 // Time of PoW hash method change (block 50)
         consensus.lastScryptBlock = 0;                     // Height of last scrypt block
         consensus.powLimitSHA = uint256S("00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff");   // Initial hash target at fork
-        consensus.slowStartBlocks = 40;                     // Scale post-fork block reward up over this many blocks
+        consensus.slowStartBlocks = 0;                   // Scale post-fork block reward up over this many blocks
         consensus.premineAmount = 0;                   // Premine amount (less than 1% of issued currency at fork time)
-        std::vector<unsigned char> vch = ParseHex("76a91424af51d38b740a6dc2868dfd70fc16d76901e1e088ac");
-        consensus.premineOutputScript = CScript(vch.begin(), vch.end());	// Output script for premine block (tAGaQ7rk3NE7etu3bU6yAJF3KSKeDhTHry)
+//        std::vector<unsigned char> vch = ParseHex("HF2sgFXX5NgDojHhTPCTFknc6bqh3xCd8u");
+//        consensus.premineOutputScript = CScript(vch.begin(), vch.end());	// Output script for premine block (CashierDaZEsyBQkuvv4c2uPZFx6m2XTgT)
+        consensus.premineOutputScript = CScript();
         consensus.totalMoneySupplyHeight = 6215968;         // Height at which TMS is reached, do not issue rewards past this point (Note, not accurate value for testnet)
 
         // Cascoin: Hive: Consensus Fields
@@ -416,10 +417,11 @@ public:
         consensus.powForkTime = 1543765622;                 // Time of PoW hash method change (block 100)
         consensus.lastScryptBlock = 200;                    // Height of last scrypt block
         consensus.powLimitSHA = uint256S("000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");   // Initial hash target at fork
-        consensus.slowStartBlocks = 40;                     // Scale post-fork block reward up over this many blocks
-        consensus.premineAmount = 000000;                   // Premine amount (less than 1% of issued currency at fork time)
-        std::vector<unsigned char> vch = ParseHex("76a91424af51d38b740a6dc2868dfd70fc16d76901e1e088ac");
-        consensus.premineOutputScript = CScript(vch.begin(), vch.end());	// Output script for premine block (tAGaQ7rk3NE7etu3bU6yAJF3KSKeDhTHry)
+        consensus.slowStartBlocks = 0;                   // Scale post-fork block reward up over this many blocks
+        consensus.premineAmount = 0;                   // Premine amount (less than 1% of issued currency at fork time)
+//        std::vector<unsigned char> vch = ParseHex("HF2sgFXX5NgDojHhTPCTFknc6bqh3xCd8u");
+//        consensus.premineOutputScript = CScript(vch.begin(), vch.end());	// Output script for premine block (CashierDaZEsyBQkuvv4c2uPZFx6m2XTgT)
+        consensus.premineOutputScript = CScript();
         consensus.totalMoneySupplyHeight = 6215968;         // Height at which TMS is reached, do not issue rewards past this point (Note, not accurate value for testnet)
         consensus.hiveNonceMarker = 192;                    // Nonce marker for hivemined blocks
 
