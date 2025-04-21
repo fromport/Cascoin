@@ -127,9 +127,10 @@ public:
         consensus.lastScryptBlock = 0;                // Height of last scrypt block
         consensus.powLimitSHA = uint256S("00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff");   // Initial hash target at fork
         consensus.slowStartBlocks = 0;                   // Scale post-fork block reward up over this many blocks
-//        consensus.premineAmount = 500;                   // Premine amount (less than 1% of issued currency at fork time)
+        consensus.premineAmount = 0;                   // Premine amount (less than 1% of issued currency at fork time)
 //        std::vector<unsigned char> vch = ParseHex("HF2sgFXX5NgDojHhTPCTFknc6bqh3xCd8u");
 //        consensus.premineOutputScript = CScript(vch.begin(), vch.end());	// Output script for premine block (CashierDaZEsyBQkuvv4c2uPZFx6m2XTgT)
+        consensus.premineOutputScript.clear();
         consensus.totalMoneySupplyHeight = 6215968;         // Height at which TMS is reached, do not issue rewards past this point
 
         // Cascoin: Hive: Consensus Fields
