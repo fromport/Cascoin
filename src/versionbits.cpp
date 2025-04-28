@@ -6,63 +6,39 @@
 #include <consensus/params.h>
 #include <validation.h> // Cascoin: MinotaurX+Hive1.2: For IsMinotaurXEnabled
 
-static const VBDeploymentInfo VersionBitsDeploymentInfo[Consensus::MAX_VERSION_BITS_DEPLOYMENTS] = {
-    // testdummy
+const struct VBDeploymentInfo VersionBitsDeploymentInfo[Consensus::MAX_VERSION_BITS_DEPLOYMENTS] = {
     {
-        /* name       = */ "testdummy",
-        /* bit        = */ DEPLOYMENT_TESTDUMMY,
-        /* startTime  = */ Consensus::BIP9Deployment::ALWAYS_ACTIVE,
-        /* timeout    = */ Consensus::BIP9Deployment::NO_TIMEOUT,
-        /* gbt_force  = */ true,
+        /*.name =*/ "testdummy",
+        /*.gbt_force =*/ true,
     },
-    // csv
     {
-        /* name       = */ "csv",
-        /* bit        = */ DEPLOYMENT_CSV,
-        /* startTime  = */ Consensus::BIP9Deployment::ALWAYS_ACTIVE,
-        /* timeout    = */ Consensus::BIP9Deployment::NO_TIMEOUT,
-        /* gbt_force  = */ true,
+        /*.name =*/ "csv",
+        /*.gbt_force =*/ true,
     },
-    // segwit
     {
-        /* name       = */ "segwit",
-        /* bit        = */ DEPLOYMENT_SEGWIT,
-        /* startTime  = */ Consensus::BIP9Deployment::ALWAYS_ACTIVE,
-        /* timeout    = */ Consensus::BIP9Deployment::NO_TIMEOUT,
-        /* gbt_force  = */ true,
+        /*.name =*/ "segwit",
+        /*.gbt_force =*/ true,
     },
-    // hive
+    // Cascoin: Hive: Deployment
     {
-        /* name       = */ "hive",
-        /* bit        = */ DEPLOYMENT_HIVE,
-        /* startTime  = */ Consensus::BIP9Deployment::ALWAYS_ACTIVE,
-        /* timeout    = */ Consensus::BIP9Deployment::NO_TIMEOUT,
-        /* gbt_force  = */ true,
+        /*.name =*/ "hive",
+        /*.gbt_force =*/ true,
     },
-    // hive_1_1
+    // Cascoin: Hive: Deployment of 1.1
     {
-        /* name       = */ "hive_1_1",
-        /* bit        = */ DEPLOYMENT_HIVE_1_1,
-        /* startTime  = */ Consensus::BIP9Deployment::ALWAYS_ACTIVE,
-        /* timeout    = */ Consensus::BIP9Deployment::NO_TIMEOUT,
-        /* gbt_force  = */ true,
+        /*.name =*/ "hive_1_1",
+        /*.gbt_force =*/ true,
     },
-    // minotaurx
+    // Cascoin: MinotaurX+Hive1.2: Deployment
     {
-        /* name       = */ "minotaurx_and_hive_1_2",
-        /* bit        = */ DEPLOYMENT_MINOTAURX,
-        /* startTime  = */ Consensus::BIP9Deployment::ALWAYS_ACTIVE,
-        /* timeout    = */ Consensus::BIP9Deployment::NO_TIMEOUT,
-        /* gbt_force  = */ true,
+        /*.name =*/ "minotaurx_and_hive_1_2",
+        /*.gbt_force =*/ true,
     },
-    // rialto
+    // Cascoin: Rialto: Deployment
     {
-        /* name       = */ "rialto",
-        /* bit        = */ DEPLOYMENT_RIALTO,
-        /* startTime  = */ 2000000000,
-        /* timeout    = */ 2000000000 + 31536000,
-        /* gbt_force  = */ true,
-    },
+        /*.name =*/ "rialto",
+        /*.gbt_force =*/ true,
+    }
 };
 
 ThresholdState AbstractThresholdConditionChecker::GetStateFor(const CBlockIndex* pindexPrev, const Consensus::Params& params, ThresholdConditionCache& cache) const
