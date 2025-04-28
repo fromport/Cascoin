@@ -126,6 +126,9 @@ void CBlockIndex::BuildSkip()
 // their own block plus that of the PoW block behind them
 arith_uint256 GetBlockProof(const CBlockIndex& block)
 {
+
+    if (&block == nullptr)
+    return 0;
     const Consensus::Params& consensusParams = Params().GetConsensus();
     bool verbose = false;//LogAcceptCategory(BCLog::HIVE);
 
