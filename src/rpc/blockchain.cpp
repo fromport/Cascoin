@@ -82,6 +82,10 @@ double GetDifficulty(const CChain& chain, const CBlockIndex* blockindex, bool ge
         if (IsMinotaurXEnabled(blockindex, consensusParams)) {
             while (blockindex->GetBlockHeader().IsHiveMined(consensusParams) || blockindex->GetBlockHeader().GetPoWType() != powType) {
                 assert (blockindex->pprev);
+                if (blockindex->pprev == nullptr) {
+                    // If no previous block exists, return 0 or handle accordingly
+                    return 0;
+                }
                 blockindex = blockindex->pprev;
                 if (!IsMinotaurXEnabled(blockindex, consensusParams)) {
                     return 0;
