@@ -237,7 +237,7 @@ public:
         strNetworkID = "test";
         consensus.nSubsidyHalvingInterval = 840000;
         consensus.BIP16Height = 0; // always enforce BIP16
-        consensus.BIP34Height = 0;
+        consensus.BIP34Height = 1;
         consensus.BIP34Hash = uint256S("0x00000928be1f2ccc448590307e4f6e165702244b5be0f79c08e48d1fc7128c82"); // Block hash at block 48
         consensus.BIP65Height = 0;
         consensus.BIP66Height = 0;
@@ -279,7 +279,7 @@ public:
 
         // Cascoin: Rialto: Deployment
         consensus.vDeployments[Consensus::DEPLOYMENT_RIALTO].bit = 8;
-        consensus.vDeployments[Consensus::DEPLOYMENT_RIALTO].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;               // Feb 14, 2024
+        consensus.vDeployments[Consensus::DEPLOYMENT_RIALTO].nStartTime = 2000000000;               // Feb 14, 2024
         consensus.vDeployments[Consensus::DEPLOYMENT_RIALTO].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;      // Start + 1 year
 
         // Cascoin fields
