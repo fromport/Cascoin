@@ -279,9 +279,6 @@ public:
 
     CBlockHeader GetBlockHeader() const
     {
-        if (this == nullptr)
-        throw std::runtime_error("GetBlockHeader called on nullptr");
-        
         CBlockHeader block;
         block.nVersion       = nVersion;
         if (pprev)
