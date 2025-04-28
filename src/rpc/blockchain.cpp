@@ -81,7 +81,7 @@ double GetDifficulty(const CChain& chain, const CBlockIndex* blockindex, bool ge
         // Cascoin: MinotaurX+Hive1.2: Skip over incorrect powTypes
         if (IsMinotaurXEnabled(blockindex, consensusParams)) {
             while (blockindex->GetBlockHeader().IsHiveMined(consensusParams) || blockindex->GetBlockHeader().GetPoWType() != powType) {
-                assert (blockindex->pprev);
+               // assert (blockindex->pprev);
                 if (blockindex->pprev == nullptr) {
                     // If no previous block exists, return 0 or handle accordingly
                     return 0;
