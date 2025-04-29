@@ -154,9 +154,6 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         );
 
     nHeight = pindexPrev->nHeight + 1;
-    LogPrintf("### Coinbase scriptSig: %s\n", HexStr(pblock->vtx[0]->vin[0].scriptSig.begin(), pblock->vtx[0]->vin[0].scriptSig.end()));
-    LogPrintf("### Block height used: %d\n", nHeight);
-
 
     pblock->nVersion = ComputeBlockVersion(pindexPrev, chainparams.GetConsensus());
 
