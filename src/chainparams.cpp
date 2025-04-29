@@ -77,7 +77,7 @@ public:
         strNetworkID = "main";
         consensus.nSubsidyHalvingInterval = 840000;
         consensus.BIP16Height = 0; // 87afb798a3ad9378fcd56123c81fb31cfd9a8df4719b9774d71730c16315a092 - October 1, 2012
-        consensus.BIP34Height = 1; // 000000000019d6 - January 3, 2009
+        consensus.BIP34Height = 2; // 000000000019d6 - January 3, 2009
         consensus.BIP34Hash = uint256S("0x00000928be1f2ccc448590307e4f6e165702244b5be0f79c08e48d1fc7128c82");
         consensus.BIP65Height = 0; // bab3041e8977e0dc3eeff63fe707b92bde1dd449d8efafb248c27c8264cc311a
         consensus.BIP66Height = 0; // 7aceee012833fa8952f8835d8b1b3ae233cd6ab08fdb27a771d2bd7bdc491894
