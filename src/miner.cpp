@@ -208,7 +208,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         // 1 vin with empty prevout
         coinbaseTx.vin.resize(1);
         coinbaseTx.vin[0].prevout.SetNull();
-        coinbaseTx.vin[0].scriptSig = CScript() << nHeight << OP_0;
+        coinbaseTx.vin[0].scriptSig = CScript() << CScriptNum(nHeight);
 
         // vout[0]: Hive proof
         coinbaseTx.vout.resize(2);
@@ -242,7 +242,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
         coinbaseTx.vout[0].nValue += nFees;
 
-        coinbaseTx.vin[0].scriptSig = CScript() << nHeight << OP_0;
+        coinbaseTx.vin[0].scriptSig = CScript() << CScriptNum(nHeight);
         pblock->vtx[0] = MakeTransactionRef(std::move(coinbaseTx));
         pblocktemplate->vchCoinbaseCommitment = GenerateCoinbaseCommitment(*pblock, pindexPrev, chainparams.GetConsensus());
         pblocktemplate->vTxFees[0] = -nFees;
