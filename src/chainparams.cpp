@@ -82,6 +82,7 @@ public:
         consensus.BIP65Height = 0; // bab3041e8977e0dc3eeff63fe707b92bde1dd449d8efafb248c27c8264cc311a
         consensus.BIP66Height = 0; // 7aceee012833fa8952f8835d8b1b3ae233cd6ab08fdb27a771d2bd7bdc491894
         consensus.powLimit = uint256S("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+        consensus.minHiveCheckBlock = 100
         consensus.nPowTargetTimespan = 3.5 * 24 * 60 * 60; // 3.5 days
         consensus.nPowTargetSpacing = 2.5 * 60;
         consensus.fPowAllowMinDifficultyBlocks = false;
@@ -104,17 +105,17 @@ public:
 
         // Cascoin: Hive: Deployment
         consensus.vDeployments[Consensus::DEPLOYMENT_HIVE].bit = 7;
-        consensus.vDeployments[Consensus::DEPLOYMENT_HIVE].nStartTime = 1745921583; // Dec 26, 2018
+        consensus.vDeployments[Consensus::DEPLOYMENT_HIVE].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE; // Dec 26, 2018
         consensus.vDeployments[Consensus::DEPLOYMENT_HIVE].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT; // Dec 26, 2019
 
         // Cascoin: Hive 1.1: Deployment
         consensus.vDeployments[Consensus::DEPLOYMENT_HIVE_1_1].bit = 9;
-        consensus.vDeployments[Consensus::DEPLOYMENT_HIVE_1_1].nStartTime = 1745921583;  // Sept 20, 2019
+        consensus.vDeployments[Consensus::DEPLOYMENT_HIVE_1_1].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;  // Sept 20, 2019
         consensus.vDeployments[Consensus::DEPLOYMENT_HIVE_1_1].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;    // Sept 20, 2020
 
         // Cascoin: MinotaurX+Hive1.2: Deployment
         consensus.vDeployments[Consensus::DEPLOYMENT_MINOTAURX].bit = 7;
-        consensus.vDeployments[Consensus::DEPLOYMENT_MINOTAURX].nStartTime = 1745921583;  // 1200 UTC Sept 16, 2021
+        consensus.vDeployments[Consensus::DEPLOYMENT_MINOTAURX].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;  // 1200 UTC Sept 16, 2021
         consensus.vDeployments[Consensus::DEPLOYMENT_MINOTAURX].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;  // Start + 1 year
 
         // Cascoin: Rialto: Deployment
