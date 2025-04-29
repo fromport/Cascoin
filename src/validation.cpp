@@ -1144,6 +1144,14 @@ bool ReadBlockFromDisk(CBlock& block, const CBlockIndex* pindex, const Consensus
 
 CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams)
 {
+    // Cascoin: No subsidy at block 1
+    if (nHeight == 0) {
+        return 0;
+    }
+    if (nHeight == 1) {
+        return 50 * COIN;
+    }
+
     // Cascoin: Issue premine on 1st post-fork block
     if (nHeight == consensusParams.lastScryptBlock + 1)
         return consensusParams.premineAmount * COIN;
