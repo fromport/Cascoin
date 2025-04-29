@@ -53,9 +53,9 @@ static const bool DEFAULT_WHITELISTFORCERELAY = true;
 /** Default for -minrelaytxfee, minimum relay fee for transactions */
 static const unsigned int DEFAULT_MIN_RELAY_TX_FEE = 100000 / COIN_SCALE / 10; 	    // Cascoin: Lowered fees
 //! -maxtxfee default
-static const CAmount DEFAULT_TRANSACTION_MAXFEE = 0.1 * COIN * COIN_SCALE;       	// Cascoin: Account for coin scale
+static const CAmount DEFAULT_TRANSACTION_MAXFEE = 0.1 * COIN;       	// Cascoin: Account for coin scale
 //! Discourage users to set fees higher than this amount (in satoshis) per kB
-static const CAmount HIGH_TX_FEE_PER_KB = 0.01 * COIN * COIN_SCALE;              	// Cascoin: Account for coin scale
+static const CAmount HIGH_TX_FEE_PER_KB = 0.01 * COIN;              	// Cascoin: Account for coin scale
 //! -maxtxfee will warn if called with a higher fee than this amount (in satoshis)
 static const CAmount HIGH_MAX_TX_FEE = 100 * HIGH_TX_FEE_PER_KB;
 /** Default for -limitancestorcount, max number of in-mempool ancestors */
