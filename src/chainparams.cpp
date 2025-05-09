@@ -76,7 +76,8 @@ public:
     CMainParams() {
         strNetworkID = "main";
         consensus.nSubsidyHalvingInterval = 840000;
-        consensus.BIP16Height = 0; // 87afb798a3ad9378fcd56123c81fb31cfd9a8df4719b9774d71730c16315a092 - October 1, 2012
+        consensus.BIP16Height = 1; // Start enforcing at height 1 (not genesis)
+        consensus.BIP16Exception = uint256S("0x00000928be1f2ccc448590307e4f6e165702244b5be0f79c08e48d1fc7128c82"); // Genesis block exempt from BIP16
         consensus.BIP34Height = 2; // 000000000019d6 - January 3, 2009
         consensus.BIP34Hash = uint256S("0x00000928be1f2ccc448590307e4f6e165702244b5be0f79c08e48d1fc7128c82");
         consensus.BIP65Height = 0; // bab3041e8977e0dc3eeff63fe707b92bde1dd449d8efafb248c27c8264cc311a
@@ -123,13 +124,13 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_RIALTO].nTimeout = 2000000000 + 31536000;      // Start + 1 year
 
         // Cascoin fields
+        // Disable premining completely to avoid validation issues
         consensus.powForkTime = 0;                 // Time of PoW hash method change
         consensus.lastScryptBlock = 0;                // Height of last scrypt block
-        consensus.powLimitSHA = uint256S("00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff");   // Initial hash target at fork
+        consensus.powLimitSHA = uint256S("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");   // Initial hash target at fork
         consensus.slowStartBlocks = 0;                   // Scale post-fork block reward up over this many blocks
-        consensus.premineAmount = 0;                   // Premine amount (less than 1% of issued currency at fork time)
-        std::vector<unsigned char> vch = ParseHex("76a9145d613503928485276a83a4dc6abf22b8ce7fb16488ac");
-        consensus.premineOutputScript = CScript(vch.begin(), vch.end());	// Output script for premine block (CashierDaZEsyBQkuvv4c2uPZFx6m2XTgT)
+        consensus.premineAmount = 0;                   // No premine
+        consensus.premineOutputScript = CScript(); // Empty script for premine block
         consensus.totalMoneySupplyHeight = 6215968;         // Height at which TMS is reached, do not issue rewards past this point
 
         // Cascoin: Hive: Consensus Fields
