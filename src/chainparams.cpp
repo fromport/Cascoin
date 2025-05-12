@@ -138,7 +138,7 @@ public:
         consensus.beeCreationAddress = "HiveCascoinBurnAddressXXXXXXXXXXkTBcG";        // Properly formatted unspendable address for bee creation
         consensus.hiveCommunityAddress = "HF2sgFXX5NgDojHhTPCTFknc6bqh3xCd8u";      // Community fund address
         consensus.communityContribFactor = 10;              // Optionally, donate bct_value/maxCommunityContribFactor to community fund
-        consensus.beeGestationBlocks = 48*24;               // The number of blocks for a new bee to mature
+        consensus.beeGestationBlocks = 10;               // The number of blocks for a new bee to mature (temporarily reduced from 48*24 for testing)
         consensus.beeLifespanBlocks = 48*24*14;             // The number of blocks a bee lives for after maturation
         consensus.powLimitHive = uint256S("0fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");  // Highest (easiest) bee hash target
         consensus.minHiveCheckBlock = 0;              // Allow checking for Hive blocks from the start (was 1537566)
