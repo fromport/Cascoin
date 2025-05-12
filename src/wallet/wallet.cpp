@@ -2947,10 +2947,10 @@ bool CWallet::CreateBeeTransaction(int beeCount, CWalletTx& wtxNew, CReserveKey&
 
     // Create the unspendable bee creation fee output (vout[0])
     std::vector<CRecipient> vecSend;
-    CTxDestination destinationBCF = DecodeDestination(consensusParams.beeCreationAddress);
-    CScript scriptPubKeyBCF = GetScriptForDestination(destinationBCF);
-    CScript scriptPubKeyFCA = GetScriptForDestination(destinationFCA);
+    // Use a direct script construction with OP_RETURN for unspendable coins
+    CScript scriptPubKeyBCF;
     scriptPubKeyBCF << OP_RETURN << OP_BEE;
+    CScript scriptPubKeyFCA = GetScriptForDestination(destinationFCA);
     scriptPubKeyBCF += scriptPubKeyFCA;
     CAmount beeCreationValue = totalBeeCost;
     CAmount donationValue = (CAmount)(totalBeeCost / consensusParams.communityContribFactor);
