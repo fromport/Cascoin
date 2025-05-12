@@ -233,10 +233,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         coinbaseTx.vin.resize(1);
         coinbaseTx.vin[0].prevout.SetNull();
         coinbaseTx.vout.resize(1);
-        // Use OP_TRUE (1 byte) script to bypass bad-pm-script validation
-        coinbaseTx.vout[0].scriptPubKey = CScript() << OP_TRUE;
-        // Save the original scriptPubKey for later use if needed
-        CScript originalScript = scriptPubKeyIn;
+        coinbaseTx.vout[0].scriptPubKey = scriptPubKeyIn;
 
         // Cascoin: MinotaurX+Hive1.2: Pow rewards are 50% of base block reward
         coinbaseTx.vout[0].nValue = GetBlockSubsidy(nHeight, chainparams.GetConsensus());
