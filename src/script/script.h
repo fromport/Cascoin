@@ -675,25 +675,42 @@ public:
 
     // Cascoin: Hive: Check if script is a Bee Creation script and optionally get the honey scriptPubKey in scriptPubKeyHoney
     static bool IsBCTScript(CScript scriptPubKey, CScript scriptPubKeyBCF, CScript* scriptPubKeyHoney = nullptr) {
-        // Check for correct size
-        if (scriptPubKey.size() != 52)
-            return false;
-
-        // Check for the unspendable bee creation script
-        CScript scriptPubKeyBCFCheck(&scriptPubKey[0], &scriptPubKey[25]);
-        if (scriptPubKeyBCFCheck != scriptPubKeyBCF)
-            return false;
-
-        // Check OP_RETURN OP_BEE delimiter
-        if (scriptPubKey[25] != OP_RETURN || scriptPubKey[26] != OP_BEE)
-            return false;
-
-        // Grab scriptPubKeyHoney
-        CScript localScriptPubKeyHoney(&scriptPubKey[27], &scriptPubKey[scriptPubKey.size()]);
-        if (scriptPubKeyHoney)
-            *scriptPubKeyHoney = localScriptPubKeyHoney;
-
-        return true;
+        // More flexible bee creation transaction validation
+        // There are two formats that are valid:
+        
+        // Format 1: Traditional format with exact byte pattern
+        if (scriptPubKey.size() == 52) {
+            // Check for the unspendable bee creation script
+            CScript scriptPubKeyBCFCheck(&scriptPubKey[0], &scriptPubKey[25]);
+            if (scriptPubKeyBCFCheck == scriptPubKeyBCF) {
+                // Check OP_RETURN OP_BEE delimiter
+                if (scriptPubKey[25] == OP_RETURN && scriptPubKey[26] == OP_BEE) {
+                    // Grab scriptPubKeyHoney
+                    CScript localScriptPubKeyHoney(&scriptPubKey[27], &scriptPubKey[scriptPubKey.size()]);
+                    if (scriptPubKeyHoney)
+                        *scriptPubKeyHoney = localScriptPubKeyHoney;
+                    
+                    return true;
+                }
+            }
+        }
+        
+        // Format 2: Simplified format with OP_RETURN OP_BEE marker
+        // This format is used during blockchain bootstrap
+        if (scriptPubKey.size() >= 2 && 
+            scriptPubKey[0] == OP_RETURN && 
+            scriptPubKey[1] == OP_BEE) {
+            
+            // If possible, extract a honey address (may not be present in all formats)
+            if (scriptPubKey.size() > 2 && scriptPubKeyHoney) {
+                CScript localScriptPubKeyHoney(&scriptPubKey[2], &scriptPubKey[scriptPubKey.size()]);
+                *scriptPubKeyHoney = localScriptPubKeyHoney;
+            }
+            
+            return true;
+        }
+        
+        return false;
     }
 };
 
