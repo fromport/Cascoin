@@ -209,8 +209,9 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         coinbaseTx.vin.resize(1);
         coinbaseTx.vin[0].prevout.SetNull();
         // BIP34 requires the block height to be included in the coinbase
-        // The validation code specifically expects: CScript() << nHeight
-        coinbaseTx.vin[0].scriptSig = CScript() << nHeight;
+        // Also, consensus rules require coinbase scriptSig to be between 2-100 bytes
+        // We add OP_0 to ensure it meets the minimum size requirement
+        coinbaseTx.vin[0].scriptSig = CScript() << nHeight << OP_0;
 
         // vout[0]: Hive proof
         coinbaseTx.vout.resize(2);
@@ -245,8 +246,9 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         coinbaseTx.vout[0].nValue += nFees;
 
         // BIP34 requires the block height to be included in the coinbase
-        // The validation code specifically expects: CScript() << nHeight
-        coinbaseTx.vin[0].scriptSig = CScript() << nHeight;
+        // Also, consensus rules require coinbase scriptSig to be between 2-100 bytes
+        // We add OP_0 to ensure it meets the minimum size requirement
+        coinbaseTx.vin[0].scriptSig = CScript() << nHeight << OP_0;
         pblock->vtx[0] = MakeTransactionRef(std::move(coinbaseTx));
         pblocktemplate->vchCoinbaseCommitment = GenerateCoinbaseCommitment(*pblock, pindexPrev, chainparams.GetConsensus());
         pblocktemplate->vTxFees[0] = -nFees;
