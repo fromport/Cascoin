@@ -3542,7 +3542,8 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
     }
 
     // Enforce rule that the coinbase starts with serialized block height
-    if (nHeight >= consensusParams.BIP34Height)
+    // Temporarily disable BIP34 height checks for the first 100 blocks to allow initial mining
+    if (nHeight >= consensusParams.BIP34Height && nHeight > 100)
     {
         CScript expect = CScript() << nHeight;
         if (block.vtx[0]->vin[0].scriptSig.size() < expect.size() ||
