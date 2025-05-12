@@ -2947,11 +2947,18 @@ bool CWallet::CreateBeeTransaction(int beeCount, CWalletTx& wtxNew, CReserveKey&
 
     // Create the unspendable bee creation fee output (vout[0])
     std::vector<CRecipient> vecSend;
-    // Create a simple OP_RETURN script - this is required by Cascoin's validation
+    // Create a bee creation script with the proper format expected by validation
     CScript scriptPubKeyBCF;
-    // Explicit byte-only script without adding the honey address script
+    // Script format: OP_RETURN OP_BEE <size> <nonce> <size> <height> <community_flag>
+    uint32_t beeNonce = GetRand(std::numeric_limits<uint32_t>::max()); // Random nonce
+    uint32_t bctHeight = pindexPrev->nHeight + 1;
+    
     scriptPubKeyBCF << OP_RETURN << OP_BEE;
-    // Don't append honey address script - it's actually stored separately
+    scriptPubKeyBCF << std::vector<unsigned char>{4}; // Size marker for nonce (4 bytes)
+    scriptPubKeyBCF << beeNonce; // 4-byte nonce
+    scriptPubKeyBCF << std::vector<unsigned char>{4}; // Size marker for height (4 bytes)
+    scriptPubKeyBCF << bctHeight; // 4-byte height
+    scriptPubKeyBCF << (communityContrib ? OP_TRUE : OP_FALSE); // Community contribution flag
     CAmount beeCreationValue = totalBeeCost;
     CAmount donationValue = (CAmount)(totalBeeCost / consensusParams.communityContribFactor);
     
