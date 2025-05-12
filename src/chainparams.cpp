@@ -124,7 +124,7 @@ public:
 
         // Cascoin fields
         consensus.powForkTime = 0;                 // Time of PoW hash method change
-        consensus.lastScryptBlock = 0;                // Height of last scrypt block
+        consensus.lastScryptBlock = -1;                // Height of last scrypt block
         consensus.powLimitSHA = uint256S("00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff");   // Initial hash target at fork
         consensus.slowStartBlocks = 0;                   // Scale post-fork block reward up over this many blocks
         consensus.premineAmount = 0;                   // Premine amount (less than 1% of issued currency at fork time)
