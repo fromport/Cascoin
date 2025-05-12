@@ -91,7 +91,10 @@ UniValue GetNetworkHashPS(int lookup, int height, POW_TYPE powType) {
         // inaccuracies are most likely fairly insignificant.
 
         while(IsMinotaurXEnabled(pb, Params().GetConsensus()) && pb->GetBlockHeader().GetPoWType() != powType) {
-            assert (pb->pprev);
+            // Check if we have a previous block to prevent assertion failure at genesis
+            if (!pb->pprev) {
+                break;
+            }
             pb = pb->pprev;
         }
         if(!IsMinotaurXEnabled(pb, Params().GetConsensus()) && powType == POW_TYPE_MINOTAURX) {
