@@ -2947,30 +2947,18 @@ bool CWallet::CreateBeeTransaction(int beeCount, CWalletTx& wtxNew, CReserveKey&
 
     // Create the unspendable bee creation fee output (vout[0])
     std::vector<CRecipient> vecSend;
-    
-    // IsBCTScript expects a very specific format:
-    // 1. First 25 bytes match beeCreationAddress script
-    // 2. Bytes 25-26 are OP_RETURN OP_BEE
-    // 3. Rest is honey address script
-    
-    // Get the standard beeCreationAddress script for the first part
-    CTxDestination destinationBCF = DecodeDestination(consensusParams.beeCreationAddress);
-    CScript scriptPubKeyBCFStandard = GetScriptForDestination(destinationBCF);
-    
-    // Get the honey address script
-    CScript scriptPubKeyHoney = GetScriptForDestination(destinationFCA);
-    
-    // Create the full BCT script
+    // Create a bee creation script with the proper format expected by validation
     CScript scriptPubKeyBCF;
+    // Script format: OP_RETURN OP_BEE <size> <nonce> <size> <height> <community_flag>
+    uint32_t beeNonce = GetRand(std::numeric_limits<uint32_t>::max()); // Random nonce
+    uint32_t bctHeight = pindexPrev->nHeight + 1;
     
-    // Part 1: Standard beeCreationAddress script (25 bytes)
-    scriptPubKeyBCF = scriptPubKeyBCFStandard;
-    
-    // Part 2: OP_RETURN OP_BEE delimiter (bytes 25-26)
     scriptPubKeyBCF << OP_RETURN << OP_BEE;
-    
-    // Part 3: Honey address script (remaining bytes)
-    scriptPubKeyBCF += scriptPubKeyHoney;
+    scriptPubKeyBCF << std::vector<unsigned char>{4}; // Size marker for nonce (4 bytes)
+    scriptPubKeyBCF << beeNonce; // 4-byte nonce
+    scriptPubKeyBCF << std::vector<unsigned char>{4}; // Size marker for height (4 bytes)
+    scriptPubKeyBCF << bctHeight; // 4-byte height
+    scriptPubKeyBCF << (communityContrib ? OP_TRUE : OP_FALSE); // Community contribution flag
     CAmount beeCreationValue = totalBeeCost;
     CAmount donationValue = (CAmount)(totalBeeCost / consensusParams.communityContribFactor);
     
