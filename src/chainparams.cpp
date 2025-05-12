@@ -135,7 +135,7 @@ public:
         // Cascoin: Hive: Consensus Fields
         consensus.minBeeCost = 10000;                       // Minimum cost of a bee, used when no more block rewards
         consensus.beeCostFactor = 2500;                     // Bee cost is block_reward/beeCostFactor
-        consensus.beeCreationAddress = "CReateCascoinCashWorkerBeeXYs19YQ";        // Unspendable address for bee creation
+        consensus.beeCreationAddress = "HiveCascoinBurnAddressXXXXXXXXXXkTBcG";        // Properly formatted unspendable address for bee creation
         consensus.hiveCommunityAddress = "HF2sgFXX5NgDojHhTPCTFknc6bqh3xCd8u";      // Community fund address
         consensus.communityContribFactor = 10;              // Optionally, donate bct_value/maxCommunityContribFactor to community fund
         consensus.beeGestationBlocks = 48*24;               // The number of blocks for a new bee to mature
