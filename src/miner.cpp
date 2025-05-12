@@ -209,9 +209,15 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         coinbaseTx.vin.resize(1);
         coinbaseTx.vin[0].prevout.SetNull();
         // BIP34 requires the block height to be included in the coinbase
-        // Also, consensus rules require coinbase scriptSig to be between 2-100 bytes
-        // We add OP_0 to ensure it meets the minimum size requirement
-        coinbaseTx.vin[0].scriptSig = CScript() << nHeight << OP_0;
+        // The validation code specifically expects the scriptSig to BEGIN WITH: CScript() << nHeight
+        // We then append arbitrary data to ensure the minimum size requirement for coinbase scriptSig
+        CScript scriptSig;
+        scriptSig << nHeight;
+        // Ensure the scriptSig is at least 2 bytes by padding if needed
+        if (scriptSig.size() < 2) {
+            scriptSig << OP_0;
+        }
+        coinbaseTx.vin[0].scriptSig = scriptSig;
 
         // vout[0]: Hive proof
         coinbaseTx.vout.resize(2);
@@ -246,9 +252,15 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         coinbaseTx.vout[0].nValue += nFees;
 
         // BIP34 requires the block height to be included in the coinbase
-        // Also, consensus rules require coinbase scriptSig to be between 2-100 bytes
-        // We add OP_0 to ensure it meets the minimum size requirement
-        coinbaseTx.vin[0].scriptSig = CScript() << nHeight << OP_0;
+        // The validation code specifically expects the scriptSig to BEGIN WITH: CScript() << nHeight
+        // We then append arbitrary data to ensure the minimum size requirement for coinbase scriptSig
+        CScript scriptSig;
+        scriptSig << nHeight;
+        // Ensure the scriptSig is at least 2 bytes by padding if needed
+        if (scriptSig.size() < 2) {
+            scriptSig << OP_0;
+        }
+        coinbaseTx.vin[0].scriptSig = scriptSig;
         pblock->vtx[0] = MakeTransactionRef(std::move(coinbaseTx));
         pblocktemplate->vchCoinbaseCommitment = GenerateCoinbaseCommitment(*pblock, pindexPrev, chainparams.GetConsensus());
         pblocktemplate->vTxFees[0] = -nFees;
