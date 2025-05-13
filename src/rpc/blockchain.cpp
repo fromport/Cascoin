@@ -68,92 +68,35 @@ double GetDifficulty(const CChain& chain, const CBlockIndex* blockindex, bool ge
 
     // Cascoin: Hive: If tip is PoW and we want hivemined, step back until we find a Hive block
     // Cascoin: Hive 1.1: Allow there to be multiple hive blocks in the way
-    try {
-        if (blockindex == nullptr) {
-            LogPrintf("GetDifficulty: blockindex is null, returning default difficulty\n");
-            return 1.0;
-        }
-
-        if (getHiveDifficulty) {
-            try {
-                while (blockindex && !blockindex->GetBlockHeader().IsHiveMined(consensusParams)) {
-                    if (!blockindex->pprev || blockindex->nHeight < consensusParams.minHiveCheckBlock) {
-                        LogPrint(BCLog::HIVE, "GetDifficulty: No hivemined blocks found in history\n");
-                        return 1.0;
-                    }
-                    blockindex = blockindex->pprev;
-                }
-                
-                // Final null check after the loop
-                if (!blockindex) {
-                    LogPrintf("GetDifficulty: blockindex became null during hivemined check, returning default\n");
-                    return 1.0;
-                }
-            } catch (const std::exception& e) {
-                LogPrintf("Exception in GetDifficulty (Hive): %s\n", e.what());
+    if (getHiveDifficulty) {
+        while (!blockindex->GetBlockHeader().IsHiveMined(consensusParams)) {
+            if (!blockindex->pprev || blockindex->nHeight < consensusParams.minHiveCheckBlock) {   // Ran out of blocks without finding a Hive block? Return min target
+                LogPrint(BCLog::HIVE, "GetDifficulty: No hivemined blocks found in history\n");
                 return 1.0;
+            }
+
+            blockindex = blockindex->pprev;
+        }
+    } else {
+        // Cascoin: MinotaurX+Hive1.2: Skip over incorrect powTypes
+        if (IsMinotaurXEnabled(blockindex, consensusParams)) {
+            while (blockindex->GetBlockHeader().IsHiveMined(consensusParams) || blockindex->GetBlockHeader().GetPoWType() != powType) {
+               // assert (blockindex->pprev);
+                if (blockindex->pprev == nullptr) {
+                    // If no previous block exists, return 0 or handle accordingly
+                    return 0;
+                }
+                blockindex = blockindex->pprev;
+                if (!IsMinotaurXEnabled(blockindex, consensusParams)) {
+                    return 0;
+                }
             }
         } else {
-            // Cascoin: MinotaurX+Hive1.2: Skip over incorrect powTypes
-            try {
-                if (IsMinotaurXEnabled(blockindex, consensusParams)) {
-                    int safetyCounter = 0; // Safety counter to prevent infinite loops
-                    const int MAX_LOOP_COUNT = 1000;
-                    
-                    while (blockindex && (blockindex->GetBlockHeader().IsHiveMined(consensusParams) ||
-                                        blockindex->GetBlockHeader().GetPoWType() != powType)) {
-                        
-                        if (blockindex->pprev == nullptr) {
-                            LogPrintf("GetDifficulty: blockindex->pprev is null, returning default\n");
-                            return 1.0;
-                        }
-                        
-                        blockindex = blockindex->pprev;
-                        
-                        if (!IsMinotaurXEnabled(blockindex, consensusParams)) {
-                            LogPrint(BCLog::NET, "GetDifficulty: MinotaurX not enabled at this block\n");
-                            return 1.0;
-                        }
-                        
-                        safetyCounter++;
-                        if (safetyCounter > MAX_LOOP_COUNT) {
-                            LogPrintf("GetDifficulty: Safety limit reached, breaking loop, returning default\n");
-                            return 1.0;
-                        }
-                    }
-                } else {
-                    int safetyCounter = 0;
-                    const int MAX_LOOP_COUNT = 1000;
-                    
-                    while (blockindex && blockindex->GetBlockHeader().IsHiveMined(consensusParams)) {
-                        if (!blockindex->pprev) {
-                            LogPrintf("GetDifficulty: No non-hivemined blocks found, returning default\n");
-                            return 1.0;
-                        }
-                        
-                        blockindex = blockindex->pprev;
-                        
-                        safetyCounter++;
-                        if (safetyCounter > MAX_LOOP_COUNT) {
-                            LogPrintf("GetDifficulty: Safety limit reached in hivemined loop, returning default\n");
-                            return 1.0;
-                        }
-                    }
-                }
-                
-                // Final null check after all loops
-                if (!blockindex) {
-                    LogPrintf("GetDifficulty: blockindex became null, returning default\n");
-                    return 1.0;
-                }
-            } catch (const std::exception& e) {
-                LogPrintf("Exception in GetDifficulty (non-Hive): %s\n", e.what());
-                return 1.0;
+            while (blockindex->GetBlockHeader().IsHiveMined(consensusParams)) {
+                assert (blockindex->pprev);
+                blockindex = blockindex->pprev;
             }
         }
-    } catch (const std::exception& e) {
-        LogPrintf("Critical exception in GetDifficulty: %s\n", e.what());
-        return 1.0;
     }
     
 
@@ -1378,77 +1321,18 @@ UniValue getblockchaininfo(const JSONRPCRequest& request)
     LOCK(cs_main);
 
     UniValue obj(UniValue::VOBJ);
-    try {
-        obj.push_back(Pair("chain", Params().NetworkIDString()));
-        obj.push_back(Pair("blocks", (int)chainActive.Height()));
-        obj.push_back(Pair("headers", pindexBestHeader ? pindexBestHeader->nHeight : -1));
-        
-        // Safely access tip and handle null case
-        CBlockIndex* tip = chainActive.Tip();
-        if (!tip) {
-            LogPrintf("WARNING: chainActive.Tip() returned null in getblockchaininfo\n");
-            obj.push_back(Pair("bestblockhash", ""));
-            obj.push_back(Pair("difficulty", 0.0));
-            obj.push_back(Pair("mediantime", 0));
-            obj.push_back(Pair("verificationprogress", 0.0));
-            obj.push_back(Pair("chainwork", "0x0"));
-        } else {
-            try {
-                obj.push_back(Pair("bestblockhash", tip->GetBlockHash().GetHex()));
-            } catch (const std::exception& e) {
-                LogPrintf("ERROR in getblockchaininfo (GetBlockHash): %s\n", e.what());
-                obj.push_back(Pair("bestblockhash", "<error>"));
-            }
-            
-            try {
-                obj.push_back(Pair("difficulty", (double)GetDifficulty()));
-            } catch (const std::exception& e) {
-                LogPrintf("ERROR in getblockchaininfo (GetDifficulty): %s\n", e.what());
-                obj.push_back(Pair("difficulty", 0.0));
-            }
-            
-            try {
-                if (IsMinotaurXEnabled(tip, Params().GetConsensus())) {
-                    double minotaurxDiff = 0.0;
-                    try {
-                        minotaurxDiff = GetDifficulty(nullptr, false, POW_TYPE_MINOTAURX);
-                    } catch (const std::exception& e) {
-                        LogPrintf("ERROR in getblockchaininfo (GetDifficulty for MinotaurX): %s\n", e.what());
-                    }
-                    obj.push_back(Pair("minotaurxdifficulty", minotaurxDiff)); // Cascoin: MinotaurX+Hive1.2
-                }
-            } catch (const std::exception& e) {
-                LogPrintf("ERROR in getblockchaininfo (IsMinotaurXEnabled): %s\n", e.what());
-            }
-            
-            try {
-                obj.push_back(Pair("mediantime", (int64_t)tip->GetMedianTimePast()));
-            } catch (const std::exception& e) {
-                LogPrintf("ERROR in getblockchaininfo (GetMedianTimePast): %s\n", e.what());
-                obj.push_back(Pair("mediantime", 0));
-            }
-            
-            try {
-                obj.push_back(Pair("verificationprogress", GuessVerificationProgress(Params().TxData(), tip)));
-            } catch (const std::exception& e) {
-                LogPrintf("ERROR in getblockchaininfo (GuessVerificationProgress): %s\n", e.what());
-                obj.push_back(Pair("verificationprogress", 0.0));
-            }
-            
-            try {
-                obj.push_back(Pair("chainwork", tip->nChainWork.GetHex()));
-            } catch (const std::exception& e) {
-                LogPrintf("ERROR in getblockchaininfo (nChainWork.GetHex): %s\n", e.what());
-                obj.push_back(Pair("chainwork", "0x0"));
-            }
-        }
-        
-        obj.push_back(Pair("initialblockdownload", IsInitialBlockDownload()));
-        obj.push_back(Pair("size_on_disk", CalculateCurrentUsage()));
-    } catch (const std::exception& e) {
-        LogPrintf("CRITICAL ERROR in getblockchaininfo main section: %s\n", e.what());
-        // Still return partial data if possible
-    }
+    obj.push_back(Pair("chain",                 Params().NetworkIDString()));
+    obj.push_back(Pair("blocks",                (int)chainActive.Height()));
+    obj.push_back(Pair("headers",               pindexBestHeader ? pindexBestHeader->nHeight : -1));
+    obj.push_back(Pair("bestblockhash",         chainActive.Tip()->GetBlockHash().GetHex()));
+    obj.push_back(Pair("difficulty",            (double)GetDifficulty()));
+    if (IsMinotaurXEnabled(chainActive.Tip(), Params().GetConsensus()))
+        obj.push_back(Pair("minotaurxdifficulty", GetDifficulty(nullptr, false, POW_TYPE_MINOTAURX)));    // Cascoin: MinotaurX+Hive1.2
+    obj.push_back(Pair("mediantime",            (int64_t)chainActive.Tip()->GetMedianTimePast()));
+    obj.push_back(Pair("verificationprogress",  GuessVerificationProgress(Params().TxData(), chainActive.Tip())));
+    obj.push_back(Pair("initialblockdownload",  IsInitialBlockDownload()));
+    obj.push_back(Pair("chainwork",             chainActive.Tip()->nChainWork.GetHex()));
+    obj.push_back(Pair("size_on_disk",          CalculateCurrentUsage()));
     obj.push_back(Pair("pruned",                fPruneMode));
     if (fPruneMode) {
         CBlockIndex* block = chainActive.Tip();

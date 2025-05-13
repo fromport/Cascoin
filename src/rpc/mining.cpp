@@ -549,39 +549,18 @@ UniValue getblocktemplate(const JSONRPCRequest& request)
         }
     }
 
-    // Cascoin: MinotaurX+Hive1.2: Check for a valid pow type with comprehensive error handling
-    try {
-        bool algoFound = false;
-        POW_TYPE powType = POW_TYPE_SHA256; // Default to SHA256
-        
-        // Validate strAlgo first
-        if (strAlgo.empty()) {
-            LogPrintf("WARNING: Empty strAlgo in getblocktemplate, defaulting to sha256d\n");
-            strAlgo = "sha256d";
+    // Cascoin: MinotaurX+Hive1.2: Check for a valid pow type
+    bool algoFound = false;
+    POW_TYPE powType;
+    for (unsigned int i = 0; i < NUM_BLOCK_TYPES; i++) {
+        if (strAlgo == POW_TYPE_NAMES[i]) {
+            powType = (POW_TYPE)i;
+            algoFound = true;
+            break;
         }
-        
-        for (unsigned int i = 0; i < NUM_BLOCK_TYPES; i++) {
-            // Ensure we stay within bounds
-            if (i >= sizeof(POW_TYPE_NAMES)/sizeof(POW_TYPE_NAMES[0])) {
-                LogPrintf("ERROR: POW_TYPE index out of bounds in getblocktemplate\n");
-                break;
-            }
-            
-            if (strAlgo == POW_TYPE_NAMES[i]) {
-                powType = (POW_TYPE)i;
-                algoFound = true;
-                break;
-            }
-        }
-        
-        if (!algoFound) {
-            LogPrintf("ERROR: Invalid pow algorithm '%s' requested in getblocktemplate\n", strAlgo);
-            throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid pow algorithm requested");
-        }
-    } catch (const std::exception& e) {
-        LogPrintf("CRITICAL ERROR in getblocktemplate pow type validation: %s\n", e.what());
-        throw JSONRPCError(RPC_INTERNAL_ERROR, "Error validating pow algorithm");
     }
+    if (!algoFound)
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid pow algorithm requested");
 
     if (strMode != "template")
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid mode");
