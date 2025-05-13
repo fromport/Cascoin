@@ -118,12 +118,12 @@ public:
             POW_TYPE powType = (POW_TYPE)((nVersion >> 16) & 0xFF);
             // Ensure we return a valid power type
             if (powType >= NUM_BLOCK_TYPES) {
-                return POW_TYPE_SHA256; // Default to SHA256 as a fallback
+                return POW_TYPE_SHA256D; // Default to SHA256D as a fallback
             }
             return powType;
         } catch (const std::exception&) {
             // Silently return default in case of error
-            return POW_TYPE_SHA256; // Default to SHA256 in case of any exception
+            return POW_TYPE_SHA256D; // Default to SHA256D in case of any exception
         }
     }
 
