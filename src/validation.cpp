@@ -1728,10 +1728,27 @@ int32_t ComputeBlockVersion(const CBlockIndex* pindexPrev, const Consensus::Para
     LOCK(cs_main);
     int32_t nVersion = VERSIONBITS_TOP_BITS;
 
-    // Cascoin: MinotaurX+Hive1.2: Set bit 29 to 0
-    if (IsMinotaurXEnabled(pindexPrev, params))
-        nVersion = 0;
+    const int nHeight = pindexPrev != nullptr ? pindexPrev->nHeight + 1 : 0;
+    bool earlyBlocks = (nHeight < 100);
 
+    // For early blocks (first 100), use a version that's compatible with standard bitcoin miners
+    if (earlyBlocks) {
+        // Use version 2 for the first 100 blocks - this is compatible with most miners
+        // and doesn't encode algorithm type which can cause issues with external miners
+        nVersion = 2;
+        LogPrintf("ComputeBlockVersion: Using compatibility version %d for block %d\n", nVersion, nHeight);
+        return nVersion;
+    }
+
+    // Cascoin: MinotaurX+Hive1.2: For blocks after the initial mining phase
+    if (IsMinotaurXEnabled(pindexPrev, params)) {
+        // Start with version 0 after MinotaurX activation
+        nVersion = 0;
+        
+        // Explicitly encode SHA256 algorithm type in version bits 16-23
+        nVersion |= (POW_TYPE_SHA256 << 16);
+    }
+    
     for (int i = 0; i < (int)Consensus::MAX_VERSION_BITS_DEPLOYMENTS; i++) {
         ThresholdState state = VersionBitsState(pindexPrev, params, (Consensus::DeploymentPos)i, versionbitscache);
         if (state == THRESHOLD_LOCKED_IN || state == THRESHOLD_STARTED) {
@@ -3468,8 +3485,18 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationSta
         if (IsMinotaurXEnabled(pindexPrev, consensusParams)) {
             POW_TYPE powType = block.GetPoWType();
 
-            if (powType >= NUM_BLOCK_TYPES)
-                return state.DoS(100, false, REJECT_INVALID, "bad-algo-id", false, "unrecognised pow type in block version");
+            // Be lenient with algorithm type checks for early blocks
+            // Many standard Bitcoin miners don't encode algorithm type in the version field
+            if (powType >= NUM_BLOCK_TYPES) {
+                if (earlyBlocks) {
+                    // For early blocks, assume it's SHA256 if the algorithm is unrecognized
+                    LogPrintf("Height %d: Unrecognized pow type %d in block version, assuming SHA256 for early block\n", 
+                              nHeight, powType);
+                    // Continue validation without returning error
+                } else {
+                    return state.DoS(100, false, REJECT_INVALID, "bad-algo-id", false, "unrecognised pow type in block version");
+                }
+            }
 
             if (!earlyBlocks && block.nBits != GetNextWorkRequiredLWMA(pindexPrev, &block, consensusParams, powType)) {
                 LogPrintf("Height %d: Rejecting block with incorrect PoW difficulty for type %s. Expected: %08x, Got: %08x\n", 

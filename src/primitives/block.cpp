@@ -50,7 +50,25 @@ uint256 CBlockHeader::GetPoWHash() const
         if (nVersion >= 0x20000000)                                 // Check for MinotaurX activation (Note: This is a safe check, so long as we are only considering blocks since CAS forked from LTC)
             return GetHash();                                       // MinotaurX not activated; definitely sha256
 
-        switch (GetPoWType()) {                                     // Call appropriate hash for blockType
+        POW_TYPE powType = GetPoWType();
+        
+        // For blocks with unrecognized algorithm ID, default to SHA256
+        // This helps with standard Bitcoin miners that don't encode algorithm ID correctly
+        if (powType >= NUM_BLOCK_TYPES) {
+            // We're in the MinotaurX fork time, but with invalid algo ID
+            // Assume it's SHA256 and log it
+            static int64_t lastLogTime = 0;
+            int64_t now = GetTime();
+            
+            // Only log once every 5 minutes to avoid log spam
+            if (now - lastLogTime > 300) {
+                lastLogTime = now;
+                LogPrintf("GetPoWHash: Unrecognized pow type %d, assuming SHA256\n", powType);
+            }
+            return GetHash();
+        }
+        
+        switch (powType) {                                     // Call appropriate hash for blockType
             case POW_TYPE_SHA256:
                 return GetHash();
                 break;
