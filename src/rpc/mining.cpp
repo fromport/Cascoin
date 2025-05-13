@@ -658,8 +658,16 @@ UniValue getblocktemplate(const JSONRPCRequest& request)
     if(!g_connman)
         throw JSONRPCError(RPC_CLIENT_P2P_DISABLED, "Error: Peer-to-peer functionality missing or disabled");
 
-    if (g_connman->GetNodeCount(CConnman::CONNECTIONS_ALL) == 0)
-        throw JSONRPCError(RPC_CLIENT_NOT_CONNECTED, "Cascoin is not connected!");
+    // Allow mining during initial connection phase - only warn if no connections
+    // This helps with stratum miners that need templates right after startup
+    if (g_connman->GetNodeCount(CConnman::CONNECTIONS_ALL) == 0) {
+        LogPrintf("WARNING: getblocktemplate called while node has no connections - mining may be less efficient\n");
+        // Only throw error if we're not in initial block download and have been running for a while
+        static int64_t nStartTime = GetTime();
+        if (!IsInitialBlockDownload() && GetTime() > nStartTime + 60) {
+            throw JSONRPCError(RPC_CLIENT_NOT_CONNECTED, "Cascoin is not connected!");
+        }
+    }
 
     if (IsInitialBlockDownload())
         throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, "Cascoin is downloading blocks...");
