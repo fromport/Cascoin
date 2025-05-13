@@ -550,11 +550,9 @@ UniValue getblocktemplate(const JSONRPCRequest& request)
     }
 
     // Cascoin: MinotaurX+Hive1.2: Check for a valid pow type with comprehensive error handling
-    // Declare powType in the proper scope so it's available for the entire function
-    POW_TYPE powType = POW_TYPE_SHA256; // Default to SHA256
-    
     try {
         bool algoFound = false;
+        POW_TYPE powType = POW_TYPE_SHA256; // Default to SHA256
         
         // Validate strAlgo first
         if (strAlgo.empty()) {
