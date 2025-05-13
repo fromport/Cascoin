@@ -788,6 +788,9 @@ bool BusyBees(const Consensus::Params& consensusParams, int height) {
 
     LogPrintf("********************* Hive: Bees at work *********************\n");
 
+    // We need to hold cs_main for all blockchain operations
+    LOCK(cs_main);
+    
     // Find deterministicRandString
     std::string deterministicRandString = GetDeterministicRandString(pindexPrev);
     if (verbose) LogPrintf("BusyBees: deterministicRandString   = %s\n", deterministicRandString);
@@ -797,7 +800,7 @@ bool BusyBees(const Consensus::Params& consensusParams, int height) {
     beeHashTarget.SetCompact(GetNextHiveWorkRequired(pindexPrev, consensusParams));
     if (verbose) LogPrintf("BusyBees: beeHashTarget             = %s\n", beeHashTarget.ToString());
 
-    // Find bin size
+    // Find bin size - The wallet functions need cs_main for blockchain access
     std::vector<CBeeCreationTransactionInfo> potentialBcts = pwallet->GetBCTs(false, false, consensusParams);
     std::vector<CBeeCreationTransactionInfo> bcts;
     int totalBees = 0;
