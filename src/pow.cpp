@@ -66,11 +66,7 @@ unsigned int GetNextWorkRequiredLWMA(const CBlockIndex* pindexLast, const CBlock
 
         // Wrong block type? Skip
         if (blockPreviousTimestamp->GetBlockHeader().IsHiveMined(params) || blockPreviousTimestamp->GetBlockHeader().GetPoWType() != powType) {
-            // Check if there's a previous block before trying to access it
-            if (!blockPreviousTimestamp->pprev) {
-                LogPrintf("WARNING: GetNextWorkRequiredLWMA encountered null pprev at height %d, returning pow limit\n", blockPreviousTimestamp->nHeight);
-                return powLimit.GetCompact();
-            }
+            assert (blockPreviousTimestamp->pprev);
             blockPreviousTimestamp = blockPreviousTimestamp->pprev;
             continue;
         }
@@ -81,18 +77,8 @@ unsigned int GetNextWorkRequiredLWMA(const CBlockIndex* pindexLast, const CBlock
         if (blocksFound == N)   // Don't step to next one if we're at the one we want
             break;
 
-        // Check if there's a previous block before trying to access it
-        if (!blockPreviousTimestamp->pprev) {
-            LogPrintf("WARNING: GetNextWorkRequiredLWMA encountered null pprev at height %d, returning pow limit\n", blockPreviousTimestamp->nHeight);
-            return powLimit.GetCompact();
-        }
+        assert (blockPreviousTimestamp->pprev);
         blockPreviousTimestamp = blockPreviousTimestamp->pprev;
-    }
-    
-    // Make sure blockPreviousTimestamp is valid before accessing it
-    if (!blockPreviousTimestamp) {
-        LogPrintf("ERROR: GetNextWorkRequiredLWMA found null blockPreviousTimestamp, returning pow limit\n");
-        return powLimit.GetCompact();
     }
     previousTimestamp = blockPreviousTimestamp->GetBlockTime();
     //if (verbose) LogPrintf("* GetNextWorkRequiredLWMA: previousTime: First in period is %s at height %i\n", blockPreviousTimestamp->GetBlockHeader().GetHash().ToString().c_str(), blockPreviousTimestamp->nHeight);
