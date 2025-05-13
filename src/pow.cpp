@@ -45,8 +45,8 @@ unsigned int GetNextWorkRequiredLWMA(const CBlockIndex* pindexLast, const CBlock
     }
 
     // Not enough blocks on chain? Return limit
-    if (height < N) {
-        if (verbose) LogPrintf("* GetNextWorkRequiredLWMA: Allowing %s pow limit (short chain)\n", POW_TYPE_NAMES[powType]);
+    if (!pindexLast || height < N) {
+        if (verbose) LogPrintf("* GetNextWorkRequiredLWMA: Allowing %s pow limit (short chain or null pindexLast)\n", POW_TYPE_NAMES[powType]);
         return powLimit.GetCompact();
     }
 
@@ -66,7 +66,10 @@ unsigned int GetNextWorkRequiredLWMA(const CBlockIndex* pindexLast, const CBlock
 
         // Wrong block type? Skip
         if (blockPreviousTimestamp->GetBlockHeader().IsHiveMined(params) || blockPreviousTimestamp->GetBlockHeader().GetPoWType() != powType) {
-            assert (blockPreviousTimestamp->pprev);
+            if (!blockPreviousTimestamp->pprev) {
+                LogPrintf("GetNextWorkRequiredLWMA: null pprev detected at height %d when skipping wrong block type, returning pow limit\n", blockPreviousTimestamp->nHeight);
+                return powLimit.GetCompact();
+            }
             blockPreviousTimestamp = blockPreviousTimestamp->pprev;
             continue;
         }
@@ -77,9 +80,19 @@ unsigned int GetNextWorkRequiredLWMA(const CBlockIndex* pindexLast, const CBlock
         if (blocksFound == N)   // Don't step to next one if we're at the one we want
             break;
 
-        assert (blockPreviousTimestamp->pprev);
+        if (!blockPreviousTimestamp->pprev) {
+            LogPrintf("GetNextWorkRequiredLWMA: null pprev detected at height %d while collecting blocks, returning pow limit\n", blockPreviousTimestamp->nHeight);
+            return powLimit.GetCompact();
+        }
         blockPreviousTimestamp = blockPreviousTimestamp->pprev;
     }
+    // Safety check if we didn't find enough blocks
+    if (blocksFound < N) {
+        LogPrintf("GetNextWorkRequiredLWMA: Couldn't find %d blocks of type %s, only found %d, returning pow limit\n", 
+                 N, POW_TYPE_NAMES[powType], blocksFound);
+        return powLimit.GetCompact();
+    }
+    
     previousTimestamp = blockPreviousTimestamp->GetBlockTime();
     //if (verbose) LogPrintf("* GetNextWorkRequiredLWMA: previousTime: First in period is %s at height %i\n", blockPreviousTimestamp->GetBlockHeader().GetHash().ToString().c_str(), blockPreviousTimestamp->nHeight);
 
