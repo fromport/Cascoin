@@ -38,6 +38,9 @@
 #include <boost/thread.hpp> // Cascoin: Hive: Mining optimisations
 #include <crypto/minotaurx/yespower/yespower.h>  // Cascoin: MinotaurX+Hive1.2
 
+// Minimum size for the coinbase transaction
+#define MIN_COINBASE_SIZE 100
+
 
 static CCriticalSection cs_solution_vars;
 std::atomic<bool> solutionFound;            // Cascoin: Hive: Mining optimisations: Thread-safe atomic flag to signal solution found (saves a slow mutex)
@@ -128,12 +131,11 @@ void BlockAssembler::resetBlock()
 // Cascoin: MinotaurX+Hive1.2: Accept POW_TYPE arg
 std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn, bool fMineWitnessTx, const CScript* hiveProofScript, const POW_TYPE powType)
 {
+    // Initialize log message early - if we crash, at least we'll know where
+    std::string blockCreationStage = "initialization";
+    int64_t nTimeStart = GetTimeMicros();
+    
     try {
-        int64_t nTimeStart = GetTimeMicros();
-        
-        // Initialize log message early - if we crash, at least we'll know where
-        std::string blockCreationStage = "initialization";
-        
         resetBlock();
         
         pblocktemplate.reset(new CBlockTemplate());
@@ -162,47 +164,41 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     // Cascoin: Hive: Make sure Hive is enabled if a Hive block is requested
     blockCreationStage = "checking Hive availability";
+    if (hiveProofScript) {
+        if (!IsHiveEnabled(pindexPrev, chainparams.GetConsensus())) {
+            LogPrintf("ERROR: CreateNewBlock failed - Hive not yet enabled on the network\n");
+            return nullptr;
+        }
+    }
+
+    nHeight = pindexPrev->nHeight + 1;
+
+    blockCreationStage = "computing block version";
+    pblock->nVersion = ComputeBlockVersion(pindexPrev, chainparams.GetConsensus());
+
+    // Cascoin: MinotaurX+Hive1.2: Refuse to attempt to create a non-sha256 block before activation
+    blockCreationStage = "checking MinotaurX availability";
+    bool minotaurXEnabled = false;
     try {
-        if (hiveProofScript) {
-            if (!IsHiveEnabled(pindexPrev, chainparams.GetConsensus())) {
-                LogPrintf("ERROR: CreateNewBlock failed - Hive not yet enabled on the network\n");
-                throw std::runtime_error("Error: The Hive is not yet enabled on the network");
-            }
-        }
-    
-        nHeight = pindexPrev->nHeight + 1;
-    
-        blockCreationStage = "computing block version";
-        pblock->nVersion = ComputeBlockVersion(pindexPrev, chainparams.GetConsensus());
-    
-        // Cascoin: MinotaurX+Hive1.2: Refuse to attempt to create a non-sha256 block before activation
-        blockCreationStage = "checking MinotaurX availability";
-        bool minotaurXEnabled = false;
-        try {
-            minotaurXEnabled = IsMinotaurXEnabled(pindexPrev, chainparams.GetConsensus());
-        } catch (const std::exception& e) {
-            LogPrintf("ERROR in CreateNewBlock (IsMinotaurXEnabled): %s\n", e.what());
-            minotaurXEnabled = false;
-        }
-        
-        if (!minotaurXEnabled && powType != 0) {
-            LogPrintf("ERROR: CreateNewBlock failed - non-sha256 block requested before MinotaurX activation\n");
-            throw std::runtime_error("Error: Won't attempt to create a non-sha256 block before MinotaurX activation");
-        }
-    
-        // Cascoin: MinotaurX+Hive1.2: If MinotaurX is enabled, and we're not creating a Hive block, encode desired pow type.
-        blockCreationStage = "setting pow type";
-        if (!hiveProofScript && minotaurXEnabled) {
-            if (powType >= NUM_BLOCK_TYPES) {
-                LogPrintf("ERROR: CreateNewBlock failed - unrecognized pow type %d requested\n", powType);
-                throw std::runtime_error("Error: Unrecognised pow type requested");
-            }
-            pblock->nVersion |= powType << 16;
-        }
+        minotaurXEnabled = IsMinotaurXEnabled(pindexPrev, chainparams.GetConsensus());
     } catch (const std::exception& e) {
-        // We specifically don't catch the runtime_error exceptions above, only unexpected exceptions
-        LogPrintf("CRITICAL ERROR in CreateNewBlock during %s: %s\n", blockCreationStage, e.what());
+        LogPrintf("ERROR in CreateNewBlock (IsMinotaurXEnabled): %s\n", e.what());
+        minotaurXEnabled = false;
+    }
+    
+    if (!minotaurXEnabled && powType != 0) {
+        LogPrintf("ERROR: CreateNewBlock failed - non-sha256 block requested before MinotaurX activation\n");
         return nullptr;
+    }
+
+    // Cascoin: MinotaurX+Hive1.2: If MinotaurX is enabled, and we're not creating a Hive block, encode desired pow type.
+    blockCreationStage = "setting pow type";
+    if (!hiveProofScript && minotaurXEnabled) {
+        if (powType >= NUM_BLOCK_TYPES) {
+            LogPrintf("ERROR: CreateNewBlock failed - unrecognized pow type %d requested\n", powType);
+            return nullptr;
+        }
+        pblock->nVersion |= powType << 16;
     }
 
     // -regtest only: allow overriding block.nVersion with
@@ -240,127 +236,119 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     // Cascoin: Hive: Create appropriate coinbase tx for pow or Hive block
     blockCreationStage = "creating coinbase transaction";
-    try {
-        if (hiveProofScript) {
-            // Creating a Hive mined block
-            blockCreationStage = "creating Hive coinbase transaction";
-            CMutableTransaction coinbaseTx;
+    
+    if (hiveProofScript) {
+        // Creating a Hive mined block
+        blockCreationStage = "creating Hive coinbase transaction";
+        CMutableTransaction coinbaseTx;
 
-            // 1 vin with empty prevout
-            coinbaseTx.vin.resize(1);
-            coinbaseTx.vin[0].prevout.SetNull();
-            
-            // BIP34 requires the block height to be included in the coinbase
-            // The validation code specifically expects the scriptSig to BEGIN WITH: CScript() << nHeight
-            // We then append arbitrary data to ensure the minimum size requirement for coinbase scriptSig
-            CScript scriptSig;
-            scriptSig << nHeight;
-            // Ensure the scriptSig is at least 2 bytes by padding if needed
-            if (scriptSig.size() < 2) {
-                scriptSig << OP_0;
-            }
-            coinbaseTx.vin[0].scriptSig = scriptSig;
-
-            // vout[0]: Hive proof
-            coinbaseTx.vout.resize(2);
-            if (hiveProofScript == nullptr) {
-                LogPrintf("ERROR: CreateNewBlock Hive block requested but hiveProofScript is null\n");
-                return nullptr;
-            }
-            coinbaseTx.vout[0].scriptPubKey = *hiveProofScript;
-            coinbaseTx.vout[0].nValue = 0;
-
-            // vout[1]: Honey :)
-            coinbaseTx.vout[1].scriptPubKey = scriptPubKeyIn;
-
-            // Cascoin: MinotaurX+Hive1.2: Hive rewards are 150% of base block reward
-            blockCreationStage = "calculating Hive block reward";
-            coinbaseTx.vout[1].nValue = GetBlockSubsidy(nHeight, chainparams.GetConsensus());
-            
-            try {
-                bool minotaurXEnabled = IsMinotaurXEnabled(pindexPrev, chainparams.GetConsensus());
-                if (minotaurXEnabled) {
-                    coinbaseTx.vout[1].nValue += coinbaseTx.vout[1].nValue >> 1;
-                }
-            } catch (const std::exception& e) {
-                LogPrintf("ERROR in CreateNewBlock (IsMinotaurXEnabled for rewards): %s\n", e.what());
-                // Continue with base reward if MinotaurX check fails
-            }
-            
-            coinbaseTx.vout[1].nValue += nFees;
-
-            // Coinbase commitment
-            blockCreationStage = "creating coinbase commitment for Hive block";
-            pblock->vtx[0] = MakeTransactionRef(std::move(coinbaseTx));
-            pblocktemplate->vchCoinbaseCommitment = GenerateCoinbaseCommitment(*pblock, pindexPrev, chainparams.GetConsensus());
-            pblocktemplate->vTxFees[0] = -nFees;
-        } else {
-            // Creating a standard POW block
-            blockCreationStage = "creating POW coinbase transaction";
-            CMutableTransaction coinbaseTx;
-            coinbaseTx.vin.resize(1);
-            coinbaseTx.vin[0].prevout.SetNull();
-            
-            // BIP34 requires height in scriptSig
-            CScript scriptSig;
-            scriptSig << nHeight;
-            if (scriptSig.size() < 2) {
-                scriptSig << OP_0;
-            }
-            coinbaseTx.vin[0].scriptSig = scriptSig;
-            
-            coinbaseTx.vout.resize(1);
-            coinbaseTx.vout[0].scriptPubKey = scriptPubKeyIn;
-
-            // Cascoin: MinotaurX+Hive1.2: Pow rewards are 50% of base block reward
-            blockCreationStage = "calculating POW block reward";
-            coinbaseTx.vout[0].nValue = GetBlockSubsidy(nHeight, chainparams.GetConsensus());
-            
-            try {
-                bool minotaurXEnabled = IsMinotaurXEnabled(pindexPrev, chainparams.GetConsensus());
-                if (minotaurXEnabled) {
-                    coinbaseTx.vout[0].nValue = coinbaseTx.vout[0].nValue >> 1;
-                }
-            } catch (const std::exception& e) {
-                LogPrintf("ERROR in CreateNewBlock (IsMinotaurXEnabled for POW rewards): %s\n", e.what());
-                // Continue with full reward if MinotaurX check fails
-            }
-
-            try {
-                coinbaseTx.vout[0].nValue += nFees;
-
-                CScript scriptSig = CScript() << nHeight << CScriptNum(fIncludeWitness ? 1 : 0);
-                if (scriptSig.size() < 2) {
-                    scriptSig << OP_0;
-                }
-                coinbaseTx.vin[0].scriptSig = scriptSig;
-
-                // Ensure the coinbase is big enough
-                blockCreationStage = "sizing coinbase transaction";
-                uint64_t coinbaseSize = ::GetSerializeSize(coinbaseTx, SER_NETWORK, PROTOCOL_VERSION);
-                if (coinbaseSize < MIN_COINBASE_SIZE) {
-                    std::vector<unsigned char> extraNonce(MIN_COINBASE_SIZE - coinbaseSize);
-                    for (size_t i = 0; i < extraNonce.size(); ++i) {
-                        extraNonce[i] = 0;
-                    }
-                    CTxOut opReturn;
-                    opReturn.nValue = 0;
-                    opReturn.scriptPubKey << OP_RETURN << extraNonce;
-                    coinbaseTx.vout.push_back(opReturn);
-                }
-
-                blockCreationStage = "creating coinbase commitment for POW block";
-                pblock->vtx[0] = MakeTransactionRef(std::move(coinbaseTx));
-                pblocktemplate->vchCoinbaseCommitment = GenerateCoinbaseCommitment(*pblock, pindexPrev, chainparams.GetConsensus());
-                pblocktemplate->vTxFees[0] = -nFees;
-            } catch (const std::exception& e) {
-                LogPrintf("ERROR in CreateNewBlock during standard coinbase finalization: %s\n", e.what());
-                return nullptr;
-            }
+        // 1 vin with empty prevout
+        coinbaseTx.vin.resize(1);
+        coinbaseTx.vin[0].prevout.SetNull();
+        
+        // BIP34 requires the block height to be included in the coinbase
+        // The validation code specifically expects the scriptSig to BEGIN WITH: CScript() << nHeight
+        // We then append arbitrary data to ensure the minimum size requirement for coinbase scriptSig
+        CScript scriptSig;
+        scriptSig << nHeight;
+        // Ensure the scriptSig is at least 2 bytes by padding if needed
+        if (scriptSig.size() < 2) {
+            scriptSig << OP_0;
         }
-    } catch (const std::exception& e) {
-        LogPrintf("CRITICAL ERROR in CreateNewBlock during coinbase creation: %s\n", e.what());
-        return nullptr;
+        coinbaseTx.vin[0].scriptSig = scriptSig;
+
+        // vout[0]: Hive proof
+        coinbaseTx.vout.resize(2);
+        if (hiveProofScript == nullptr) {
+            LogPrintf("ERROR: CreateNewBlock Hive block requested but hiveProofScript is null\n");
+            return nullptr;
+        }
+        coinbaseTx.vout[0].scriptPubKey = *hiveProofScript;
+        coinbaseTx.vout[0].nValue = 0;
+
+        // vout[1]: Honey :)
+        coinbaseTx.vout[1].scriptPubKey = scriptPubKeyIn;
+
+        // Cascoin: MinotaurX+Hive1.2: Hive rewards are 150% of base block reward
+        blockCreationStage = "calculating Hive block reward";
+        coinbaseTx.vout[1].nValue = GetBlockSubsidy(nHeight, chainparams.GetConsensus());
+        
+        try {
+            bool minotaurXEnabled = IsMinotaurXEnabled(pindexPrev, chainparams.GetConsensus());
+            if (minotaurXEnabled) {
+                coinbaseTx.vout[1].nValue += coinbaseTx.vout[1].nValue >> 1;
+            }
+        } catch (const std::exception& e) {
+            LogPrintf("ERROR in CreateNewBlock (IsMinotaurXEnabled for rewards): %s\n", e.what());
+            // Continue with base reward if MinotaurX check fails
+        }
+        
+        coinbaseTx.vout[1].nValue += nFees;
+
+        // Coinbase commitment
+        blockCreationStage = "creating coinbase commitment for Hive block";
+        pblock->vtx[0] = MakeTransactionRef(std::move(coinbaseTx));
+        pblocktemplate->vchCoinbaseCommitment = GenerateCoinbaseCommitment(*pblock, pindexPrev, chainparams.GetConsensus());
+        pblocktemplate->vTxFees[0] = -nFees;
+    } else {
+        // Creating a standard POW block
+        blockCreationStage = "creating POW coinbase transaction";
+        CMutableTransaction coinbaseTx;
+        coinbaseTx.vin.resize(1);
+        coinbaseTx.vin[0].prevout.SetNull();
+        
+        // BIP34 requires height in scriptSig
+        CScript scriptSig;
+        scriptSig << nHeight;
+        if (scriptSig.size() < 2) {
+            scriptSig << OP_0;
+        }
+        coinbaseTx.vin[0].scriptSig = scriptSig;
+        
+        coinbaseTx.vout.resize(1);
+        coinbaseTx.vout[0].scriptPubKey = scriptPubKeyIn;
+
+        // Cascoin: MinotaurX+Hive1.2: Pow rewards are 50% of base block reward
+        blockCreationStage = "calculating POW block reward";
+        coinbaseTx.vout[0].nValue = GetBlockSubsidy(nHeight, chainparams.GetConsensus());
+        
+        try {
+            bool minotaurXEnabled = IsMinotaurXEnabled(pindexPrev, chainparams.GetConsensus());
+            if (minotaurXEnabled) {
+                coinbaseTx.vout[0].nValue = coinbaseTx.vout[0].nValue >> 1;
+            }
+        } catch (const std::exception& e) {
+            LogPrintf("ERROR in CreateNewBlock (IsMinotaurXEnabled for POW rewards): %s\n", e.what());
+            // Continue with full reward if MinotaurX check fails
+        }
+
+        coinbaseTx.vout[0].nValue += nFees;
+
+        // BIP34 requires the block height to be included in the coinbase
+        scriptSig = CScript() << nHeight << CScriptNum(fIncludeWitness ? 1 : 0);
+        if (scriptSig.size() < 2) {
+            scriptSig << OP_0;
+        }
+        coinbaseTx.vin[0].scriptSig = scriptSig;
+
+        // Ensure the coinbase is big enough
+        blockCreationStage = "sizing coinbase transaction";
+        uint64_t coinbaseSize = ::GetSerializeSize(coinbaseTx, SER_NETWORK, PROTOCOL_VERSION);
+        if (coinbaseSize < MIN_COINBASE_SIZE) {
+            std::vector<unsigned char> extraNonce(MIN_COINBASE_SIZE - coinbaseSize);
+            for (size_t i = 0; i < extraNonce.size(); ++i) {
+                extraNonce[i] = 0;
+            }
+            CTxOut opReturn;
+            opReturn.nValue = 0;
+            opReturn.scriptPubKey << OP_RETURN << extraNonce;
+            coinbaseTx.vout.push_back(opReturn);
+        }
+
+        blockCreationStage = "creating coinbase commitment for POW block";
+        pblock->vtx[0] = MakeTransactionRef(std::move(coinbaseTx));
+        pblocktemplate->vchCoinbaseCommitment = GenerateCoinbaseCommitment(*pblock, pindexPrev, chainparams.GetConsensus());
+        pblocktemplate->vTxFees[0] = -nFees;
     }
 
     // Change debug level BEGIN
@@ -368,35 +356,51 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     LogPrint(BCLog::ALL, "CreateNewBlock(): block weight: %u txs: %u fees: %ld sigops %d\n", GetBlockWeight(*pblock), nBlockTx, nFees, nBlockSigOpsCost);
     // Change debug level END
 
-    // Fill in header
-    pblock->hashPrevBlock  = pindexPrev->GetBlockHash();
-    UpdateTime(pblock, chainparams.GetConsensus(), pindexPrev);
+    try {
+        blockCreationStage = "filling block header";
+        // Fill in header
+        pblock->hashPrevBlock  = pindexPrev->GetBlockHash();
+        UpdateTime(pblock, chainparams.GetConsensus(), pindexPrev);
 
-    // Cascoin: Hive: Choose correct nBits depending on whether a Hive block is requested
-    if (hiveProofScript)
-        pblock->nBits = GetNextHiveWorkRequired(pindexPrev, chainparams.GetConsensus());
-    else {
-        // Cascoin: MinotaurX+Hive1.2: If MinotaurX is enabled, handle nBits with pow-specific diff algo
-        if (IsMinotaurXEnabled(pindexPrev, chainparams.GetConsensus()))
-            pblock->nBits = GetNextWorkRequiredLWMA(pindexPrev, pblock, chainparams.GetConsensus(), powType);
-        else
-            pblock->nBits = GetNextWorkRequired(pindexPrev, pblock, chainparams.GetConsensus());
+        // Cascoin: Hive: Choose correct nBits depending on whether a Hive block is requested
+        blockCreationStage = "setting difficulty bits";
+        if (hiveProofScript) {
+            pblock->nBits = GetNextHiveWorkRequired(pindexPrev, chainparams.GetConsensus());
+        } else {
+            // Cascoin: MinotaurX+Hive1.2: If MinotaurX is enabled, handle nBits with pow-specific diff algo
+            try {
+                if (IsMinotaurXEnabled(pindexPrev, chainparams.GetConsensus())) {
+                    pblock->nBits = GetNextWorkRequiredLWMA(pindexPrev, pblock, chainparams.GetConsensus(), powType);
+                } else {
+                    pblock->nBits = GetNextWorkRequired(pindexPrev, pblock, chainparams.GetConsensus());
+                }
+            } catch (const std::exception& e) {
+                LogPrintf("ERROR in CreateNewBlock (difficulty calculation): %s\n", e.what());
+                // Fall back to standard difficulty calculation
+                pblock->nBits = GetNextWorkRequired(pindexPrev, pblock, chainparams.GetConsensus());
+            }
+        }
+
+        // Cascoin: Hive: Set nonce marker for hivemined blocks
+        pblock->nNonce = hiveProofScript ? chainparams.GetConsensus().hiveNonceMarker : 0;
+        pblocktemplate->vTxSigOpsCost[0] = WITNESS_SCALE_FACTOR * GetLegacySigOpCount(*pblock->vtx[0]);
+
+        blockCreationStage = "testing block validity";
+        CValidationState state;
+        if (!TestBlockValidity(state, chainparams, *pblock, pindexPrev, false, false)) {
+            LogPrintf("ERROR: TestBlockValidity failed: %s\n", FormatStateMessage(state));
+            return nullptr;
+        }
+
+        int64_t nTime2 = GetTimeMicros();
+
+        LogPrint(BCLog::BENCH, "CreateNewBlock() packages: %.2fms (%d packages, %d updated descendants), validity: %.2fms (total %.2fms)\n", 0.001 * (nTime1 - nTimeStart), nPackagesSelected, nDescendantsUpdated, 0.001 * (nTime2 - nTime1), 0.001 * (nTime2 - nTimeStart));
+
+        return std::move(pblocktemplate);
+    } catch (const std::exception& e) {
+        LogPrintf("CRITICAL ERROR in CreateNewBlock during %s: %s\n", blockCreationStage, e.what());
+        return nullptr;
     }
-
-    // Cascoin: Hive: Set nonce marker for hivemined blocks
-    pblock->nNonce = hiveProofScript ? chainparams.GetConsensus().hiveNonceMarker : 0;
-    pblocktemplate->vTxSigOpsCost[0] = WITNESS_SCALE_FACTOR * GetLegacySigOpCount(*pblock->vtx[0]);
-
-    CValidationState state;
-    if (!TestBlockValidity(state, chainparams, *pblock, pindexPrev, false, false)) {
-        throw std::runtime_error(strprintf("%s: TestBlockValidity failed: %s", __func__, FormatStateMessage(state)));
-    }
-
-    int64_t nTime2 = GetTimeMicros();
-
-    LogPrint(BCLog::BENCH, "CreateNewBlock() packages: %.2fms (%d packages, %d updated descendants), validity: %.2fms (total %.2fms)\n", 0.001 * (nTime1 - nTimeStart), nPackagesSelected, nDescendantsUpdated, 0.001 * (nTime2 - nTime1), 0.001 * (nTime2 - nTimeStart));
-
-    return std::move(pblocktemplate);
 }
 
 void BlockAssembler::onlyUnconfirmed(CTxMemPool::setEntries& testSet)
