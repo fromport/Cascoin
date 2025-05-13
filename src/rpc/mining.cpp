@@ -49,6 +49,11 @@ unsigned int ParseConfirmTarget(const UniValue& value)
 UniValue GetNetworkHashPS(int lookup, int height, POW_TYPE powType) {
     CBlockIndex *pb = chainActive.Tip();
 
+    if (pb == nullptr) {
+        LogPrintf("GetNetworkHashPS: chainActive.Tip() is null\n");
+        return 0;
+    }
+
     if (height >= 0 && height < chainActive.Height())
         pb = chainActive[height];
 
@@ -64,9 +69,23 @@ UniValue GetNetworkHashPS(int lookup, int height, POW_TYPE powType) {
         lookup = pb->nHeight;
 
     // Cascoin: MinotaurX+Hive1.2: Skip incorrect powType
-    while(IsMinotaurXEnabled(pb, Params().GetConsensus()) && pb->GetBlockHeader().GetPoWType() != powType) {
-        assert (pb->pprev);
+    while(pb != nullptr && IsMinotaurXEnabled(pb, Params().GetConsensus())) {
+        // Check if this block has the correct POW type
+        if (pb->GetBlockHeader().GetPoWType() == powType) {
+            break;
+        }
+        
+        if (!pb->pprev) {
+            break;
+        }
+        
         pb = pb->pprev;
+    }
+    
+    // Safety check after the loop
+    if (pb == nullptr) {
+        LogPrintf("GetNetworkHashPS: pb became null during POW type check\n");
+        return 0;
     }
     // We have either stepped back to before minotaurx fork, or the requested powType block
     // If we have stepped back to (or started looking up from) pre minotaur, but requested minotaurx pow type, then there are no hashes
@@ -81,7 +100,18 @@ UniValue GetNetworkHashPS(int lookup, int height, POW_TYPE powType) {
 	arith_uint256 workDiff = GetNumHashes(*pb, powType);    // Cascoin: MinotaurX+Hive1.2: add powType param
 	
     for (int i = 0; i < lookup; i++) {
+        // Make sure we have a previous block
+        if (!pb->pprev) {
+            break;  // We've reached the genesis block
+        }
+        
         pb = pb->pprev;
+        
+        // Safety check
+        if (pb == nullptr) {
+            LogPrintf("GetNetworkHashPS: pb became null in lookup loop\n");
+            break;
+        }
 
         // Cascoin: MinotaurX+Hive1.2: Skip incorrect powType
 
@@ -90,13 +120,20 @@ UniValue GetNetworkHashPS(int lookup, int height, POW_TYPE powType) {
         // hive blocks almost immediately follow pow blocks, the contribution to timing
         // inaccuracies are most likely fairly insignificant.
 
-        while(IsMinotaurXEnabled(pb, Params().GetConsensus()) && pb->GetBlockHeader().GetPoWType() != powType) {
+        while(pb != nullptr && IsMinotaurXEnabled(pb, Params().GetConsensus()) && pb->GetBlockHeader().GetPoWType() != powType) {
             // Check if we have a previous block to prevent assertion failure at genesis
             if (!pb->pprev) {
                 break;
             }
             pb = pb->pprev;
         }
+        
+        // Safety check after inner loop
+        if (pb == nullptr) {
+            LogPrintf("GetNetworkHashPS: pb became null during inner loop\n");
+            break;
+        }
+        
         if(!IsMinotaurXEnabled(pb, Params().GetConsensus()) && powType == POW_TYPE_MINOTAURX) {
             break;
         }
@@ -185,25 +222,30 @@ UniValue getnetworkhashps(const JSONRPCRequest& request)
             + HelpExampleRpc("getnetworkhashps", "")
        );
 
-    // Cascoin: MinotaurX+Hive1.2
-    std::string strAlgo = gArgs.GetArg("-powalgo", DEFAULT_POW_TYPE);
-    if (!request.params[2].isNull())
-        strAlgo = request.params[2].get_str();
-
-    bool algoFound = false;
-    POW_TYPE powType;
-    for (unsigned int i = 0; i < NUM_BLOCK_TYPES; i++) {
-        if (strAlgo == POW_TYPE_NAMES[i]) {
-            powType = (POW_TYPE)i;
-            algoFound = true;
-            break;
-        }
-    }
-    if (!algoFound)
-        throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid pow algorithm requested");
-
     LOCK(cs_main);
-    return GetNetworkHashPS(!request.params[0].isNull() ? request.params[0].get_int() : 120, !request.params[1].isNull() ? request.params[1].get_int() : -1, powType);
+    
+    // Check for null tip before proceeding
+    if (chainActive.Tip() == nullptr) {
+        LogPrintf("getnetworkhashps: chainActive.Tip() is null\n");
+        return 0;
+    }
+    
+    // Cascoin: MinotaurX+Hive1.2: report pow type hashrates and add param
+    POW_TYPE powType = POW_TYPE_SHA256;
+    if (request.params.size() > 2 && !request.params[2].isNull()) {
+        std::string strPowType = request.params[2].get_str();
+        if (strPowType == "minotaurx")
+            powType = POW_TYPE_MINOTAURX;
+        else if (strPowType != "sha256d")
+            throw std::runtime_error("Unrecognised POW type, please use 'sha256d' or 'minotaurx'");
+    }
+
+    try {
+        return GetNetworkHashPS(!request.params[0].isNull() ? request.params[0].get_int() : 120, !request.params[1].isNull() ? request.params[1].get_int() : -1, powType);
+    } catch (const std::exception& e) {
+        LogPrintf("getnetworkhashps: Exception in GetNetworkHashPS: %s\n", e.what());
+        return 0;
+    }
 }
 
 UniValue generateBlocks(std::shared_ptr<CReserveScript> coinbaseScript, int nGenerate, uint64_t nMaxTries, bool keepScript)
@@ -316,19 +358,67 @@ UniValue getmininginfo(const JSONRPCRequest& request)
     LOCK(cs_main);
 
     UniValue obj(UniValue::VOBJ);
-    obj.push_back(Pair("blocks",           (int)chainActive.Height()));
+    
+    // Check for null tip before proceeding
+    if (chainActive.Tip() == nullptr) {
+        LogPrintf("getmininginfo: chainActive.Tip() is null\n");
+        obj.push_back(Pair("blocks", 0));
+        obj.push_back(Pair("currentblockweight", (uint64_t)0));
+        obj.push_back(Pair("currentblocktx", (uint64_t)0));
+        obj.push_back(Pair("difficulty", 0.0));
+        obj.push_back(Pair("networkhashps", 0));
+        obj.push_back(Pair("pooledtx", (uint64_t)mempool.size()));
+        obj.push_back(Pair("chain", Params().NetworkIDString()));
+        obj.push_back(Pair("warnings", "ERROR: Blockchain not initialized properly"));
+        return obj;
+    }
+    
+    obj.push_back(Pair("blocks", (int)chainActive.Height()));
     obj.push_back(Pair("currentblockweight", (uint64_t)nLastBlockWeight));
-    obj.push_back(Pair("currentblocktx",   (uint64_t)nLastBlockTx));
-    obj.push_back(Pair("difficulty",       (double)GetDifficulty()));
-    if (IsMinotaurXEnabled(chainActive.Tip(), Params().GetConsensus()))
-        obj.push_back(Pair("minotaurxdifficulty", GetDifficulty(nullptr, false, POW_TYPE_MINOTAURX)));    // Cascoin: MinotaurX+Hive1.2
-    obj.push_back(Pair("networkhashps",    getnetworkhashps(request)));
-    obj.push_back(Pair("pooledtx",         (uint64_t)mempool.size()));
-    obj.push_back(Pair("chain",            Params().NetworkIDString()));
+    obj.push_back(Pair("currentblocktx", (uint64_t)nLastBlockTx));
+    
+    // Safely get difficulty
+    double difficulty = 0.0;
+    try {
+        difficulty = GetDifficulty();
+    } catch (const std::exception& e) {
+        LogPrintf("getmininginfo: Exception in GetDifficulty: %s\n", e.what());
+    }
+    obj.push_back(Pair("difficulty", difficulty));
+    
+    // Safely add MinotaurX difficulty if enabled
+    if (chainActive.Tip() != nullptr) {
+        try {
+            if (IsMinotaurXEnabled(chainActive.Tip(), Params().GetConsensus())) {
+                double minotaurxDifficulty = 0.0;
+                try {
+                    minotaurxDifficulty = GetDifficulty(nullptr, false, POW_TYPE_MINOTAURX);
+                } catch (const std::exception& e) {
+                    LogPrintf("getmininginfo: Exception in MinotaurX GetDifficulty: %s\n", e.what());
+                }
+                obj.push_back(Pair("minotaurxdifficulty", minotaurxDifficulty));
+            }
+        } catch (const std::exception& e) {
+            LogPrintf("getmininginfo: Exception checking MinotaurX enabled: %s\n", e.what());
+        }
+    }
+    
+    // Safely get network hashps
+    UniValue networkhashps = 0;
+    try {
+        networkhashps = getnetworkhashps(request);
+    } catch (const std::exception& e) {
+        LogPrintf("getmininginfo: Exception in getnetworkhashps: %s\n", e.what());
+    }
+    obj.push_back(Pair("networkhashps", networkhashps));
+    
+    obj.push_back(Pair("pooledtx", (uint64_t)mempool.size()));
+    obj.push_back(Pair("chain", Params().NetworkIDString()));
+    
     if (IsDeprecatedRPCEnabled("getmininginfo")) {
-        obj.push_back(Pair("errors",       GetWarnings("statusbar")));
+        obj.push_back(Pair("errors", GetWarnings("statusbar")));
     } else {
-        obj.push_back(Pair("warnings",     GetWarnings("statusbar")));
+        obj.push_back(Pair("warnings", GetWarnings("statusbar")));
     }
     return obj;
 }
