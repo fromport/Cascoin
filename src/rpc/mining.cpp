@@ -47,73 +47,119 @@ unsigned int ParseConfirmTarget(const UniValue& value)
 // Cascoin: Hive: count hashes with dedicated function, dont use chainwork. GetNumHashes is Hive Aware.
 // Cascoin: MinotaurX+Hive1.2: Only consider the correct powType when counting hashes
 UniValue GetNetworkHashPS(int lookup, int height, POW_TYPE powType) {
-    CBlockIndex *pb = chainActive.Tip();
+    try {
+        CBlockIndex *pb = chainActive.Tip();
+        if (pb == nullptr) {
+            LogPrintf("WARNING: GetNetworkHashPS - chainActive.Tip() is nullptr\n");
+            return 0;
+        }
 
-    if (height >= 0 && height < chainActive.Height())
-        pb = chainActive[height];
+        if (height >= 0 && height < chainActive.Height())
+            pb = chainActive[height];
 
-    if (pb == nullptr || !pb->nHeight)
-        return 0;
+        if (pb == nullptr || !pb->nHeight)
+            return 0;
 
-    // If lookup is -1, then use blocks since last difficulty change.
-    if (lookup <= 0)
-        lookup = IsHive11Enabled(pb, Params().GetConsensus()) ? 1 : pb->nHeight % Params().GetConsensus().DifficultyAdjustmentInterval() + 1;   // Cascoin: Hive 1.1: Taking the opportunity to provide a more sensible default.
+        // If lookup is -1, then use blocks since last difficulty change.
+        if (lookup <= 0) {
+            try {
+                lookup = IsHive11Enabled(pb, Params().GetConsensus()) ? 1 : pb->nHeight % Params().GetConsensus().DifficultyAdjustmentInterval() + 1;   // Cascoin: Hive 1.1: Taking the opportunity to provide a more sensible default.
+            } catch (const std::exception& e) {
+                LogPrintf("ERROR in GetNetworkHashPS - lookup calculation: %s\n", e.what());
+                lookup = 1; // Safe fallback
+            }
+        }
 
-    // If lookup is larger than chain, then set it to chain length.
-    if (lookup > pb->nHeight)
-        lookup = pb->nHeight;
-
-    // Cascoin: MinotaurX+Hive1.2: Skip incorrect powType
-    while(IsMinotaurXEnabled(pb, Params().GetConsensus()) && pb->GetBlockHeader().GetPoWType() != powType) {
-        assert (pb->pprev);
-        pb = pb->pprev;
-    }
-    // We have either stepped back to before minotaurx fork, or the requested powType block
-    // If we have stepped back to (or started looking up from) pre minotaur, but requested minotaurx pow type, then there are no hashes
-    if (!IsMinotaurXEnabled(pb, Params().GetConsensus()) && powType == POW_TYPE_MINOTAURX) {
-        return 0;
-    }
-    // We are either post-fork and with correct powType, or pre-fork and with correct powType!
-
-    int64_t minTime = pb->GetBlockTime();
-    int64_t maxTime = minTime;
-	
-	arith_uint256 workDiff = GetNumHashes(*pb, powType);    // Cascoin: MinotaurX+Hive1.2: add powType param
-	
-    for (int i = 0; i < lookup; i++) {
-        pb = pb->pprev;
+        // If lookup is larger than chain, then set it to chain length.
+        if (lookup > pb->nHeight)
+            lookup = pb->nHeight;
 
         // Cascoin: MinotaurX+Hive1.2: Skip incorrect powType
-
-        // TODO: Strictly speaking we may also went to step over hive blocks in here!
-        // However, it is not a major problem as GetNumHashes is Hive aware, and since
-        // hive blocks almost immediately follow pow blocks, the contribution to timing
-        // inaccuracies are most likely fairly insignificant.
-
-        while(IsMinotaurXEnabled(pb, Params().GetConsensus()) && pb->GetBlockHeader().GetPoWType() != powType) {
-            // Check if we have a previous block to prevent assertion failure at genesis
-            if (!pb->pprev) {
-                break;
+        try {
+            while(pb != nullptr && IsMinotaurXEnabled(pb, Params().GetConsensus()) && pb->GetBlockHeader().GetPoWType() != powType) {
+                if (pb->pprev == nullptr) {
+                    break;
+                }
+                pb = pb->pprev;
             }
+        } catch (const std::exception& e) {
+            LogPrintf("ERROR in GetNetworkHashPS - powType skipping: %s\n", e.what());
+            // Continue with current pb
+        }
+        
+        // We have either stepped back to before minotaurx fork, or the requested powType block
+        // If we have stepped back to (or started looking up from) pre minotaur, but requested minotaurx pow type, then there are no hashes
+        try {
+            if (pb != nullptr && !IsMinotaurXEnabled(pb, Params().GetConsensus()) && powType == POW_TYPE_MINOTAURX) {
+                return 0;
+            }
+        } catch (const std::exception& e) {
+            LogPrintf("ERROR in GetNetworkHashPS - minotaurx check: %s\n", e.what());
+            // Continue with current pb
+        }
+        // We are either post-fork and with correct powType, or pre-fork and with correct powType!
+
+        if (pb == nullptr) {
+            return 0;
+        }
+
+        int64_t minTime = pb->GetBlockTime();
+        int64_t maxTime = minTime;
+        
+        arith_uint256 workDiff;
+        try {
+            workDiff = GetNumHashes(*pb, powType);    // Cascoin: MinotaurX+Hive1.2: add powType param
+        } catch (const std::exception& e) {
+            LogPrintf("ERROR in GetNetworkHashPS - initial GetNumHashes: %s\n", e.what());
+            workDiff = 0;
+        }
+        
+        for (int i = 0; i < lookup && pb != nullptr && pb->pprev != nullptr; i++) {
             pb = pb->pprev;
-        }
-        if(!IsMinotaurXEnabled(pb, Params().GetConsensus()) && powType == POW_TYPE_MINOTAURX) {
-            break;
+            if (pb == nullptr) break;
+
+            // Cascoin: MinotaurX+Hive1.2: Skip incorrect powType
+            try {
+                while(pb != nullptr && IsMinotaurXEnabled(pb, Params().GetConsensus()) && pb->GetBlockHeader().GetPoWType() != powType) {
+                    if (!pb->pprev) {
+                        break;
+                    }
+                    pb = pb->pprev;
+                }
+                if(pb != nullptr && !IsMinotaurXEnabled(pb, Params().GetConsensus()) && powType == POW_TYPE_MINOTAURX) {
+                    break;
+                }
+            } catch (const std::exception& e) {
+                LogPrintf("ERROR in GetNetworkHashPS - loop powType handling: %s\n", e.what());
+                // Continue with current pb
+            }
+
+            if (pb == nullptr) break;
+            
+            int64_t time = pb->GetBlockTime();
+            minTime = std::min(time, minTime);
+            maxTime = std::max(time, maxTime);
+            
+            try {
+                workDiff += GetNumHashes(*pb, powType);  // Cascoin: MinotaurX+Hive1.2: add powType param
+            } catch (const std::exception& e) {
+                LogPrintf("ERROR in GetNetworkHashPS - loop GetNumHashes: %s\n", e.what());
+                // Continue with current workDiff
+            }
         }
 
-        int64_t time = pb->GetBlockTime();
-        minTime = std::min(time, minTime);
-        maxTime = std::max(time, maxTime);
-        workDiff += GetNumHashes(*pb, powType);              // Cascoin: MinotaurX+Hive1.2: add powType param
-    }
+        // In case there's a situation where minTime == maxTime, we don't want a divide by zero exception.
+        if (minTime == maxTime)
+            return 0;
 
-    // In case there's a situation where minTime == maxTime, we don't want a divide by zero exception.
-    if (minTime == maxTime)
+        int64_t timeDiff = maxTime - minTime;
+        if (timeDiff <= 0) return 0;
+
+        return workDiff.getdouble() / timeDiff;
+    } catch (const std::exception& e) {
+        LogPrintf("CRITICAL ERROR in GetNetworkHashPS: %s\n", e.what());
         return 0;
-
-    int64_t timeDiff = maxTime - minTime;
-
-	return workDiff.getdouble() / timeDiff;
+    }
 }
 
 // Cascoin: Hive: Mining optimisations: Set hive mining params
