@@ -45,8 +45,8 @@ unsigned int GetNextWorkRequiredLWMA(const CBlockIndex* pindexLast, const CBlock
     }
 
     // Not enough blocks on chain? Return limit
-    if (!pindexLast || height < N) {
-        if (verbose) LogPrintf("* GetNextWorkRequiredLWMA: Allowing %s pow limit (short chain or null pindexLast)\n", POW_TYPE_NAMES[powType]);
+    if (height < N) {
+        if (verbose) LogPrintf("* GetNextWorkRequiredLWMA: Allowing %s pow limit (short chain)\n", POW_TYPE_NAMES[powType]);
         return powLimit.GetCompact();
     }
 
@@ -66,10 +66,7 @@ unsigned int GetNextWorkRequiredLWMA(const CBlockIndex* pindexLast, const CBlock
 
         // Wrong block type? Skip
         if (blockPreviousTimestamp->GetBlockHeader().IsHiveMined(params) || blockPreviousTimestamp->GetBlockHeader().GetPoWType() != powType) {
-            if (!blockPreviousTimestamp->pprev) {
-                LogPrintf("GetNextWorkRequiredLWMA: null pprev detected at height %d when skipping wrong block type, returning pow limit\n", blockPreviousTimestamp->nHeight);
-                return powLimit.GetCompact();
-            }
+            assert (blockPreviousTimestamp->pprev);
             blockPreviousTimestamp = blockPreviousTimestamp->pprev;
             continue;
         }
@@ -80,19 +77,9 @@ unsigned int GetNextWorkRequiredLWMA(const CBlockIndex* pindexLast, const CBlock
         if (blocksFound == N)   // Don't step to next one if we're at the one we want
             break;
 
-        if (!blockPreviousTimestamp->pprev) {
-            LogPrintf("GetNextWorkRequiredLWMA: null pprev detected at height %d while collecting blocks, returning pow limit\n", blockPreviousTimestamp->nHeight);
-            return powLimit.GetCompact();
-        }
+        assert (blockPreviousTimestamp->pprev);
         blockPreviousTimestamp = blockPreviousTimestamp->pprev;
     }
-    // Safety check if we didn't find enough blocks
-    if (blocksFound < N) {
-        LogPrintf("GetNextWorkRequiredLWMA: Couldn't find %d blocks of type %s, only found %d, returning pow limit\n", 
-                 N, POW_TYPE_NAMES[powType], blocksFound);
-        return powLimit.GetCompact();
-    }
-    
     previousTimestamp = blockPreviousTimestamp->GetBlockTime();
     //if (verbose) LogPrintf("* GetNextWorkRequiredLWMA: previousTime: First in period is %s at height %i\n", blockPreviousTimestamp->GetBlockHeader().GetHash().ToString().c_str(), blockPreviousTimestamp->nHeight);
 
@@ -293,7 +280,7 @@ unsigned int CalculateNextWorkRequired(const CBlockIndex* pindexLast, int64_t nF
     return bnNew.GetCompact();
 }
 
-bool CheckProofOfWork(uint256 hash, unsigned int nBits, const Consensus::Params& params, int nHeight)
+bool CheckProofOfWork(uint256 hash, unsigned int nBits, const Consensus::Params& params)
 {
     bool fNegative;
     bool fOverflow;
@@ -306,36 +293,16 @@ bool CheckProofOfWork(uint256 hash, unsigned int nBits, const Consensus::Params&
     for (int i = 0; i < NUM_BLOCK_TYPES; i++)
         if (UintToArith256(params.powTypeLimits[i]) > powLimit)
             powLimit = UintToArith256(params.powTypeLimits[i]);
-    
-    // For early blocks (height < 100), be more lenient with the proof of work checks
-    // to help bootstrap the chain
-    bool earlyBlocks = (nHeight < 100);
 
     // Check range
-    if (fNegative || bnTarget == 0 || fOverflow || (!earlyBlocks && bnTarget > powLimit)) {
-        LogPrintf("CheckProofOfWork: Failed target range check - Negative: %d, Zero: %d, Overflow: %d, Target > Limit: %d\n",
-                  fNegative, bnTarget == 0, fOverflow, bnTarget > powLimit);
+    if (fNegative || bnTarget == 0 || fOverflow || bnTarget > powLimit)
         return false;
-    }
 
     // Check proof of work matches claimed amount
-    if (UintToArith256(hash) > bnTarget) {
-        if (earlyBlocks) {
-            // For early blocks, log a warning but allow the block
-            LogPrintf("CheckProofOfWork: Accepting early block at height %d with insufficient proof of work\n", nHeight);
-            return true;
-        }
-        LogPrintf("CheckProofOfWork: hash > target - Hash: %s, Target: %s\n", hash.ToString(), bnTarget.ToString());
+    if (UintToArith256(hash) > bnTarget)
         return false;
-    }
 
     return true;
-}
-
-// Backwards compatibility version
-bool CheckProofOfWork(uint256 hash, unsigned int nBits, const Consensus::Params& params)
-{
-    return CheckProofOfWork(hash, nBits, params, 0); // Default to height 0 for backwards compatibility
 }
 
 // Cascoin: Hive 1.1: SMA Hive Difficulty Adjust

@@ -32,10 +32,7 @@ bool CheckHiveProof(const CBlock* pblock, const Consensus::Params& params);     
 bool GetNetworkHiveInfo(int& immatureBees, int& immatureBCTs, int& matureBees, int& matureBCTs, CAmount& potentialLifespanRewards, const Consensus::Params& consensusParams, bool recalcGraph = false); // Cascoin: Hive: Get count of all live and gestating BCTs on the network
 
 /** Check whether a block hash satisfies the proof-of-work requirement specified by nBits */
-bool CheckProofOfWork(uint256 hash, unsigned int nBits, const Consensus::Params& params, int nHeight);
-
-/** Backwards compatibility version that defaults to height 0 */
-bool CheckProofOfWork(uint256 hash, unsigned int nBits, const Consensus::Params& params);
+bool CheckProofOfWork(uint256 hash, unsigned int nBits, const Consensus::Params&);
 
 
 

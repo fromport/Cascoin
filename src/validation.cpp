@@ -1119,8 +1119,7 @@ bool ReadBlockFromDisk(CBlock& block, const CDiskBlockPos& pos, const Consensus:
         if (!CheckHiveProof(&block, consensusParams))
             return error("ReadBlockFromDisk: Errors in Hive block header at %s", pos.ToString());
     } else {
-        // For ReadBlockFromDisk we don't have height info, use 0 to default to strict mode
-        if (!CheckProofOfWork(block.GetPoWHash(), block.nBits, consensusParams, 0))
+        if (!CheckProofOfWork(block.GetPoWHash(), block.nBits, consensusParams))
             return error("ReadBlockFromDisk: Errors in PoW block header at %s", pos.ToString());
     }
 
@@ -1728,27 +1727,10 @@ int32_t ComputeBlockVersion(const CBlockIndex* pindexPrev, const Consensus::Para
     LOCK(cs_main);
     int32_t nVersion = VERSIONBITS_TOP_BITS;
 
-    const int nHeight = pindexPrev != nullptr ? pindexPrev->nHeight + 1 : 0;
-    bool earlyBlocks = (nHeight < 100);
-
-    // For early blocks (first 100), use a version that's compatible with standard bitcoin miners
-    if (earlyBlocks) {
-        // Use version 2 for the first 100 blocks - this is compatible with most miners
-        // and doesn't encode algorithm type which can cause issues with external miners
-        nVersion = 2;
-        LogPrintf("ComputeBlockVersion: Using compatibility version %d for block %d\n", nVersion, nHeight);
-        return nVersion;
-    }
-
-    // Cascoin: MinotaurX+Hive1.2: For blocks after the initial mining phase
-    if (IsMinotaurXEnabled(pindexPrev, params)) {
-        // Start with version 0 after MinotaurX activation
+    // Cascoin: MinotaurX+Hive1.2: Set bit 29 to 0
+    if (IsMinotaurXEnabled(pindexPrev, params))
         nVersion = 0;
-        
-        // Explicitly encode SHA256 algorithm type in version bits 16-23
-        nVersion |= (POW_TYPE_SHA256 << 16);
-    }
-    
+
     for (int i = 0; i < (int)Consensus::MAX_VERSION_BITS_DEPLOYMENTS; i++) {
         ThresholdState state = VersionBitsState(pindexPrev, params, (Consensus::DeploymentPos)i, versionbitscache);
         if (state == THRESHOLD_LOCKED_IN || state == THRESHOLD_STARTED) {
@@ -3129,14 +3111,12 @@ static bool FindUndoPos(CValidationState &state, int nFile, CDiskBlockPos &pos, 
     return true;
 }
 
-static bool CheckBlockHeader(const CBlockHeader& block, CValidationState& state, const Consensus::Params& consensusParams, bool fCheckPOW = true, int nHeight = 0)
+static bool CheckBlockHeader(const CBlockHeader& block, CValidationState& state, const Consensus::Params& consensusParams, bool fCheckPOW = true)
 {
     // Cascoin: Hive: Check PoW or Hive work depending on blocktype
     if (fCheckPOW && !block.IsHiveMined(consensusParams)) {
-        if (!CheckProofOfWork(block.GetPoWHash(), block.nBits, consensusParams, nHeight)) {
-            LogPrintf("CheckBlockHeader: Proof of work check failed at height %d\n", nHeight);
+        if (!CheckProofOfWork(block.GetPoWHash(), block.nBits, consensusParams))
             return state.DoS(50, false, REJECT_INVALID, "high-hash", false, "proof of work failed");
-        }
     }
 
     return true;
@@ -3470,60 +3450,22 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationSta
 
     // Cascoin: Hive: Check appropriate Hive or PoW target
     const Consensus::Params& consensusParams = params.GetConsensus();
-    
-    // Be lenient with difficulty checks on early blocks to help bootstrap the chain
-    bool earlyBlocks = (nHeight < 500);
-    
     if (block.IsHiveMined(consensusParams)) {
-        if (!earlyBlocks && block.nBits != GetNextHiveWorkRequired(pindexPrev, consensusParams)) {
-            LogPrintf("Height %d: Rejecting block with incorrect Hive difficulty. Expected: %08x, Got: %08x\n", 
-                       nHeight, GetNextHiveWorkRequired(pindexPrev, consensusParams), block.nBits);
+        if (block.nBits != GetNextHiveWorkRequired(pindexPrev, consensusParams))
             return state.DoS(100, false, REJECT_INVALID, "bad-hive-diffbits", false, "incorrect hive difficulty in block");
-        }
     } else {
         // Cascoin: MinotaurX+Hive1.2: Handle pow type
         if (IsMinotaurXEnabled(pindexPrev, consensusParams)) {
             POW_TYPE powType = block.GetPoWType();
 
-            // Modified version bits check for early blocks
-            if (!earlyBlocks) {
-                // Only enforce strict version format after early blocks period
-                if (block.nVersion & 0xFF000000) {
-                    return state.Invalid(false, REJECT_OBSOLETE, 
-                        strprintf("old-versionbits(0x%08x)", block.nVersion),
-                        strprintf("rejected nVersion=0x%08x block (old versionbits)", block.nVersion));
-                }
-            } else {
-                // For early blocks, log but accept non-standard version formats
-                if (block.nVersion & 0xFF000000) {
-                    LogPrintf("Height %d: Accepting non-standard version format 0x%08x for early block\n",
-                             nHeight, block.nVersion);
-                }
-            }
+            if (powType >= NUM_BLOCK_TYPES)
+                return state.DoS(100, false, REJECT_INVALID, "bad-algo-id", false, "unrecognised pow type in block version");
 
-            // Be lenient with algorithm type checks for early blocks
-            if (powType >= NUM_BLOCK_TYPES) {
-                if (earlyBlocks) {
-                    // For early blocks, assume it's SHA256 if the algorithm is unrecognized
-                    LogPrintf("Height %d: Unrecognized pow type %d in block version, assuming SHA256 for early block\n", 
-                              nHeight, powType);
-                    // Continue validation without returning error
-                } else {
-                    return state.DoS(100, false, REJECT_INVALID, "bad-algo-id", false, 
-                        "unrecognised pow type in block version");
-                }
-            }
+            if (block.nBits != GetNextWorkRequiredLWMA(pindexPrev, &block, consensusParams, powType))
+                return state.DoS(100, false, REJECT_INVALID, "bad-diff", false, "incorrect pow difficulty in for block type");
 
-            if (!earlyBlocks && block.nBits != GetNextWorkRequiredLWMA(pindexPrev, &block, consensusParams, powType)) {
-                LogPrintf("Height %d: Rejecting block with incorrect PoW difficulty for type %s. Expected: %08x, Got: %08x\n", 
-                          nHeight, POW_TYPE_NAMES[powType], GetNextWorkRequiredLWMA(pindexPrev, &block, consensusParams, powType), block.nBits);
-                return state.DoS(100, false, REJECT_INVALID, "bad-diff", false, "incorrect pow difficulty for block type");
-            }
-        } else if (!earlyBlocks && block.nBits != GetNextWorkRequired(pindexPrev, &block, consensusParams)) {
-            LogPrintf("Height %d: Rejecting block with incorrect PoW difficulty. Expected: %08x, Got: %08x\n", 
-                       nHeight, GetNextWorkRequired(pindexPrev, &block, consensusParams), block.nBits);
+        } else if (block.nBits != GetNextWorkRequired(pindexPrev, &block, consensusParams))
             return state.DoS(100, false, REJECT_INVALID, "bad-diffbits", false, "incorrect pow difficulty in block");
-        }
     }
 
     // Check against checkpoints
@@ -3559,8 +3501,16 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationSta
         if (block.nVersion < VERSIONBITS_TOP_BITS && IsWitnessEnabled(pindexPrev, consensusParams))
             return state.Invalid(false, REJECT_OBSOLETE, strprintf("bad-version(0x%08x)", block.nVersion),
                                     strprintf("rejected nVersion=0x%08x block", block.nVersion));
-    }
+    } else {
+        // Top 8 bits must be zero
+        if (block.nVersion & 0xFF000000)
+            return state.Invalid(false, REJECT_OBSOLETE, strprintf("old-versionbits(0x%08x)", block.nVersion), strprintf("rejected nVersion=0x%08x block (old versionbits)", block.nVersion));
 
+        // Blocktype must be valid
+        uint8_t blockType = (block.nVersion >> 16) & 0xFF;
+        if (blockType >= NUM_BLOCK_TYPES)
+            return state.Invalid(false, REJECT_INVALID, "bad-blocktype", strprintf("unrecognised blocktype of =0x%08x", blockType));
+    }
     return true;
 }
 
