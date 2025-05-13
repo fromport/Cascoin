@@ -3485,8 +3485,23 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationSta
         if (IsMinotaurXEnabled(pindexPrev, consensusParams)) {
             POW_TYPE powType = block.GetPoWType();
 
+            // Modified version bits check for early blocks
+            if (!earlyBlocks) {
+                // Only enforce strict version format after early blocks period
+                if (block.nVersion & 0xFF000000) {
+                    return state.Invalid(false, REJECT_OBSOLETE, 
+                        strprintf("old-versionbits(0x%08x)", block.nVersion),
+                        strprintf("rejected nVersion=0x%08x block (old versionbits)", block.nVersion));
+                }
+            } else {
+                // For early blocks, log but accept non-standard version formats
+                if (block.nVersion & 0xFF000000) {
+                    LogPrintf("Height %d: Accepting non-standard version format 0x%08x for early block\n",
+                             nHeight, block.nVersion);
+                }
+            }
+
             // Be lenient with algorithm type checks for early blocks
-            // Many standard Bitcoin miners don't encode algorithm type in the version field
             if (powType >= NUM_BLOCK_TYPES) {
                 if (earlyBlocks) {
                     // For early blocks, assume it's SHA256 if the algorithm is unrecognized
@@ -3494,7 +3509,8 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationSta
                               nHeight, powType);
                     // Continue validation without returning error
                 } else {
-                    return state.DoS(100, false, REJECT_INVALID, "bad-algo-id", false, "unrecognised pow type in block version");
+                    return state.DoS(100, false, REJECT_INVALID, "bad-algo-id", false, 
+                        "unrecognised pow type in block version");
                 }
             }
 
@@ -3543,16 +3559,8 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationSta
         if (block.nVersion < VERSIONBITS_TOP_BITS && IsWitnessEnabled(pindexPrev, consensusParams))
             return state.Invalid(false, REJECT_OBSOLETE, strprintf("bad-version(0x%08x)", block.nVersion),
                                     strprintf("rejected nVersion=0x%08x block", block.nVersion));
-    } else {
-        // Top 8 bits must be zero
-        if (block.nVersion & 0xFF000000)
-            return state.Invalid(false, REJECT_OBSOLETE, strprintf("old-versionbits(0x%08x)", block.nVersion), strprintf("rejected nVersion=0x%08x block (old versionbits)", block.nVersion));
-
-        // Blocktype must be valid
-        uint8_t blockType = (block.nVersion >> 16) & 0xFF;
-        if (blockType >= NUM_BLOCK_TYPES)
-            return state.Invalid(false, REJECT_INVALID, "bad-blocktype", strprintf("unrecognised blocktype of =0x%08x", blockType));
     }
+
     return true;
 }
 
