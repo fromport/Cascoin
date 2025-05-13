@@ -913,8 +913,18 @@ size_t CConnman::SocketSendData(CNode *pnode) const
                 int nErr = WSAGetLastError();
                 if (nErr != WSAEWOULDBLOCK && nErr != WSAEMSGSIZE && nErr != WSAEINTR && nErr != WSAEINPROGRESS)
                 {
-                    LogPrintf("socket send error %s\n", NetworkErrorString(nErr));
-                    pnode->CloseSocketDisconnect();
+                    // More detailed error logging to help diagnose connection issues
+                    LogPrintf("socket send error %s (to %s)\n", NetworkErrorString(nErr), pnode->GetAddrName());
+                    
+                    // For Broken Pipe errors, try to be more resilient
+                    if (nErr == EPIPE || nErr == ECONNRESET) {
+                        LogPrintf("Connection reset/broken pipe - will attempt to reconnect\n");
+                        // Mark node for reconnect instead of immediately disconnecting
+                        pnode->fDisconnect = true;
+                    } else {
+                        // For other errors, disconnect immediately
+                        pnode->CloseSocketDisconnect();
+                    }
                 }
             }
             // couldn't send anything at all

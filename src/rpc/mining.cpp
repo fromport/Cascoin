@@ -661,11 +661,13 @@ UniValue getblocktemplate(const JSONRPCRequest& request)
     // Allow mining during initial connection phase - only warn if no connections
     // This helps with stratum miners that need templates right after startup
     if (g_connman->GetNodeCount(CConnman::CONNECTIONS_ALL) == 0) {
-        LogPrintf("WARNING: getblocktemplate called while node has no connections - mining may be less efficient\n");
-        // Only throw error if we're not in initial block download and have been running for a while
-        static int64_t nStartTime = GetTime();
-        if (!IsInitialBlockDownload() && GetTime() > nStartTime + 60) {
-            throw JSONRPCError(RPC_CLIENT_NOT_CONNECTED, "Cascoin is not connected!");
+        LogPrintf("WARNING: getblocktemplate called for %s mining while node has no connections - mining may be less efficient\n", POW_TYPE_NAMES[powType]);
+        // Only warn for now - don't throw an error as we want miners to continue even during temporary disconnections
+        static int64_t nLastConnectionWarning = 0;
+        int64_t now = GetTime();
+        if (!IsInitialBlockDownload() && now > nLastConnectionWarning + 300) { // Log warning every 5 minutes at most
+            nLastConnectionWarning = now;
+            LogPrintf("NOTE: It's recommended to have connections for optimal mining, but continuing anyway...\n");
         }
     }
 
