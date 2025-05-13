@@ -312,25 +312,91 @@ UniValue getmininginfo(const JSONRPCRequest& request)
             + HelpExampleRpc("getmininginfo", "")
         );
 
-
-    LOCK(cs_main);
-
-    UniValue obj(UniValue::VOBJ);
-    obj.push_back(Pair("blocks",           (int)chainActive.Height()));
-    obj.push_back(Pair("currentblockweight", (uint64_t)nLastBlockWeight));
-    obj.push_back(Pair("currentblocktx",   (uint64_t)nLastBlockTx));
-    obj.push_back(Pair("difficulty",       (double)GetDifficulty()));
-    if (IsMinotaurXEnabled(chainActive.Tip(), Params().GetConsensus()))
-        obj.push_back(Pair("minotaurxdifficulty", GetDifficulty(nullptr, false, POW_TYPE_MINOTAURX)));    // Cascoin: MinotaurX+Hive1.2
-    obj.push_back(Pair("networkhashps",    getnetworkhashps(request)));
-    obj.push_back(Pair("pooledtx",         (uint64_t)mempool.size()));
-    obj.push_back(Pair("chain",            Params().NetworkIDString()));
-    if (IsDeprecatedRPCEnabled("getmininginfo")) {
-        obj.push_back(Pair("errors",       GetWarnings("statusbar")));
-    } else {
-        obj.push_back(Pair("warnings",     GetWarnings("statusbar")));
+    try {
+        LOCK(cs_main);
+        
+        UniValue obj(UniValue::VOBJ);
+        
+        // Basic blockchain info
+        try {
+            int height = 0;
+            if (chainActive.Tip() != nullptr) {
+                height = chainActive.Height();
+            }
+            obj.push_back(Pair("blocks", height));
+        } catch (const std::exception& e) {
+            LogPrintf("ERROR in getmininginfo - blocks calculation: %s\n", e.what());
+            obj.push_back(Pair("blocks", 0));
+            obj.push_back(Pair("error_blocks", e.what()));
+        }
+        
+        // Block stats
+        try {
+            obj.push_back(Pair("currentblockweight", (uint64_t)nLastBlockWeight));
+            obj.push_back(Pair("currentblocktx", (uint64_t)nLastBlockTx));
+        } catch (const std::exception& e) {
+            LogPrintf("ERROR in getmininginfo - block stats: %s\n", e.what());
+            obj.push_back(Pair("error_blockstats", e.what()));
+        }
+        
+        // Difficulty calculations
+        try {
+            double difficulty = 0;
+            // Make sure Tip() doesn't return null
+            if (chainActive.Tip() != nullptr) {
+                difficulty = GetDifficulty();
+            }
+            obj.push_back(Pair("difficulty", difficulty));
+            
+            // Only add MinotaurX difficulty if it's enabled and Tip is valid
+            if (chainActive.Tip() != nullptr && IsMinotaurXEnabled(chainActive.Tip(), Params().GetConsensus())) {
+                double mxdifficulty = GetDifficulty(nullptr, false, POW_TYPE_MINOTAURX);
+                obj.push_back(Pair("minotaurxdifficulty", mxdifficulty));
+            }
+        } catch (const std::exception& e) {
+            LogPrintf("ERROR in getmininginfo - difficulty calculation: %s\n", e.what());
+            obj.push_back(Pair("difficulty", 0));
+            obj.push_back(Pair("error_difficulty", e.what()));
+        }
+        
+        // Network hashrate - this may be causing the segfault
+        try {
+            if (chainActive.Tip() != nullptr) {
+                // Copy the request to avoid modification
+                JSONRPCRequest hashpsRequest = request;
+                obj.push_back(Pair("networkhashps", getnetworkhashps(hashpsRequest)));
+            } else {
+                obj.push_back(Pair("networkhashps", 0));
+            }
+        } catch (const std::exception& e) {
+            LogPrintf("ERROR in getmininginfo - networkhashps calculation: %s\n", e.what());
+            obj.push_back(Pair("networkhashps", 0));
+            obj.push_back(Pair("error_networkhashps", e.what()));
+        }
+        
+        // Remaining info
+        try {
+            obj.push_back(Pair("pooledtx", (uint64_t)mempool.size()));
+            obj.push_back(Pair("chain", Params().NetworkIDString()));
+            
+            if (IsDeprecatedRPCEnabled("getmininginfo")) {
+                obj.push_back(Pair("errors", GetWarnings("statusbar")));
+            } else {
+                obj.push_back(Pair("warnings", GetWarnings("statusbar")));
+            }
+        } catch (const std::exception& e) {
+            LogPrintf("ERROR in getmininginfo - misc info: %s\n", e.what());
+            obj.push_back(Pair("error_misc", e.what()));
+        }
+        
+        return obj;
+    } catch (const std::exception& e) {
+        // Catch-all for any unexpected exceptions
+        LogPrintf("CRITICAL ERROR in getmininginfo: %s\n", e.what());
+        UniValue error(UniValue::VOBJ);
+        error.push_back(Pair("error", std::string("Critical error in getmininginfo: ") + e.what()));
+        return error;
     }
-    return obj;
 }
 
 
