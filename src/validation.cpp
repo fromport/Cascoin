@@ -3199,33 +3199,8 @@ bool IsWitnessEnabled(const CBlockIndex* pindexPrev, const Consensus::Params& pa
 // Cascoin: Hive: Check if Hive is activated at given point
 bool IsHiveEnabled(const CBlockIndex* pindexPrev, const Consensus::Params& params)
 {
-    try {
-        // If pindexPrev is null, Hive can't be enabled
-        if (pindexPrev == nullptr) {
-            return false;
-        }
-
-        // Remembering that we set minHiveCheckBlock = 0 to enable Hive mining from the start
-        if (pindexPrev->nHeight < params.minHiveCheckBlock) {
-            return false;
-        }
-
-        LOCK(cs_main);
-        
-        // Ensure we don't crash in VersionBitsState
-        try {
-            return (VersionBitsState(pindexPrev, params, Consensus::DEPLOYMENT_HIVE, versionbitscache) == THRESHOLD_ACTIVE);
-        } catch (const std::exception& e) {
-            LogPrintf("ERROR in IsHiveEnabled::VersionBitsState: %s\n", e.what());
-            // Fall back to a simple height check if VersionBits fails
-            return (pindexPrev->nHeight >= params.minHiveCheckBlock);
-        }
-    } catch (const std::exception& e) {
-        // Catch all unexpected exceptions
-        LogPrintf("CRITICAL ERROR in IsHiveEnabled: %s\n", e.what());
-        // Default to false (not enabled) for safety
-        return false;
-    }
+    LOCK(cs_main);
+    return (VersionBitsState(pindexPrev, params, Consensus::DEPLOYMENT_HIVE, versionbitscache) == THRESHOLD_ACTIVE);
 }
 
 // Cascoin: Hive: Check if Hive 1.1 is activated at given point
