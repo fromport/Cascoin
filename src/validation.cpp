@@ -1724,44 +1724,21 @@ VersionBitsCache versionbitscache;
 
 int32_t ComputeBlockVersion(const CBlockIndex* pindexPrev, const Consensus::Params& params)
 {
-    try {
-        // First, ensure pindexPrev is not null before using it
-        if (!pindexPrev) {
-            // For the genesis block or when pindexPrev is not available
-            LogPrintf("ComputeBlockVersion: pindexPrev is null, using safe version bits\n");
-            return 0; // Use clean version with no bits set for safety
+    LOCK(cs_main);
+    int32_t nVersion = VERSIONBITS_TOP_BITS;
+
+    // Cascoin: MinotaurX+Hive1.2: Set bit 29 to 0
+    if (IsMinotaurXEnabled(pindexPrev, params))
+        nVersion = 0;
+
+    for (int i = 0; i < (int)Consensus::MAX_VERSION_BITS_DEPLOYMENTS; i++) {
+        ThresholdState state = VersionBitsState(pindexPrev, params, (Consensus::DeploymentPos)i, versionbitscache);
+        if (state == THRESHOLD_LOCKED_IN || state == THRESHOLD_STARTED) {
+            nVersion |= VersionBitsMask(params, (Consensus::DeploymentPos)i);
         }
-
-        LOCK(cs_main);
-        int32_t nVersion;
-
-        // Check if we're in the early blockchain phase
-        // During early blocks, use 0 for version bits to avoid rejection
-        if (pindexPrev->nHeight < params.minHiveCheckBlock + 100) {
-            // For early blocks, use clean version with no version bits set
-            nVersion = 0;
-            LogPrintf("ComputeBlockVersion: Early chain height %d, using simplified version bits\n", pindexPrev->nHeight);
-        } else if (IsMinotaurXEnabled(pindexPrev, params)) {
-            // After MinotaurX activation, set version to 0 (clean state)
-            nVersion = 0;
-        } else {
-            // Standard Bitcoin-style version bits for normal blocks
-            nVersion = VERSIONBITS_TOP_BITS;
-        }
-
-        for (int i = 0; i < (int)Consensus::MAX_VERSION_BITS_DEPLOYMENTS; i++) {
-            ThresholdState state = VersionBitsState(pindexPrev, params, (Consensus::DeploymentPos)i, versionbitscache);
-            if (state == THRESHOLD_LOCKED_IN || state == THRESHOLD_STARTED) {
-                nVersion |= VersionBitsMask(params, (Consensus::DeploymentPos)i);
-            }
-        }
-
-        return nVersion;
-    } catch (const std::exception& e) {
-        // In case of any exception, return a safe version value
-        LogPrintf("ERROR: Exception in ComputeBlockVersion: %s\n", e.what());
-        return 0;
     }
+
+    return nVersion;
 }
 
 /**
@@ -3603,7 +3580,7 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationSta
         // Top 8 bits must be zero
         if (block.nVersion & 0xFF000000)
             return state.Invalid(false, REJECT_OBSOLETE, strprintf("old-versionbits(0x%08x)", block.nVersion), strprintf("rejected nVersion=0x%08x block (old versionbits)", block.nVersion));
-        
+
         // Blocktype must be valid
         uint8_t blockType = (block.nVersion >> 16) & 0xFF;
         if (blockType >= NUM_BLOCK_TYPES)
