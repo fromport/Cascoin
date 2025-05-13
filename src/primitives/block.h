@@ -104,9 +104,10 @@ public:
         try {
             // Check for valid consensusParams and Hive mining marker
             return (nNonce == consensusParams.hiveNonceMarker);
-        } catch (const std::exception&) {
-            // If any exception occurs, silently return false (not Hive mined)
+        } catch (const std::exception& e) {
+            // If any exception occurs, log it and return false (not Hive mined)
             // This prevents crashes in RPC calls that might trigger this method
+            LogPrintf("ERROR in IsHiveMined: %s\n", e.what());
             return false;
         }
     }
@@ -121,8 +122,8 @@ public:
                 return POW_TYPE_SHA256D; // Default to SHA256D as a fallback
             }
             return powType;
-        } catch (const std::exception&) {
-            // Silently return default in case of error
+        } catch (const std::exception& e) {
+            LogPrintf("ERROR in GetPoWType: %s\n", e.what());
             return POW_TYPE_SHA256D; // Default to SHA256D in case of any exception
         }
     }
@@ -138,8 +139,8 @@ public:
             if (pt >= NUM_BLOCK_TYPES)
                 return "unrecognised";
             return POW_TYPE_NAMES[pt];
-        } catch (const std::exception&) {
-            // Silently handle exceptions
+        } catch (const std::exception& e) {
+            LogPrintf("ERROR in GetPoWTypeName: %s\n", e.what());
             return "unknown"; // Safe fallback
         }
     }
