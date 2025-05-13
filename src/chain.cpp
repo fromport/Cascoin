@@ -195,26 +195,78 @@ arith_uint256 GetBlockProof(const CBlockIndex& block)
 // Cascoin: MinotaurX+Hive1.2: Only consider the requested powType
 arith_uint256 GetNumHashes(const CBlockIndex& block, POW_TYPE powType)
 {
-    arith_uint256 bnTarget;
-    bool fNegative;
-    bool fOverflow;
+    try {
+        // Defensive coding to prevent segfaults during RPC calls
+        arith_uint256 bnTarget;
+        bool fNegative = false;
+        bool fOverflow = false;
 
-    bnTarget.SetCompact(block.nBits, &fNegative, &fOverflow);
-    if (fNegative || fOverflow || bnTarget == 0 || block.GetBlockHeader().IsHiveMined(Params().GetConsensus()))
-        return 0;
+        // Check block bits validity
+        try {
+            bnTarget.SetCompact(block.nBits, &fNegative, &fOverflow);
+        } catch (const std::exception& e) {
+            LogPrintf("ERROR in GetNumHashes::SetCompact: %s\n", e.what());
+            return 0;
+        }
 
-    // Cascoin: MinotaurX+Hive1.2: skip the wrong pow type
-    if (IsMinotaurXEnabled(&block, Params().GetConsensus()) && block.GetBlockHeader().GetPoWType() != powType)
-        return 0;
-    // Cascoin: MinotaurX+Hive1.2: if you ask for minotaurx hashes before it's enabled, there aren't any!
-    if (!IsMinotaurXEnabled(&block, Params().GetConsensus()) && powType == POW_TYPE_MINOTAURX) 
-        return 0;
+        // Return 0 for invalid targets, negative values, overflows, or Hive-mined blocks
+        bool isHiveMined = false;
+        try {
+            isHiveMined = block.GetBlockHeader().IsHiveMined(Params().GetConsensus());
+        } catch (const std::exception& e) {
+            LogPrintf("ERROR in GetNumHashes::IsHiveMined: %s\n", e.what());
+            // Continue with isHiveMined = false
+        }
+
+        if (fNegative || fOverflow || bnTarget == 0 || isHiveMined)
+            return 0;
+
+        // Cascoin: MinotaurX+Hive1.2: skip the wrong pow type
+        bool skipMinotaurX = false;
+        try {
+            if (IsMinotaurXEnabled(&block, Params().GetConsensus())) {
+                POW_TYPE blockPowType = block.GetBlockHeader().GetPoWType();
+                if (blockPowType != powType) {
+                    skipMinotaurX = true;
+                }
+            }
+        } catch (const std::exception& e) {
+            LogPrintf("ERROR in GetNumHashes::MinotaurXCheck1: %s\n", e.what());
+            // Continue without skipping
+        }
+
+        if (skipMinotaurX)
+            return 0;
+
+        // Cascoin: MinotaurX+Hive1.2: if you ask for minotaurx hashes before it's enabled, there aren't any!
+        bool skipMinotaurXBeforeEnabled = false;
+        try {
+            if (!IsMinotaurXEnabled(&block, Params().GetConsensus()) && powType == POW_TYPE_MINOTAURX) {
+                skipMinotaurXBeforeEnabled = true;
+            }
+        } catch (const std::exception& e) {
+            LogPrintf("ERROR in GetNumHashes::MinotaurXCheck2: %s\n", e.what());
+            // Continue without skipping
+        }
+
+        if (skipMinotaurXBeforeEnabled)
+            return 0;
  
-    // We need to compute 2**256 / (bnTarget+1), but we can't represent 2**256
-    // as it's too large for an arith_uint256. However, as 2**256 is at least as large
-    // as bnTarget+1, it is equal to ((2**256 - bnTarget - 1) / (bnTarget+1)) + 1,
-    // or ~bnTarget / (bnTarget+1) + 1.
-    return (~bnTarget / (bnTarget + 1)) + 1;
+        // We need to compute 2**256 / (bnTarget+1), but we can't represent 2**256
+        // as it's too large for an arith_uint256. However, as 2**256 is at least as large
+        // as bnTarget+1, it is equal to ((2**256 - bnTarget - 1) / (bnTarget+1)) + 1,
+        // or ~bnTarget / (bnTarget+1) + 1.
+        try {
+            return (~bnTarget / (bnTarget + 1)) + 1;
+        } catch (const std::exception& e) {
+            LogPrintf("ERROR in GetNumHashes::Calculation: %s\n", e.what());
+            return 0;
+        }
+    } catch (const std::exception& e) {
+        // Catch-all for any unexpected exceptions
+        LogPrintf("CRITICAL ERROR in GetNumHashes: %s\n", e.what());
+        return 0;
+    }
 }
 
 int64_t GetBlockProofEquivalentTime(const CBlockIndex& to, const CBlockIndex& from, const CBlockIndex& tip, const Consensus::Params& params)

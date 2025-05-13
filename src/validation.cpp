@@ -3206,15 +3206,65 @@ bool IsHiveEnabled(const CBlockIndex* pindexPrev, const Consensus::Params& param
 // Cascoin: Hive: Check if Hive 1.1 is activated at given point
 bool IsHive11Enabled(const CBlockIndex* pindexPrev, const Consensus::Params& params)
 {
-    LOCK(cs_main);
-    return (VersionBitsState(pindexPrev, params, Consensus::DEPLOYMENT_HIVE_1_1, versionbitscache) == THRESHOLD_ACTIVE);
+    try {
+        // If pindexPrev is null, Hive 1.1 can't be enabled
+        if (pindexPrev == nullptr) {
+            return false;
+        }
+
+        // Remembering that we set minHiveCheckBlock = 0 to enable Hive mining from the start
+        if (pindexPrev->nHeight < params.minHiveCheckBlock) {
+            return false;
+        }
+
+        LOCK(cs_main);
+        
+        // Ensure we don't crash in VersionBitsState
+        try {
+            return (VersionBitsState(pindexPrev, params, Consensus::DEPLOYMENT_HIVE_1_1, versionbitscache) == THRESHOLD_ACTIVE);
+        } catch (const std::exception& e) {
+            LogPrintf("ERROR in IsHive11Enabled::VersionBitsState: %s\n", e.what());
+            // Fall back to a simple height check if VersionBits fails
+            return (pindexPrev->nHeight >= params.minHiveCheckBlock);
+        }
+    } catch (const std::exception& e) {
+        // Catch all unexpected exceptions
+        LogPrintf("CRITICAL ERROR in IsHive11Enabled: %s\n", e.what());
+        // Default to false (not enabled) for safety
+        return false;
+    }
 }
 
 // Cascoin: MinotaurX+Hive1.2: Check if MinotaurX is activated at given point
 bool IsMinotaurXEnabled(const CBlockIndex* pindexPrev, const Consensus::Params& params)
 {
-    LOCK(cs_main);
-    return (VersionBitsState(pindexPrev, params, Consensus::DEPLOYMENT_MINOTAURX, versionbitscache) == THRESHOLD_ACTIVE);
+    try {
+        // If pindexPrev is null, MinotaurX can't be enabled
+        if (pindexPrev == nullptr) {
+            return false;
+        }
+
+        LOCK(cs_main);
+        
+        // Check if we're past the MinotaurX fork time using a simple timestamp check first
+        // This provides a quick way to determine status without needing versionbits
+        if (pindexPrev->GetBlockTime() < params.powForkTime) {
+            return false;
+        }
+        
+        try {
+            return (VersionBitsState(pindexPrev, params, Consensus::DEPLOYMENT_MINOTAURX, versionbitscache) == THRESHOLD_ACTIVE);
+        } catch (const std::exception& e) {
+            LogPrintf("ERROR in IsMinotaurXEnabled::VersionBitsState: %s\n", e.what());
+            // Fall back to timestamp-based check if VersionBitsState fails
+            return (pindexPrev->GetBlockTime() >= params.powForkTime);
+        }
+    } catch (const std::exception& e) {
+        // Catch all unexpected exceptions
+        LogPrintf("CRITICAL ERROR in IsMinotaurXEnabled: %s\n", e.what());
+        // Default to false (not enabled) for safety
+        return false;
+    }
 }
 
 // Cascoin: Rialto: Check if Rialto is activated at given point

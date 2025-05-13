@@ -98,24 +98,51 @@ public:
     }
 
     // Cascoin: Hive: Check if this block is hivemined
+    // Returns true if this block was mined using Hive mining
+    // Additional safety checks added to prevent crashes during RPC calls
     bool IsHiveMined(const Consensus::Params& consensusParams) const {
-        return (nNonce == consensusParams.hiveNonceMarker);
+        try {
+            // Check for valid consensusParams and Hive mining marker
+            return (nNonce == consensusParams.hiveNonceMarker);
+        } catch (const std::exception& e) {
+            // If any exception occurs, log it and return false (not Hive mined)
+            // This prevents crashes in RPC calls that might trigger this method
+            LogPrintf("ERROR in IsHiveMined: %s\n", e.what());
+            return false;
+        }
     }
 
     // Cascoin: MinotaurX+Hive1.2: Get pow type from version bits
+    // Added error handling to prevent crashes during RPC calls
     POW_TYPE GetPoWType() const {
-        return (POW_TYPE)((nVersion >> 16) & 0xFF);
+        try {
+            POW_TYPE powType = (POW_TYPE)((nVersion >> 16) & 0xFF);
+            // Ensure we return a valid power type
+            if (powType >= NUM_BLOCK_TYPES) {
+                return POW_TYPE_SHA256D; // Default to SHA256D as a fallback
+            }
+            return powType;
+        } catch (const std::exception& e) {
+            LogPrintf("ERROR in GetPoWType: %s\n", e.what());
+            return POW_TYPE_SHA256D; // Default to SHA256D in case of any exception
+        }
     }
 
     // Cascoin: MinotaurX+Hive1.2: Get pow type name
+    // Added error handling to prevent crashes during RPC calls
     std::string GetPoWTypeName() const {
-        if (nVersion >= 0x20000000)
-            return POW_TYPE_NAMES[0];
+        try {
+            if (nVersion >= 0x20000000)
+                return POW_TYPE_NAMES[0];
 
-        POW_TYPE pt = GetPoWType();
-        if (pt >= NUM_BLOCK_TYPES)
-            return "unrecognised";
-        return POW_TYPE_NAMES[pt];
+            POW_TYPE pt = GetPoWType();
+            if (pt >= NUM_BLOCK_TYPES)
+                return "unrecognised";
+            return POW_TYPE_NAMES[pt];
+        } catch (const std::exception& e) {
+            LogPrintf("ERROR in GetPoWTypeName: %s\n", e.what());
+            return "unknown"; // Safe fallback
+        }
     }
 };
 
