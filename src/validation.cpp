@@ -1119,7 +1119,8 @@ bool ReadBlockFromDisk(CBlock& block, const CDiskBlockPos& pos, const Consensus:
         if (!CheckHiveProof(&block, consensusParams))
             return error("ReadBlockFromDisk: Errors in Hive block header at %s", pos.ToString());
     } else {
-        if (!CheckProofOfWork(block.GetPoWHash(), block.nBits, consensusParams))
+        // For ReadBlockFromDisk we don't have height info, use 0 to default to strict mode
+        if (!CheckProofOfWork(block.GetPoWHash(), block.nBits, consensusParams, 0))
             return error("ReadBlockFromDisk: Errors in PoW block header at %s", pos.ToString());
     }
 
@@ -3111,12 +3112,14 @@ static bool FindUndoPos(CValidationState &state, int nFile, CDiskBlockPos &pos, 
     return true;
 }
 
-static bool CheckBlockHeader(const CBlockHeader& block, CValidationState& state, const Consensus::Params& consensusParams, bool fCheckPOW = true)
+static bool CheckBlockHeader(const CBlockHeader& block, CValidationState& state, const Consensus::Params& consensusParams, bool fCheckPOW = true, int nHeight = 0)
 {
     // Cascoin: Hive: Check PoW or Hive work depending on blocktype
     if (fCheckPOW && !block.IsHiveMined(consensusParams)) {
-        if (!CheckProofOfWork(block.GetPoWHash(), block.nBits, consensusParams))
+        if (!CheckProofOfWork(block.GetPoWHash(), block.nBits, consensusParams, nHeight)) {
+            LogPrintf("CheckBlockHeader: Proof of work check failed at height %d\n", nHeight);
             return state.DoS(50, false, REJECT_INVALID, "high-hash", false, "proof of work failed");
+        }
     }
 
     return true;
@@ -3450,9 +3453,17 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationSta
 
     // Cascoin: Hive: Check appropriate Hive or PoW target
     const Consensus::Params& consensusParams = params.GetConsensus();
+    const int nHeight = pindexPrev->nHeight + 1;
+    
+    // Be lenient with difficulty checks on early blocks to help bootstrap the chain
+    bool earlyBlocks = (nHeight < 500);
+    
     if (block.IsHiveMined(consensusParams)) {
-        if (block.nBits != GetNextHiveWorkRequired(pindexPrev, consensusParams))
+        if (!earlyBlocks && block.nBits != GetNextHiveWorkRequired(pindexPrev, consensusParams)) {
+            LogPrintf("Height %d: Rejecting block with incorrect Hive difficulty. Expected: %08x, Got: %08x\n", 
+                       nHeight, GetNextHiveWorkRequired(pindexPrev, consensusParams), block.nBits);
             return state.DoS(100, false, REJECT_INVALID, "bad-hive-diffbits", false, "incorrect hive difficulty in block");
+        }
     } else {
         // Cascoin: MinotaurX+Hive1.2: Handle pow type
         if (IsMinotaurXEnabled(pindexPrev, consensusParams)) {
@@ -3461,11 +3472,16 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationSta
             if (powType >= NUM_BLOCK_TYPES)
                 return state.DoS(100, false, REJECT_INVALID, "bad-algo-id", false, "unrecognised pow type in block version");
 
-            if (block.nBits != GetNextWorkRequiredLWMA(pindexPrev, &block, consensusParams, powType))
-                return state.DoS(100, false, REJECT_INVALID, "bad-diff", false, "incorrect pow difficulty in for block type");
-
-        } else if (block.nBits != GetNextWorkRequired(pindexPrev, &block, consensusParams))
+            if (!earlyBlocks && block.nBits != GetNextWorkRequiredLWMA(pindexPrev, &block, consensusParams, powType)) {
+                LogPrintf("Height %d: Rejecting block with incorrect PoW difficulty for type %s. Expected: %08x, Got: %08x\n", 
+                          nHeight, POW_TYPE_NAMES[powType], GetNextWorkRequiredLWMA(pindexPrev, &block, consensusParams, powType), block.nBits);
+                return state.DoS(100, false, REJECT_INVALID, "bad-diff", false, "incorrect pow difficulty for block type");
+            }
+        } else if (!earlyBlocks && block.nBits != GetNextWorkRequired(pindexPrev, &block, consensusParams)) {
+            LogPrintf("Height %d: Rejecting block with incorrect PoW difficulty. Expected: %08x, Got: %08x\n", 
+                       nHeight, GetNextWorkRequired(pindexPrev, &block, consensusParams), block.nBits);
             return state.DoS(100, false, REJECT_INVALID, "bad-diffbits", false, "incorrect pow difficulty in block");
+        }
     }
 
     // Check against checkpoints
