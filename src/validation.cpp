@@ -3453,7 +3453,6 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationSta
 
     // Cascoin: Hive: Check appropriate Hive or PoW target
     const Consensus::Params& consensusParams = params.GetConsensus();
-    const int nHeight = pindexPrev->nHeight + 1;
     
     // Be lenient with difficulty checks on early blocks to help bootstrap the chain
     bool earlyBlocks = (nHeight < 500);
