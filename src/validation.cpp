@@ -3759,8 +3759,9 @@ bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CVali
             return state.DoS(100, error("AcceptBlock(): forked chain older than last checkpoint (height %d)", nHeight),
                             REJECT_CHECKPOINT, "bad-fork-prior-to-checkpoint");
 
-        // Remove IsSuperMajority/nMajorityEnforceBlockUpgrade version check block here
-        // (no replacement needed)
+        // Reject block.nVersion=1 blocks when 95% (75% on testnet) of the network has upgraded:
+        if (block.nVersion < 2 && IsSuperMajority(2, pindexPrev, chainparams.GetConsensus().nMajorityEnforceBlockUpgrade, chainparams.GetConsensus()))
+            return state.Invalid(error("AcceptBlock(): rejected nVersion=1 block"), REJECT_OBSOLETE, "bad-version");
 
         // Enforce BIP113 (Median Time Past).
         int nLockTimeFlags = 0;
@@ -3848,7 +3849,7 @@ bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CVali
         if (dbp == nullptr)
             if (!WriteBlockToDisk(block, blockPos, chainparams.MessageStart()))
                 AbortNode(state, "Failed to write block");
-        if (!ReceivedBlockTransactions(block, state, pindex, blockPos, chainparams.GetConsensus()))
+        if (!ReceivedBlockTransactions(block, state, pindex, blockPos))
             return error("AcceptBlock(): ReceivedBlockTransactions failed");
     } catch (const std::runtime_error& e) {
         return AbortNode(state, std::string("System error: ") + e.what());
