@@ -1985,7 +1985,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
             }
 
             if (!SequenceLocks(tx, nLockTimeFlags, &prevheights, *pindex)) {
-                return state.DoS(100, error("%s: contains a non-BIP68-final transaction", __func__),
+                return state.DoS(100, error("%s: contains a non-BIP68-final transaction"),
                                  REJECT_INVALID, "bad-txns-nonfinal");
             }
         }
@@ -3709,76 +3709,154 @@ bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CVali
     if (fNewBlock) *fNewBlock = false;
     AssertLockHeld(cs_main);
 
-    CBlockIndex *pindexDummy = nullptr;
-    CBlockIndex *&pindex = ppindex ? *ppindex : pindexDummy;
-
-    if (!AcceptBlockHeader(block, state, chainparams, &pindex))
-        return false;
-
-    // Try to process all requested blocks that we don't have, but only
-    // process an unrequested block if it's new and has enough work to
-    // advance our tip, and isn't too many blocks ahead.
-    bool fAlreadyHave = pindex->nStatus & BLOCK_HAVE_DATA;
-    bool fHasMoreOrSameWork = (chainActive.Tip() ? pindex->nChainWork >= chainActive.Tip()->nChainWork : true);
-    // Blocks that are too out-of-order needlessly limit the effectiveness of
-    // pruning, because pruning will not delete block files that contain any
-    // blocks which are too close in height to the tip.  Apply this test
-    // regardless of whether pruning is enabled; it should generally be safe to
-    // not process unrequested blocks.
-    bool fTooFarAhead = (pindex->nHeight > int(chainActive.Height() + MIN_BLOCKS_TO_KEEP));
-
-    // TODO: Decouple this function from the block download logic by removing fRequested
-    // This requires some new chain data structure to efficiently look up if a
-    // block is in a chain leading to a candidate for best tip, despite not
-    // being such a candidate itself.
-
-    // TODO: deal better with return value and error conditions for duplicate
-    // and unrequested blocks.
-    if (fAlreadyHave) return true;
-    if (!fRequested) {  // If we didn't ask for it:
-        if (pindex->nTx != 0) return true;    // This is a previously-processed block that was pruned
-        if (!fHasMoreOrSameWork) return true; // Don't process less-work chains
-        if (fTooFarAhead) return true;        // Block height is too high
-
-        // Protect against DoS attacks from low-work chains.
-        // If our tip is behind, a peer could try to send us
-        // low-work blocks on a fake chain that we would never
-        // request; don't process these.
-        if (pindex->nChainWork < nMinimumChainWork) return true;
-    }
-    if (fNewBlock) *fNewBlock = true;
-
-    if (!CheckBlock(block, state, chainparams.GetConsensus()) ||
-        !ContextualCheckBlock(block, state, chainparams.GetConsensus(), pindex->pprev)) {
-        if (state.IsInvalid() && !state.CorruptionPossible()) {
-            pindex->nStatus |= BLOCK_FAILED_VALID;
-            setDirtyBlockIndex.insert(pindex);
+    // Check for duplicate
+    uint256 hash = block.GetHash();
+    BlockMap::iterator miSelf = mapBlockIndex.find(hash);
+    CBlockIndex *pindex = nullptr;
+    if (hash != chainparams.GetConsensus().hashGenesisBlock) {
+        if (miSelf != mapBlockIndex.end()) {
+            // Block header is already known.
+            pindex = miSelf->second;
+            if (ppindex)
+                *ppindex = pindex;
+            if (pindex->nStatus & BLOCK_FAILED_MASK)
+                return state.Invalid(error("AcceptBlock(): block %s is marked invalid", hash.ToString()), 0, "duplicate");
+            return true;
         }
-        return error("%s: %s", __func__, FormatStateMessage(state));
-    }
 
-    // Header is valid/has work, merkle tree and segwit merkle tree are good...RELAY NOW
-    // (but if it does not build on our best tip, let the SendMessages loop relay it)
-    if (!IsInitialBlockDownload() && chainActive.Tip() == pindex->pprev)
-        GetMainSignals().NewPoWValidBlock(pindex, pblock);
+        if (!CheckBlockHeader(block, state, chainparams.GetConsensus()))
+            return error("%s: CheckBlockHeader failed: %s", __func__, FormatStateMessage(state));
+
+        // Get prev block index
+        CBlockIndex* pindexPrev = nullptr;
+        BlockMap::iterator mi = mapBlockIndex.find(block.hashPrevBlock);
+        if (mi != mapBlockIndex.end()) {
+            pindexPrev = (*mi).second;
+        }
+
+        // Special case for first 100 blocks - allow mining with minimum difficulty
+        if (pindexPrev && pindexPrev->nHeight < 100) {
+            if (!CheckBlock(block, state, chainparams.GetConsensus(), false, true))
+                return error("%s: CheckBlock failed: %s", __func__, FormatStateMessage(state));
+        } else {
+            if (!CheckBlock(block, state, chainparams.GetConsensus(), true, true))
+                return error("%s: CheckBlock failed: %s", __func__, FormatStateMessage(state));
+        }
+
+        // Verify timestamp
+        if (pindexPrev->GetMedianTimePast() >= block.GetBlockTime())
+            return state.Invalid(error("AcceptBlock(): block's timestamp is too early"), REJECT_INVALID, "time-too-old");
+
+        // Check that the block chain matches the known block chain up to a checkpoint
+        if (!Checkpoints::CheckBlock(chainparams.Checkpoints(), block, pindexPrev->nHeight + 1, false))
+            return state.DoS(100, error("AcceptBlock(): rejected by checkpoint lock-in at %d", pindexPrev->nHeight + 1),
+                            REJECT_CHECKPOINT, "checkpoint mismatch");
+
+        // Don't accept any forks from the main chain prior to last checkpoint.
+        // Get height of last checkpoint
+        int nHeight = pindexPrev->nHeight + 1;
+        if (!Checkpoints::CheckBlock(chainparams.Checkpoints(), block, nHeight, true))
+            return state.DoS(100, error("AcceptBlock(): forked chain older than last checkpoint (height %d)", nHeight),
+                            REJECT_CHECKPOINT, "bad-fork-prior-to-checkpoint");
+
+        // Reject block.nVersion=1 blocks when 95% (75% on testnet) of the network has upgraded:
+        if (block.nVersion < 2 && IsSuperMajority(2, pindexPrev, chainparams.GetConsensus().nMajorityEnforceBlockUpgrade, chainparams.GetConsensus()))
+            return state.Invalid(error("AcceptBlock(): rejected nVersion=1 block"), REJECT_OBSOLETE, "bad-version");
+
+        // Enforce BIP113 (Median Time Past).
+        int nLockTimeFlags = 0;
+        if (IsWitnessEnabled(pindexPrev, chainparams.GetConsensus())) {
+            nLockTimeFlags |= LOCKTIME_MEDIAN_TIME_PAST;
+        }
+
+        int64_t nLockTimeCutoff = (nLockTimeFlags & LOCKTIME_MEDIAN_TIME_PAST)
+            ? pindexPrev->GetMedianTimePast()
+            : block.GetBlockTime();
+
+        // Check that all transactions are finalized
+        for (const auto& tx : block.vtx) {
+            if (!IsFinalTx(*tx, nHeight, nLockTimeCutoff)) {
+                return state.DoS(10, error("AcceptBlock(): contains a non-final transaction"), REJECT_INVALID, "bad-txns-nonfinal");
+            }
+        }
+
+        // Enforce rule that the coinbase starts with serialized block height
+        if (nHeight >= chainparams.GetConsensus().BIP34Height)
+        {
+            CScript expect = CScript() << nHeight;
+            if (block.vtx[0]->vin[0].scriptSig.size() < expect.size() ||
+                !std::equal(expect.begin(), expect.end(), block.vtx[0]->vin[0].scriptSig.begin())) {
+                return state.DoS(100, error("AcceptBlock(): block height mismatch in coinbase"), REJECT_INVALID, "bad-cb-height");
+            }
+        }
+
+        // Validation for witness commitments.
+        // * We compute the witness hash (which is the hash including witnesses) of all the block's transactions, except the
+        //   coinbase (where 0x0000....0000 is used instead).
+        // * The coinbase scriptWitness is a stack of a single 32-byte vector, containing a witness nonce (unconstrained).
+        // * We build a merkle tree with all those witness hashes as leaves (similar to the hashMerkleRoot in the block header).
+        // * There must be at least one output whose scriptPubKey is a single 36-byte push, the first 4 bytes of which are
+        //   {0xaa, 0x21, 0xa9, 0xed}, and the following 32 bytes are SHA256^2(witness root, witness nonce). In case there are
+        //   multiple, the last one is used.
+        bool fHaveWitness = false;
+        if (IsWitnessEnabled(pindexPrev, chainparams.GetConsensus())) {
+            int commitpos = GetWitnessCommitmentIndex(block);
+            if (commitpos != -1) {
+                bool malleated = false;
+                uint256 hashWitness = BlockWitnessMerkleRoot(block, &malleated);
+                // The malleation check is ignored; as the transaction tree itself
+                // already does not permit it, it is impossible to trigger in the
+                // witness tree.
+                if (block.vtx[0]->vin[0].scriptWitness.stack.size() != 1 || block.vtx[0]->vin[0].scriptWitness.stack[0].size() != 32) {
+                    return state.DoS(100, error("AcceptBlock(): invalid witness nonce size"), REJECT_INVALID, "bad-witness-nonce-size");
+                }
+                CHash256().Write(hashWitness.begin(), 32).Write(&block.vtx[0]->vin[0].scriptWitness.stack[0][0], 32).Finalize(hashWitness.begin());
+                if (memcmp(hashWitness.begin(), &block.vtx[0]->vout[commitpos].scriptPubKey[6], 32)) {
+                    return state.DoS(100, error("AcceptBlock(): witness merkle commitment mismatch"), REJECT_INVALID, "bad-witness-merkle-match");
+                }
+                fHaveWitness = true;
+            }
+        }
+
+        // No witness data is allowed in blocks that don't commit to witness data, as this would otherwise leave room for spam
+        if (!fHaveWitness) {
+            for (const auto& tx : block.vtx) {
+                if (tx->HasWitness()) {
+                    return state.DoS(100, error("AcceptBlock(): unexpected witness data found"), REJECT_INVALID, "unexpected-witness");
+                }
+            }
+        }
+
+        // After the coinbase witness nonce and commitment are verified,
+        // we can check if the block weight passes (before we've checked the
+        // coinbase witness, it would be possible for the weight to be too
+        // large by filling up the coinbase witness, which doesn't change
+        // the block hash, so we couldn't mark the block as permanently
+        // failed).
+        if (GetBlockWeight(block) > MAX_BLOCK_WEIGHT) {
+            return state.DoS(100, error("AcceptBlock(): weight limit failed"), REJECT_INVALID, "bad-blk-weight");
+        }
+    }
 
     // Write block to history file
     try {
-        CDiskBlockPos blockPos = SaveBlockToDisk(block, pindex->nHeight, chainparams, dbp);
-        if (blockPos.IsNull()) {
-            state.Error(strprintf("%s: Failed to find position to write new block to disk", __func__));
-            return false;
-        }
-        if (!ReceivedBlockTransactions(block, state, pindex, blockPos, chainparams.GetConsensus()))
+        unsigned int nBlockSize = ::GetSerializeSize(block, SER_DISK, CLIENT_VERSION);
+        CDiskBlockPos blockPos;
+        if (dbp != nullptr)
+            blockPos = *dbp;
+        if (!FindBlockPos(state, blockPos, nBlockSize+8, nHeight, block.GetBlockTime(), dbp != nullptr))
+            return error("AcceptBlock(): FindBlockPos failed");
+        if (dbp == nullptr)
+            if (!WriteBlockToDisk(block, blockPos, chainparams.MessageStart()))
+                AbortNode(state, "Failed to write block");
+        if (!ReceivedBlockTransactions(block, state, pindex, blockPos))
             return error("AcceptBlock(): ReceivedBlockTransactions failed");
     } catch (const std::runtime_error& e) {
         return AbortNode(state, std::string("System error: ") + e.what());
     }
 
-    if (fCheckForPruning)
-        FlushStateToDisk(chainparams, state, FLUSH_STATE_NONE); // we just allocated more disk space for block files
-
-    CheckBlockIndex(chainparams.GetConsensus());
+    if (fNewBlock) *fNewBlock = true;
+    if (ppindex) *ppindex = pindex;
 
     return true;
 }
