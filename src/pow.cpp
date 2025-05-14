@@ -36,9 +36,13 @@ unsigned int GetNextWorkRequiredLWMA(const CBlockIndex* pindexLast, const CBlock
     const int64_t k = N * (N + 1) * T / 2;                                          // Constant for proper averaging after weighting solvetimes
     const int64_t height = pindexLast->nHeight;                                     // Block height
     
+    // Allow minimum difficulty for first 100 blocks
+    if (height < 500) {
+        if (verbose) LogPrintf("* GetNextWorkRequiredLWMA: Allowing %s pow limit (first 100 blocks)\n", POW_TYPE_NAMES[powType]);
+        return powLimit.GetCompact();
+    }
+
     // TESTNET ONLY: Allow minimum difficulty blocks if we haven't seen a block for ostensibly 10 blocks worth of time.
-    // Reading this code because you're porting CAS features? Considering doing this on your mainnet?
-    // ***** THIS IS NOT SAFE TO DO ON YOUR MAINNET! *****
     if (params.fPowAllowMinDifficultyBlocks && pblock->GetBlockTime() > pindexLast->GetBlockTime() + T * 10) {
         if (verbose) LogPrintf("* GetNextWorkRequiredLWMA: Allowing %s pow limit (apparent testnet stall)\n", POW_TYPE_NAMES[powType]);
         return powLimit.GetCompact();
