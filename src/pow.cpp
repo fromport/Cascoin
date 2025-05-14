@@ -41,7 +41,7 @@ unsigned int GetNextWorkRequiredLWMA(const CBlockIndex* pindexLast, const CBlock
         
         try {
             // Check if there are any SHA256 blocks in the chain
-            CBlockIndex* pindexCheck = pindexLast;
+            const CBlockIndex* pindexCheck = pindexLast;
             
             // Look back up to 100 blocks to see if there are any SHA256 blocks
             for (int i = 0; i < 100 && pindexCheck != nullptr; i++) {
@@ -219,7 +219,7 @@ unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const CBlockHeader *
     // Check if this is the first SHA256 block since MinotaurX activation
     if (IsMinotaurXEnabled(pindexPrevSha, params)) {
         bool foundShaBlock = false;
-        CBlockIndex* pindexCheck = pindexPrevSha;
+        const CBlockIndex* pindexCheck = pindexPrevSha;
         
         try {
             // Look back up to 100 blocks to see if we can find a SHA256 block

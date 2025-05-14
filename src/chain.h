@@ -305,9 +305,6 @@ public:
 
     uint256 GetBlockHash() const
     {
-        if (!this) {
-            throw std::runtime_error("Attempted to get block hash from null block index");
-        }
         if (!phashBlock) {
             throw std::runtime_error("Block hash pointer is null");
         }
