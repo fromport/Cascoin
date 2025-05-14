@@ -59,6 +59,11 @@ unsigned int GetNextWorkRequiredLWMA(const CBlockIndex* pindexLast, const CBlock
     const CBlockIndex* blockPreviousTimestamp = pindexLast;
     while (blocksFound < N) {
         // Reached forkpoint before finding N blocks of correct powtype? Return min
+        if (!blockPreviousTimestamp) {
+            if (verbose) LogPrintf("* GetNextWorkRequiredLWMA: Allowing %s pow limit (reached end of chain)\n", POW_TYPE_NAMES[powType]);
+            return powLimit.GetCompact();
+        }
+
         if (blockPreviousTimestamp->GetBlockHeader().nVersion >= 0x20000000) {
             if (verbose) LogPrintf("* GetNextWorkRequiredLWMA: Allowing %s pow limit (previousTime calc reached forkpoint at height %i)\n", POW_TYPE_NAMES[powType], blockPreviousTimestamp->nHeight);
             return powLimit.GetCompact();
@@ -66,7 +71,10 @@ unsigned int GetNextWorkRequiredLWMA(const CBlockIndex* pindexLast, const CBlock
 
         // Wrong block type? Skip
         if (blockPreviousTimestamp->GetBlockHeader().IsHiveMined(params) || blockPreviousTimestamp->GetBlockHeader().GetPoWType() != powType) {
-            assert (blockPreviousTimestamp->pprev);
+            if (!blockPreviousTimestamp->pprev) {
+                if (verbose) LogPrintf("* GetNextWorkRequiredLWMA: Allowing %s pow limit (reached end of chain while skipping blocks)\n", POW_TYPE_NAMES[powType]);
+                return powLimit.GetCompact();
+            }
             blockPreviousTimestamp = blockPreviousTimestamp->pprev;
             continue;
         }
@@ -77,7 +85,10 @@ unsigned int GetNextWorkRequiredLWMA(const CBlockIndex* pindexLast, const CBlock
         if (blocksFound == N)   // Don't step to next one if we're at the one we want
             break;
 
-        assert (blockPreviousTimestamp->pprev);
+        if (!blockPreviousTimestamp->pprev) {
+            if (verbose) LogPrintf("* GetNextWorkRequiredLWMA: Allowing %s pow limit (reached end of chain)\n", POW_TYPE_NAMES[powType]);
+            return powLimit.GetCompact();
+        }
         blockPreviousTimestamp = blockPreviousTimestamp->pprev;
     }
     previousTimestamp = blockPreviousTimestamp->GetBlockTime();
