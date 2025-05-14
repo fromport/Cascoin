@@ -42,21 +42,30 @@ unsigned int GetNextWorkRequiredLWMA(const CBlockIndex* pindexLast, const CBlock
         try {
             // Check if there are any SHA256 blocks in the chain
             const CBlockIndex* pindexCheck = pindexLast;
+            int checkCount = 0;
             
-            // Look back up to 100 blocks to see if there are any SHA256 blocks
-            for (int i = 0; i < 100 && pindexCheck != nullptr; i++) {
-                if (!pindexCheck->GetBlockHeader().IsHiveMined(params) && 
-                    pindexCheck->GetBlockHeader().GetPoWType() == POW_TYPE_SHA256) {
-                    foundSha256Block = true;
-                    break;
+            // Look back through the entire chain (up to 1000 blocks) to see if there are any SHA256 blocks
+            while (pindexCheck != nullptr && checkCount < 1000) {
+                checkCount++;
+                
+                try {
+                    if (!pindexCheck->GetBlockHeader().IsHiveMined(params) && 
+                        pindexCheck->GetBlockHeader().GetPoWType() == POW_TYPE_SHA256) {
+                        foundSha256Block = true;
+                        break;
+                    }
+                } catch (const std::runtime_error& e) {
+                    // If we get an error accessing a block header, just continue to the next block
+                    LogPrintf("* GetNextWorkRequiredLWMA: Exception checking block at height %d: %s, continuing search\n", 
+                              pindexCheck->nHeight, e.what());
                 }
+                
                 pindexCheck = pindexCheck->pprev;
-                if (pindexCheck == nullptr) break;
             }
             
             // If no SHA256 blocks found, immediately return minimum difficulty
             if (!foundSha256Block) {
-                LogPrintf("* GetNextWorkRequiredLWMA: No SHA256 blocks found, returning SHA256 pow limit\n");
+                LogPrintf("* GetNextWorkRequiredLWMA: No SHA256 blocks found in %d blocks checked, returning SHA256 pow limit\n", checkCount);
                 return UintToArith256(params.powTypeLimits[POW_TYPE_SHA256]).GetCompact();
             }
         } catch (const std::runtime_error& e) {
@@ -220,17 +229,25 @@ unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const CBlockHeader *
     if (IsMinotaurXEnabled(pindexPrevSha, params)) {
         bool foundShaBlock = false;
         const CBlockIndex* pindexCheck = pindexPrevSha;
+        int checkCount = 0;
         
         try {
-            // Look back up to 100 blocks to see if we can find a SHA256 block
-            for (int i = 0; i < 100 && pindexCheck; i++) {
-                if (!pindexCheck->GetBlockHeader().IsHiveMined(params) && 
-                    pindexCheck->GetBlockHeader().GetPoWType() == POW_TYPE_SHA256) {
-                    foundShaBlock = true;
-                    break;
+            // Look back through the entire chain (up to 1000 blocks) to see if we can find a SHA256 block
+            while (pindexCheck != nullptr && checkCount < 1000) {
+                checkCount++;
+                
+                try {
+                    if (!pindexCheck->GetBlockHeader().IsHiveMined(params) && 
+                        pindexCheck->GetBlockHeader().GetPoWType() == POW_TYPE_SHA256) {
+                        foundShaBlock = true;
+                        break;
+                    }
+                } catch (const std::runtime_error& e) {
+                    // If we get an error accessing a block header, just continue to the next block
+                    LogPrintf("DarkGravityWave: Exception checking block at height %d: %s, continuing search\n", 
+                              pindexCheck->nHeight, e.what());
                 }
-                if (!pindexCheck->pprev)
-                    break;
+                
                 pindexCheck = pindexCheck->pprev;
             }
         } catch (const std::runtime_error& e) {
@@ -240,7 +257,7 @@ unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const CBlockHeader *
         
         // If we didn't find any SHA256 blocks, return minimum difficulty
         if (!foundShaBlock) {
-            LogPrintf("DarkGravityWave: No SHA256 blocks found in recent history, returning minimum difficulty\n");
+            LogPrintf("DarkGravityWave: No SHA256 blocks found in %d blocks checked, returning minimum difficulty\n", checkCount);
             return bnPowLimit.GetCompact();
         }
     }
