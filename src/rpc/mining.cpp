@@ -49,6 +49,11 @@ unsigned int ParseConfirmTarget(const UniValue& value)
 UniValue GetNetworkHashPS(int lookup, int height, POW_TYPE powType) {
     CBlockIndex *pb = chainActive.Tip();
 
+    // Safety check - make sure the chain has blocks before proceeding
+    if (pb == nullptr) {
+        return 0;
+    }
+
     if (height >= 0 && height < chainActive.Height())
         pb = chainActive[height];
 
@@ -64,10 +69,19 @@ UniValue GetNetworkHashPS(int lookup, int height, POW_TYPE powType) {
         lookup = pb->nHeight;
 
     // Cascoin: MinotaurX+Hive1.2: Skip incorrect powType
-    while(IsMinotaurXEnabled(pb, Params().GetConsensus()) && pb->GetBlockHeader().GetPoWType() != powType) {
-        assert (pb->pprev);
+    while(pb && IsMinotaurXEnabled(pb, Params().GetConsensus()) && pb->GetBlockHeader().GetPoWType() != powType) {
+        if (!pb->pprev) {
+            // Break if we can't go back further
+            break;
+        }
         pb = pb->pprev;
     }
+    
+    // Safety check after skipping blocks
+    if (!pb) {
+        return 0;
+    }
+    
     // We have either stepped back to before minotaurx fork, or the requested powType block
     // If we have stepped back to (or started looking up from) pre minotaur, but requested minotaurx pow type, then there are no hashes
     if (!IsMinotaurXEnabled(pb, Params().GetConsensus()) && powType == POW_TYPE_MINOTAURX) {
@@ -80,8 +94,13 @@ UniValue GetNetworkHashPS(int lookup, int height, POW_TYPE powType) {
 	
 	arith_uint256 workDiff = GetNumHashes(*pb, powType);    // Cascoin: MinotaurX+Hive1.2: add powType param
 	
-    for (int i = 0; i < lookup; i++) {
+    for (int i = 0; i < lookup && pb->pprev; i++) {
         pb = pb->pprev;
+        
+        // Safety check
+        if (pb == nullptr) {
+            break;
+        }
 
         // Cascoin: MinotaurX+Hive1.2: Skip incorrect powType
 
@@ -90,13 +109,19 @@ UniValue GetNetworkHashPS(int lookup, int height, POW_TYPE powType) {
         // hive blocks almost immediately follow pow blocks, the contribution to timing
         // inaccuracies are most likely fairly insignificant.
 
-        while(IsMinotaurXEnabled(pb, Params().GetConsensus()) && pb->GetBlockHeader().GetPoWType() != powType) {
+        while(pb && IsMinotaurXEnabled(pb, Params().GetConsensus()) && pb->GetBlockHeader().GetPoWType() != powType) {
             // Check if we have a previous block to prevent assertion failure at genesis
             if (!pb->pprev) {
                 break;
             }
             pb = pb->pprev;
         }
+        
+        // Safety check after skipping blocks
+        if (!pb) {
+            break;
+        }
+        
         if(!IsMinotaurXEnabled(pb, Params().GetConsensus()) && powType == POW_TYPE_MINOTAURX) {
             break;
         }
@@ -113,7 +138,7 @@ UniValue GetNetworkHashPS(int lookup, int height, POW_TYPE powType) {
 
     int64_t timeDiff = maxTime - minTime;
 
-	return workDiff.getdouble() / timeDiff;
+    return workDiff.getdouble() / timeDiff;
 }
 
 // Cascoin: Hive: Mining optimisations: Set hive mining params
@@ -203,6 +228,12 @@ UniValue getnetworkhashps(const JSONRPCRequest& request)
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid pow algorithm requested");
 
     LOCK(cs_main);
+    
+    // Safety check - make sure we have enough blocks before calculating network hashrate
+    if (chainActive.Height() < 2) {
+        return 0; // Not enough blocks to calculate hashrate
+    }
+    
     return GetNetworkHashPS(!request.params[0].isNull() ? request.params[0].get_int() : 120, !request.params[1].isNull() ? request.params[1].get_int() : -1, powType);
 }
 
