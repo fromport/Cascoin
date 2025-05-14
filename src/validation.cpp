@@ -3115,7 +3115,51 @@ static bool CheckBlockHeader(const CBlockHeader& block, CValidationState& state,
 {
     // Cascoin: Hive: Check PoW or Hive work depending on blocktype
     if (fCheckPOW && !block.IsHiveMined(consensusParams)) {
-        if (!CheckProofOfWork(block.GetPoWHash(), block.nBits, consensusParams))
+        // Special case: First SHA256 block on a chain with only MinotaurX blocks
+        // In this case, we allow a block with the minimum difficulty without checking POW
+        CBlockIndex* pindexPrev = nullptr;
+        {
+            LOCK(cs_main);
+            BlockMap::iterator mi = mapBlockIndex.find(block.hashPrevBlock);
+            if (mi != mapBlockIndex.end()) {
+                pindexPrev = mi->second;
+            }
+        }
+        
+        // If we found the previous block
+        bool isFirstSha256Block = false;
+        if (pindexPrev != nullptr && IsMinotaurXEnabled(pindexPrev, consensusParams) && 
+            block.GetPoWType() == POW_TYPE_SHA256) {
+            
+            // Look for an existing SHA256 block in the chain
+            bool foundSha256Block = false;
+            const CBlockIndex* pindexCheck = pindexPrev;
+            int checkCount = 0;
+            
+            // Scan the whole chain looking for a SHA256 block
+            while (pindexCheck != nullptr && checkCount < 1000) {
+                checkCount++;
+                
+                // If this is a SHA256 block, we're not the first
+                if (!pindexCheck->GetBlockHeader().IsHiveMined(consensusParams) && 
+                    pindexCheck->GetBlockHeader().GetPoWType() == POW_TYPE_SHA256) {
+                    foundSha256Block = true;
+                    break;
+                }
+                
+                // Move to previous block
+                pindexCheck = pindexCheck->pprev;
+            }
+            
+            // If we didn't find a SHA256 block, this is the first one
+            if (!foundSha256Block) {
+                isFirstSha256Block = true;
+                LogPrintf("CheckBlockHeader: Allowing first SHA256 block after MinotaurX activation\n");
+            }
+        }
+        
+        // Only do the normal POW check if this isn't the special case first SHA256 block
+        if (!isFirstSha256Block && !CheckProofOfWork(block.GetPoWHash(), block.nBits, consensusParams))
             return state.DoS(50, false, REJECT_INVALID, "high-hash", false, "proof of work failed");
     }
 
