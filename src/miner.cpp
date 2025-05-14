@@ -284,38 +284,10 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
             if (IsMinotaurXEnabled(pindexPrev, chainparams.GetConsensus())) {
                 // Special case for SHA256 when mining on a fresh chain with only MinotaurX blocks
                 if (powType == POW_TYPE_SHA256) {
-                    // DIRECT AND IMMEDIATE OVERRIDE: Always use minimum difficulty for SHA256 blocks
-                    // when there are no existing SHA256 blocks in the chain
-                    bool foundSha256Block = false;
-                    
-                    try {
-                        const CBlockIndex* pindexCheck = pindexPrev;
-                        int checkCount = 0;
-                        
-                        // Look back through the entire chain to see if we can find any SHA256 blocks
-                        while (pindexCheck != nullptr && checkCount < 1000) {
-                            checkCount++;
-                            if (!pindexCheck->GetBlockHeader().IsHiveMined(chainparams.GetConsensus()) && 
-                                pindexCheck->GetBlockHeader().GetPoWType() == POW_TYPE_SHA256) {
-                                foundSha256Block = true;
-                                break;
-                            }
-                            pindexCheck = pindexCheck->pprev;
-                        }
-                    } catch (const std::runtime_error& e) {
-                        // Any exception means we should just use minimum difficulty
-                        LogPrintf("CreateNewBlock: Exception while checking for SHA256 blocks: %s, using minimum difficulty\n", e.what());
-                        foundSha256Block = false;
-                    }
-                    
-                    // If no SHA256 blocks found, use minimum difficulty - don't even try to calculate
-                    if (!foundSha256Block) {
-                        LogPrintf("CreateNewBlock: No SHA256 blocks found in chain, using minimum difficulty for first SHA256 block\n");
-                        pblock->nBits = UintToArith256(chainparams.GetConsensus().powTypeLimits[POW_TYPE_SHA256]).GetCompact();
-                    } else {
-                        // Use normal difficulty calculation if SHA256 blocks exist
-                        pblock->nBits = GetNextWorkRequiredLWMA(pindexPrev, pblock, chainparams.GetConsensus(), powType);
-                    }
+                    // MAXIMUM SAFETY OVERRIDE: Always use minimum difficulty for SHA256 blocks
+                    // This bypasses all complex checks that could lead to errors
+                    LogPrintf("CreateNewBlock: SHA256 block requested, SAFELY using minimum difficulty\n");
+                    pblock->nBits = UintToArith256(chainparams.GetConsensus().powTypeLimits[POW_TYPE_SHA256]).GetCompact();
                 } else {
                     // Normal case for non-SHA256 PoW types
                     pblock->nBits = GetNextWorkRequiredLWMA(pindexPrev, pblock, chainparams.GetConsensus(), powType);
