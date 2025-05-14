@@ -3151,14 +3151,14 @@ static bool CheckBlockHeader(const CBlockHeader& block, CValidationState& state,
                         }
                         
                         // Stop if we've found enough SHA256 blocks already
-                        if (sha256BlockCount >= 5) break;
+                        if (sha256BlockCount >= 500) break;
                         
                         pindexCheck = pindexCheck->pprev;
                     }
                     
-                    // SPECIAL CASE: Allow the first few SHA256 blocks (up to 5) to pass without full POW check
+                    // SPECIAL CASE: Allow the first few SHA256 blocks (up to 500) to pass without full POW check
                     // This lets us bootstrap the chain with SHA256 blocks even when finding valid POW is difficult
-                    if (sha256BlockCount < 5) {
+                    if (sha256BlockCount < 500) {
                         LogPrintf("CheckBlockHeader: ACCEPTING early SHA256 block #%u at minimum difficulty without POW check\n", 
                                  sha256BlockCount + 1);
                         return true;
