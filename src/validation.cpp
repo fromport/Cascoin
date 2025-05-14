@@ -3838,6 +3838,7 @@ bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CVali
     }
 
     // Write block to history file
+    int nHeight = pindexPrev ? pindexPrev->nHeight + 1 : 0;
     try {
         unsigned int nBlockSize = ::GetSerializeSize(block, SER_DISK, CLIENT_VERSION);
         CDiskBlockPos blockPos;
