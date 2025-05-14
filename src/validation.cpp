@@ -3748,14 +3748,14 @@ bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CVali
             return state.Invalid(error("AcceptBlock(): block's timestamp is too early"), REJECT_INVALID, "time-too-old");
 
         // Check that the block chain matches the known block chain up to a checkpoint
-        if (!CheckBlock(block, state, chainparams.GetConsensus(), true, true))
+        if (!Checkpoints::CheckBlock(chainparams.Checkpoints(), block, pindexPrev->nHeight + 1, false))
             return state.DoS(100, error("AcceptBlock(): rejected by checkpoint lock-in at %d", pindexPrev->nHeight + 1),
                             REJECT_CHECKPOINT, "checkpoint mismatch");
 
         // Don't accept any forks from the main chain prior to last checkpoint.
         // Get height of last checkpoint
         int nHeight = pindexPrev->nHeight + 1;
-        if (!CheckBlock(block, state, chainparams.GetConsensus(), true, true))
+        if (!Checkpoints::CheckBlock(chainparams.Checkpoints(), block, nHeight, true))
             return state.DoS(100, error("AcceptBlock(): forked chain older than last checkpoint (height %d)", nHeight),
                             REJECT_CHECKPOINT, "bad-fork-prior-to-checkpoint");
 
