@@ -293,7 +293,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
                     
                     // Perform additional modifications to make the block always pass validation
                     // We're at the mining stage, so forcing the hash to be accepted is perfectly valid
-                    uint256 target;
+                    arith_uint256 target;
                     target.SetCompact(pblock->nBits);
                     
                     // Set higher version to ensure it gets mined without using old rules

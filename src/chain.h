@@ -279,16 +279,6 @@ public:
 
     CBlockHeader GetBlockHeader() const
     {
-        // Safety check - make sure 'this' is not null
-        if (this == nullptr) {
-            // Instead of throwing, return a dummy empty block header
-            // This allows mining to proceed with minimum difficulty
-            // Silent failure - no logging to avoid dependency issues
-            CBlockHeader emptyBlock;
-            emptyBlock.SetNull();
-            return emptyBlock;
-        }
-        
         // Extra safety - make sure fields are initialized
         if (!phashBlock) {
             // Instead of throwing, return a dummy empty block header
@@ -333,23 +323,11 @@ public:
 
     int64_t GetBlockTime() const
     {
-        // Safety check - make sure 'this' is not null
-        if (this == nullptr) {
-            // Instead of crashing, return a safe default value
-            // Silent failure - no logging to avoid dependency issues
-            return 0;
-        }
         return (int64_t)nTime;
     }
 
     int64_t GetBlockTimeMax() const
     {
-        // Safety check - make sure 'this' is not null
-        if (this == nullptr) {
-            // Instead of crashing, return a safe default value
-            // Silent failure - no logging to avoid dependency issues
-            return 0;
-        }
         return (int64_t)nTimeMax;
     }
 
@@ -357,13 +335,6 @@ public:
 
     int64_t GetMedianTimePast() const
     {
-        // Safety check - make sure 'this' is not null
-        if (this == nullptr) {
-            // Instead of crashing, return a safe default value
-            // Silent failure - no logging to avoid dependency issues
-            return 0;
-        }
-        
         int64_t pmedian[nMedianTimeSpan];
         int64_t* pbegin = &pmedian[nMedianTimeSpan];
         int64_t* pend = &pmedian[nMedianTimeSpan];
