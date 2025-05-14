@@ -285,6 +285,11 @@ public:
             throw std::runtime_error("attempted to get block header from null block index");
         }
         
+        // Extra safety - make sure fields are initialized
+        if (!phashBlock) {
+            throw std::runtime_error("block hash pointer is null in GetBlockHeader");
+        }
+        
         CBlockHeader block;
         block.nVersion       = nVersion;
         if (pprev)

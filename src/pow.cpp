@@ -29,13 +29,51 @@ BeePopGraphPoint beePopGraph[1024*40];       // Cascoin: Hive
 // For updates see
 // https://github.com/zawy12/difficulty-algorithms/issues/3#issuecomment-442129791
 unsigned int GetNextWorkRequiredLWMA(const CBlockIndex* pindexLast, const CBlockHeader *pblock, const Consensus::Params& params, const POW_TYPE powType) {
-    const bool verbose = LogAcceptCategory(BCLog::MINOTAURX);
-    const arith_uint256 powLimit = UintToArith256(params.powTypeLimits[powType]);   // Max target limit (easiest diff)
-    const int64_t T = params.nPowTargetSpacing * 2;                                 // Target freq
-    const int64_t N = params.lwmaAveragingWindow;                                   // Window size
-    const int64_t k = N * (N + 1) * T / 2;                                          // Constant for proper averaging after weighting solvetimes
-    const int64_t height = pindexLast ? pindexLast->nHeight : 0;                    // Block height
+    // Make sure pindexLast is not null
+    if (pindexLast == nullptr) {
+        LogPrintf("* GetNextWorkRequiredLWMA: pindexLast is null, returning %s pow limit\n", POW_TYPE_NAMES[powType]);
+        return UintToArith256(params.powTypeLimits[powType]).GetCompact();
+    }
+
+    // Special handling for SHA256 on a chain with only MinotaurX blocks
+    if (powType == POW_TYPE_SHA256) {
+        bool foundSha256Block = false;
+        
+        try {
+            // Check if there are any SHA256 blocks in the chain
+            CBlockIndex* pindexCheck = pindexLast;
+            
+            // Look back up to 100 blocks to see if there are any SHA256 blocks
+            for (int i = 0; i < 100 && pindexCheck != nullptr; i++) {
+                if (!pindexCheck->GetBlockHeader().IsHiveMined(params) && 
+                    pindexCheck->GetBlockHeader().GetPoWType() == POW_TYPE_SHA256) {
+                    foundSha256Block = true;
+                    break;
+                }
+                pindexCheck = pindexCheck->pprev;
+                if (pindexCheck == nullptr) break;
+            }
+            
+            // If no SHA256 blocks found, immediately return minimum difficulty
+            if (!foundSha256Block) {
+                LogPrintf("* GetNextWorkRequiredLWMA: No SHA256 blocks found, returning SHA256 pow limit\n");
+                return UintToArith256(params.powTypeLimits[POW_TYPE_SHA256]).GetCompact();
+            }
+        } catch (const std::runtime_error& e) {
+            // Any exception means we should use minimum difficulty
+            LogPrintf("* GetNextWorkRequiredLWMA: Exception checking for SHA256 blocks: %s, returning pow limit\n", e.what());
+            return UintToArith256(params.powTypeLimits[powType]).GetCompact();
+        }
+    }
+
+    const arith_uint256 powLimit = UintToArith256(params.powTypeLimits[powType]);
+    const int height = pindexLast->nHeight + 1;
     
+    bool verbose = true;
+    const int64_t T = params.nPowTargetSpacing;
+    const int N = 60;
+    const int k = N * (N + 1) * T / 2;
+
     // Allow minimum difficulty for first 100 blocks
     if (height < 100) {
         if (verbose) LogPrintf("* GetNextWorkRequiredLWMA: Allowing %s pow limit (first 100 blocks)\n", POW_TYPE_NAMES[powType]);
