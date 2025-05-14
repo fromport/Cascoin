@@ -279,16 +279,19 @@ public:
 
     CBlockHeader GetBlockHeader() const
     {
+        // Safety check - make sure 'this' is not null
+        if (this == nullptr) {
+            // Return an empty block header with a warning
+            LogPrintf("WARNING: Attempted to get block header from null block index\n");
+            throw std::runtime_error("attempted to get block header from null block index");
+        }
+        
         CBlockHeader block;
-        if (!this) {
-            throw std::runtime_error("Attempted to get block header from null block index");
-        }
         block.nVersion       = nVersion;
-        if (pprev) {
+        if (pprev)
             block.hashPrevBlock = pprev->GetBlockHash();
-        } else {
-            block.hashPrevBlock = uint256(); // Genesis block has no previous block
-        }
+        else
+            block.hashPrevBlock.SetNull(); // Explicitly set to null for genesis
         block.hashMerkleRoot = hashMerkleRoot;
         block.nTime          = nTime;
         block.nBits          = nBits;
