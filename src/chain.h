@@ -280,9 +280,15 @@ public:
     CBlockHeader GetBlockHeader() const
     {
         CBlockHeader block;
+        if (!this) {
+            throw std::runtime_error("Attempted to get block header from null block index");
+        }
         block.nVersion       = nVersion;
-        if (pprev)
+        if (pprev) {
             block.hashPrevBlock = pprev->GetBlockHash();
+        } else {
+            block.hashPrevBlock = uint256(); // Genesis block has no previous block
+        }
         block.hashMerkleRoot = hashMerkleRoot;
         block.nTime          = nTime;
         block.nBits          = nBits;
@@ -292,6 +298,12 @@ public:
 
     uint256 GetBlockHash() const
     {
+        if (!this) {
+            throw std::runtime_error("Attempted to get block hash from null block index");
+        }
+        if (!phashBlock) {
+            throw std::runtime_error("Block hash pointer is null");
+        }
         return *phashBlock;
     }
 
