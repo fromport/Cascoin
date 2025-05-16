@@ -296,9 +296,8 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
                     arith_uint256 target;
                     target.SetCompact(pblock->nBits);
                     
-                    // Use the current consensus-valid version for this block
-                    // Don't set a specific version as this can trigger validation errors
-                    // pblock->nVersion = 0x20000000; // This line is causing the validation error
+                    // Set higher version to ensure it gets mined without using old rules
+                    pblock->nVersion = 0x20000000;
                     
                     // Log what we're doing for debugging
                     LogPrintf("CreateNewBlock: Mining SHA256 block with nBits=%08x\n", pblock->nBits);
