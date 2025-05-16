@@ -496,14 +496,6 @@ bool CheckProofOfWork(uint256 hash, unsigned int nBits, const Consensus::Params&
     if (fNegative || bnTarget == 0 || fOverflow || bnTarget > powLimit)
         return false;
 
-    // Special case: If the target is exactly equal to the minimum difficulty for SHA256,
-    // always allow it to pass, as it could be the first SHA256 block on a chain with only MinotaurX blocks
-    if (bnTarget == UintToArith256(params.powTypeLimits[POW_TYPE_SHA256])) {
-        // This is a minimum difficulty block
-        // We'll allow it - the proper check for the first SHA256 block is done in CheckBlockHeader
-        return true;
-    }
-
     // Check proof of work matches claimed amount
     if (UintToArith256(hash) > bnTarget)
         return false;
