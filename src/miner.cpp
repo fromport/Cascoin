@@ -284,28 +284,20 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
             if (IsMinotaurXEnabled(pindexPrev, chainparams.GetConsensus())) {
                 // Special case for SHA256 when mining on a fresh chain with only MinotaurX blocks
                 if (powType == POW_TYPE_SHA256) {
-                    // DIRECT OVERRIDE: Always use minimum difficulty for the first SHA256 block to avoid errors
-                    // This is a safer approach that will always work, even when there are no SHA256 blocks yet
+                    // Check if there are any SHA256 blocks in the chain
                     bool foundSha256Block = false;
+                    CBlockIndex* pindexCheck = pindexPrev;
                     
-                    // Try-catch block to protect from null pointer errors
-                    try {
-                        CBlockIndex* pindexCheck = pindexPrev;
-                        
-                        // Look back up to 100 blocks to see if we can find any SHA256 blocks
-                        for (int i = 0; i < 100 && pindexCheck != nullptr; i++) {
-                            if (!pindexCheck->GetBlockHeader().IsHiveMined(chainparams.GetConsensus()) && 
-                                pindexCheck->GetBlockHeader().GetPoWType() == POW_TYPE_SHA256) {
-                                foundSha256Block = true;
-                                break;
-                            }
-                            pindexCheck = pindexCheck->pprev;
-                            if (pindexCheck == nullptr) break;
+                    // Look back up to 100 blocks to see if we can find any SHA256 blocks
+                    for (int i = 0; i < 100 && pindexCheck != nullptr; i++) {
+                        if (!pindexCheck->GetBlockHeader().IsHiveMined(chainparams.GetConsensus()) && 
+                            pindexCheck->GetBlockHeader().GetPoWType() == POW_TYPE_SHA256) {
+                            foundSha256Block = true;
+                            break;
                         }
-                    } catch (const std::runtime_error& e) {
-                        // Any exception means we should just use minimum difficulty
-                        LogPrintf("CreateNewBlock: Exception while checking for SHA256 blocks: %s, using minimum difficulty\n", e.what());
-                        foundSha256Block = false;
+                        if (pindexCheck->pprev == nullptr)
+                            break;
+                        pindexCheck = pindexCheck->pprev;
                     }
                     
                     // If no SHA256 blocks found, use minimum difficulty
