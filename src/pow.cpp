@@ -143,125 +143,51 @@ unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const CBlockHeader *
     const arith_uint256 bnPowLimit = UintToArith256(params.powLimitSHA);
     int64_t nPastBlocks = 24;
 
-    // Null pointer safety check - allow mining with minimum difficulty if no blocks or pindexLast is null
-    if (pindexLast == nullptr) {
-        LogPrintf("DarkGravityWave: pindexLast is null, returning minimum difficulty\n");
-        return bnPowLimit.GetCompact();
-    }
-
     // Cascoin: Allow minimum difficulty blocks if we haven't seen a block for ostensibly 10 blocks worth of time
     if (params.fPowAllowMinDifficultyBlocks && pblock->GetBlockTime() > pindexLast->GetBlockTime() + params.nPowTargetSpacing * 10)
         return bnPowLimit.GetCompact();
 
     // Cascoin: Hive 1.1: Skip over Hivemined blocks at tip
-    CBlockIndex* pindexPrevSha = const_cast<CBlockIndex*>(pindexLast);
-    if (IsHive11Enabled(pindexPrevSha, params)) {
-        try {
-            while (pindexPrevSha && pindexPrevSha->GetBlockHeader().IsHiveMined(params)) {
-                //LogPrintf("DarkGravityWave: Skipping hivemined block at %i\n", pindex->nHeight);
-                if (!pindexPrevSha->pprev) {
-                    // No previous block found, return minimum difficulty
-                    LogPrintf("DarkGravityWave: No non-Hive blocks in chain, returning minimum difficulty\n");
-                    return bnPowLimit.GetCompact();
-                }
-                pindexPrevSha = pindexPrevSha->pprev;
-            }
-        } catch (const std::runtime_error& e) {
-            LogPrintf("DarkGravityWave: Error getting block header: %s, returning minimum difficulty\n", e.what());
-            return bnPowLimit.GetCompact();
-        }
-    }
-
-    // Safety check for NULL block index after skipping hive blocks
-    if (pindexPrevSha == nullptr) {
-        LogPrintf("DarkGravityWave: pindexPrevSha is null after skipping Hive blocks, returning minimum difficulty\n");
-        return bnPowLimit.GetCompact();
-    }
-
-    // Check if this is the first SHA256 block since MinotaurX activation
-    if (IsMinotaurXEnabled(pindexPrevSha, params)) {
-        bool foundShaBlock = false;
-        CBlockIndex* pindexCheck = pindexPrevSha;
-        
-        try {
-            // Look back up to 100 blocks to see if we can find a SHA256 block
-            for (int i = 0; i < 100 && pindexCheck; i++) {
-                if (!pindexCheck->GetBlockHeader().IsHiveMined(params) && 
-                    pindexCheck->GetBlockHeader().GetPoWType() == POW_TYPE_SHA256) {
-                    foundShaBlock = true;
-                    break;
-                }
-                if (!pindexCheck->pprev)
-                    break;
-                pindexCheck = pindexCheck->pprev;
-            }
-        } catch (const std::runtime_error& e) {
-            LogPrintf("DarkGravityWave: Error checking for SHA256 blocks: %s, returning minimum difficulty\n", e.what());
-            return bnPowLimit.GetCompact();
-        }
-        
-        // If we didn't find any SHA256 blocks, return minimum difficulty
-        if (!foundShaBlock) {
-            LogPrintf("DarkGravityWave: No SHA256 blocks found in recent history, returning minimum difficulty\n");
-            return bnPowLimit.GetCompact();
+    if (IsHive11Enabled(pindexLast, params)) {
+        while (pindexLast->GetBlockHeader().IsHiveMined(params)) {
+            //LogPrintf("DarkGravityWave: Skipping hivemined block at %i\n", pindex->nHeight);
+            assert(pindexLast->pprev); // should never fail
+            pindexLast = pindexLast->pprev;
         }
     }
 
     // Cascoin: Make sure we have at least (nPastBlocks + 1) blocks since the fork, otherwise just return powLimitSHA
-    if (!pindexPrevSha || pindexPrevSha->nHeight - params.lastScryptBlock < nPastBlocks)
+    if (!pindexLast || pindexLast->nHeight - params.lastScryptBlock < nPastBlocks)
         return bnPowLimit.GetCompact();
 
-    const CBlockIndex *pindex = pindexPrevSha;
+    const CBlockIndex *pindex = pindexLast;
     arith_uint256 bnPastTargetAvg;
 
-    for (unsigned int nCountBlocks = 1; nCountBlocks <= nPastBlocks && pindex; nCountBlocks++) {
-        try {
-            // Cascoin: Hive: Skip over Hivemined blocks; we only want to consider PoW blocks
-            while (pindex && pindex->GetBlockHeader().IsHiveMined(params)) {
-                //LogPrintf("DarkGravityWave: Skipping hivemined block at %i\n", pindex->nHeight);
-                if (!pindex->pprev) {
-                    // No more blocks after skipping hivemined blocks, return minimum difficulty
-                    return bnPowLimit.GetCompact();
-                }
-                pindex = pindex->pprev;
-            }
-            
-            // After skipping, check that pindex is still valid
-            if (!pindex) {
-                LogPrintf("DarkGravityWave: pindex became null after skipping Hivemined blocks\n");
-                return bnPowLimit.GetCompact();
-            }
-
-            arith_uint256 bnTarget = arith_uint256().SetCompact(pindex->nBits);
-            if (nCountBlocks == 1) {
-                bnPastTargetAvg = bnTarget;
-            } else {
-                // NOTE: that's not an average really...
-                bnPastTargetAvg = (bnPastTargetAvg * nCountBlocks + bnTarget) / (nCountBlocks + 1);
-            }
-
-            if(nCountBlocks != nPastBlocks) {
-                if (!pindex->pprev) {
-                    // Ran out of blocks to analyze, use what we have
-                    break;
-                }
-                pindex = pindex->pprev;
-            }
-        } catch (const std::runtime_error& e) {
-            LogPrintf("DarkGravityWave: Error in block processing loop: %s, returning minimum difficulty\n", e.what());
-            return bnPowLimit.GetCompact();
+    for (unsigned int nCountBlocks = 1; nCountBlocks <= nPastBlocks; nCountBlocks++) {
+        // Cascoin: Hive: Skip over Hivemined blocks; we only want to consider PoW blocks
+        while (pindex->GetBlockHeader().IsHiveMined(params)) {
+            //LogPrintf("DarkGravityWave: Skipping hivemined block at %i\n", pindex->nHeight);
+            assert(pindex->pprev); // should never fail
+            pindex = pindex->pprev;
         }
-    }
 
-    // If we don't have any valid blocks to calculate from, return minimum difficulty
-    if (!pindex) {
-        LogPrintf("DarkGravityWave: No valid blocks for calculation, returning minimum difficulty\n");
-        return bnPowLimit.GetCompact();
+        arith_uint256 bnTarget = arith_uint256().SetCompact(pindex->nBits);
+        if (nCountBlocks == 1) {
+            bnPastTargetAvg = bnTarget;
+        } else {
+            // NOTE: that's not an average really...
+            bnPastTargetAvg = (bnPastTargetAvg * nCountBlocks + bnTarget) / (nCountBlocks + 1);
+        }
+
+        if(nCountBlocks != nPastBlocks) {
+            assert(pindex->pprev); // should never fail
+            pindex = pindex->pprev;
+        }
     }
 
     arith_uint256 bnNew(bnPastTargetAvg);
 
-    int64_t nActualTimespan = pindexPrevSha->GetBlockTime() - pindex->GetBlockTime();
+    int64_t nActualTimespan = pindexLast->GetBlockTime() - pindex->GetBlockTime();
     // NOTE: is this accurate? nActualTimespan counts it for (nPastBlocks - 1) blocks only...
     int64_t nTargetTimespan = nPastBlocks * params.nPowTargetSpacing;
 
@@ -284,11 +210,7 @@ unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const CBlockHeader *
 // Call correct diff adjust for Scrypt and sha256 blocks prior to MinotaurX
 unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHeader *pblock, const Consensus::Params& params)
 {
-    // If pindexLast is null, allow mining with minimum difficulty
-    if (pindexLast == nullptr) {
-        LogPrintf("GetNextWorkRequired: pindexLast is null, returning minimum difficulty\n");
-        return UintToArith256(params.powLimitSHA).GetCompact();
-    }
+    assert(pindexLast != nullptr);
 
     // Cascoin: If past fork time, use Dark Gravity Wave
     if (pindexLast->nHeight >= params.lastScryptBlock)
@@ -300,13 +222,8 @@ unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHead
 // LTC's diff adjust
 unsigned int GetNextWorkRequiredLTC(const CBlockIndex* pindexLast, const CBlockHeader *pblock, const Consensus::Params& params)
 {
+    assert(pindexLast != nullptr);
     unsigned int nProofOfWorkLimit = UintToArith256(params.powLimit).GetCompact();
-    
-    // Handle null pindexLast gracefully
-    if (pindexLast == nullptr) {
-        LogPrintf("GetNextWorkRequiredLTC: pindexLast is null, returning minimum difficulty\n");
-        return nProofOfWorkLimit;
-    }
 
     // Only change once per difficulty adjustment interval
     if ((pindexLast->nHeight+1) % params.DifficultyAdjustmentInterval() != 0)
@@ -316,13 +233,13 @@ unsigned int GetNextWorkRequiredLTC(const CBlockIndex* pindexLast, const CBlockH
             // Special difficulty rule for testnet:
             // If the new block's timestamp is more than 2* 10 minutes
             // then allow mining of a min-difficulty block.
-            if (pblock && pblock->GetBlockTime() > pindexLast->GetBlockTime() + params.nPowTargetSpacing*2)
+            if (pblock->GetBlockTime() > pindexLast->GetBlockTime() + params.nPowTargetSpacing*2)
                 return nProofOfWorkLimit;
             else
             {
                 // Return the last non-special-min-difficulty-rules-block
                 const CBlockIndex* pindex = pindexLast;
-                while (pindex && pindex->pprev && pindex->nHeight % params.DifficultyAdjustmentInterval() != 0 && pindex->nBits == nProofOfWorkLimit)
+                while (pindex->pprev && pindex->nHeight % params.DifficultyAdjustmentInterval() != 0 && pindex->nBits == nProofOfWorkLimit)
                     pindex = pindex->pprev;
                 return pindex->nBits;
             }
@@ -350,31 +267,11 @@ unsigned int GetNextWorkRequiredLTC(const CBlockIndex* pindexLast, const CBlockH
 // Used by LTC's diff adjust
 unsigned int CalculateNextWorkRequired(const CBlockIndex* pindexLast, int64_t nFirstBlockTime, const Consensus::Params& params)
 {
-    // Handle null pindexLast gracefully
-    if (pindexLast == nullptr) {
-        LogPrintf("CalculateNextWorkRequired: pindexLast is null, returning minimum difficulty\n");
-        return UintToArith256(params.powLimit).GetCompact();
-    }
-
     if (params.fPowNoRetargeting)
         return pindexLast->nBits;
 
-    // Safety check for negative timespan
-    int64_t nActualTimespan;
-    try {
-        nActualTimespan = pindexLast->GetBlockTime() - nFirstBlockTime;
-        
-        // Handle negative or unreasonable timespans
-        if (nActualTimespan <= 0) {
-            LogPrintf("CalculateNextWorkRequired: Warning - negative timespan %lld, using default\n", nActualTimespan);
-            nActualTimespan = params.nPowTargetTimespan;
-        }
-    } catch (const std::exception& e) {
-        LogPrintf("CalculateNextWorkRequired: Exception calculating timespan: %s\n", e.what());
-        return UintToArith256(params.powLimit).GetCompact();
-    }
-
     // Limit adjustment step
+    int64_t nActualTimespan = pindexLast->GetBlockTime() - nFirstBlockTime;
     if (nActualTimespan < params.nPowTargetTimespan/4)
         nActualTimespan = params.nPowTargetTimespan/4;
     if (nActualTimespan > params.nPowTargetTimespan*4)
@@ -383,28 +280,22 @@ unsigned int CalculateNextWorkRequired(const CBlockIndex* pindexLast, int64_t nF
     // Retarget
     arith_uint256 bnNew;
     arith_uint256 bnOld;
-    
-    try {
-        bnNew.SetCompact(pindexLast->nBits);
-        bnOld = bnNew;
-        // Cascoin: intermediate uint256 can overflow by 1 bit
-        const arith_uint256 bnPowLimit = UintToArith256(params.powLimit);
-        bool fShift = bnNew.bits() > bnPowLimit.bits() - 1;
-        if (fShift)
-            bnNew >>= 1;
-        bnNew *= nActualTimespan;
-        bnNew /= params.nPowTargetTimespan;
-        if (fShift)
-            bnNew <<= 1;
+    bnNew.SetCompact(pindexLast->nBits);
+    bnOld = bnNew;
+    // Cascoin: intermediate uint256 can overflow by 1 bit
+    const arith_uint256 bnPowLimit = UintToArith256(params.powLimit);
+    bool fShift = bnNew.bits() > bnPowLimit.bits() - 1;
+    if (fShift)
+        bnNew >>= 1;
+    bnNew *= nActualTimespan;
+    bnNew /= params.nPowTargetTimespan;
+    if (fShift)
+        bnNew <<= 1;
 
-        if (bnNew > bnPowLimit)
-            bnNew = bnPowLimit;
-            
-        return bnNew.GetCompact();
-    } catch (const std::exception& e) {
-        LogPrintf("CalculateNextWorkRequired: Exception during calculation: %s\n", e.what());
-        return UintToArith256(params.powLimit).GetCompact();
-    }
+    if (bnNew > bnPowLimit)
+        bnNew = bnPowLimit;
+
+    return bnNew.GetCompact();
 }
 
 bool CheckProofOfWork(uint256 hash, unsigned int nBits, const Consensus::Params& params)
