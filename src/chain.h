@@ -281,7 +281,8 @@ public:
     {
         // Safety check - make sure 'this' is not null
         if (this == nullptr) {
-            // Just throw an exception without logging
+            // Return an empty block header with a warning
+            LogPrintf("WARNING: Attempted to get block header from null block index\n");
             throw std::runtime_error("attempted to get block header from null block index");
         }
         
