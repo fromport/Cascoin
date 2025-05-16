@@ -281,21 +281,13 @@ public:
     {
         // Safety check - make sure 'this' is not null
         if (this == nullptr) {
-            // Instead of throwing, return a dummy empty block header
-            // This allows mining to proceed with minimum difficulty
-            // Silent failure - no logging to avoid dependency issues
-            CBlockHeader emptyBlock;
-            emptyBlock.SetNull();
-            return emptyBlock;
+            // Just throw an exception without logging
+            throw std::runtime_error("attempted to get block header from null block index");
         }
         
         // Extra safety - make sure fields are initialized
         if (!phashBlock) {
-            // Instead of throwing, return a dummy empty block header
-            // Silent failure - no logging to avoid dependency issues
-            CBlockHeader emptyBlock;
-            emptyBlock.SetNull();
-            return emptyBlock;
+            throw std::runtime_error("block hash pointer is null in GetBlockHeader");
         }
         
         CBlockHeader block;
@@ -314,21 +306,14 @@ public:
     uint256 GetBlockHash() const
     {
         if (!phashBlock) {
-            // Instead of throwing, return an empty hash
-            // Silent failure - no logging to avoid dependency issues
-            return uint256();
+            throw std::runtime_error("Block hash pointer is null");
         }
         return *phashBlock;
     }
 
     uint256 GetBlockPoWHash() const
     {
-        try {
-            return GetBlockHeader().GetPoWHash();
-        } catch (const std::exception& e) {
-            // Silent failure - no logging to avoid dependency issues
-            return uint256();
-        }
+        return GetBlockHeader().GetPoWHash();
     }
 
     int64_t GetBlockTime() const

@@ -29,7 +29,7 @@ BeePopGraphPoint beePopGraph[1024*40];       // Cascoin: Hive
 // For updates see
 // https://github.com/zawy12/difficulty-algorithms/issues/3#issuecomment-442129791
 unsigned int GetNextWorkRequiredLWMA(const CBlockIndex* pindexLast, const CBlockHeader *pblock, const Consensus::Params& params, const POW_TYPE powType) {
-    // Most robust way to handle null pindexLast
+    // Make sure pindexLast is not null
     if (pindexLast == nullptr) {
         LogPrintf("* GetNextWorkRequiredLWMA: pindexLast is null, returning %s pow limit\n", POW_TYPE_NAMES[powType]);
         return UintToArith256(params.powTypeLimits[powType]).GetCompact();
@@ -37,13 +37,6 @@ unsigned int GetNextWorkRequiredLWMA(const CBlockIndex* pindexLast, const CBlock
 
     // Special handling for SHA256 on a chain with only MinotaurX blocks
     if (powType == POW_TYPE_SHA256) {
-        // OVERRIDE: Always return minimum difficulty for SHA256 blocks
-        // This is the most robust solution to prevent any issues with null block indices
-        LogPrintf("* GetNextWorkRequiredLWMA: For SHA256, SAFELY returning pow limit to ensure mining can proceed\n");
-        return UintToArith256(params.powTypeLimits[POW_TYPE_SHA256]).GetCompact();
-        
-        // The following code is kept for historical reasons but will not be executed
-        /*
         bool foundSha256Block = false;
         
         try {
@@ -80,7 +73,6 @@ unsigned int GetNextWorkRequiredLWMA(const CBlockIndex* pindexLast, const CBlock
             LogPrintf("* GetNextWorkRequiredLWMA: Exception checking for SHA256 blocks: %s, returning pow limit\n", e.what());
             return UintToArith256(params.powTypeLimits[powType]).GetCompact();
         }
-        */
     }
 
     const arith_uint256 powLimit = UintToArith256(params.powTypeLimits[powType]);
@@ -235,13 +227,6 @@ unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const CBlockHeader *
 
     // Check if this is the first SHA256 block since MinotaurX activation
     if (IsMinotaurXEnabled(pindexPrevSha, params)) {
-        // OVERRIDE: Always return minimum difficulty for SHA256 blocks when MinotaurX is enabled
-        // This is the most robust solution to prevent any issues with null block indices
-        LogPrintf("DarkGravityWave: MinotaurX enabled, SAFELY returning minimum difficulty for SHA256\n");
-        return bnPowLimit.GetCompact();
-        
-        // The following code is kept for historical reasons but will not be executed
-        /*
         bool foundShaBlock = false;
         const CBlockIndex* pindexCheck = pindexPrevSha;
         int checkCount = 0;
@@ -275,7 +260,6 @@ unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const CBlockHeader *
             LogPrintf("DarkGravityWave: No SHA256 blocks found in %d blocks checked, returning minimum difficulty\n", checkCount);
             return bnPowLimit.GetCompact();
         }
-        */
     }
 
     // Cascoin: Make sure we have at least (nPastBlocks + 1) blocks since the fork, otherwise just return powLimitSHA
