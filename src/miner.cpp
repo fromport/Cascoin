@@ -276,55 +276,14 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     UpdateTime(pblock, chainparams.GetConsensus(), pindexPrev);
 
     // Cascoin: Hive: Choose correct nBits depending on whether a Hive block is requested
-    if (hiveProofScript) {
+    if (hiveProofScript)
         pblock->nBits = GetNextHiveWorkRequired(pindexPrev, chainparams.GetConsensus());
-    } else {
-        try {
-            // Cascoin: MinotaurX+Hive1.2: If MinotaurX is enabled, handle nBits with pow-specific diff algo
-            if (IsMinotaurXEnabled(pindexPrev, chainparams.GetConsensus())) {
-                // Special case for SHA256 when mining on a fresh chain with only MinotaurX blocks
-                if (powType == POW_TYPE_SHA256) {
-                    // Check if there are any SHA256 blocks in the chain
-                    bool foundSha256Block = false;
-                    CBlockIndex* pindexCheck = pindexPrev;
-                    
-                    // Look back up to 100 blocks to see if we can find any SHA256 blocks
-                    for (int i = 0; i < 100 && pindexCheck != nullptr; i++) {
-                        if (!pindexCheck->GetBlockHeader().IsHiveMined(chainparams.GetConsensus()) && 
-                            pindexCheck->GetBlockHeader().GetPoWType() == POW_TYPE_SHA256) {
-                            foundSha256Block = true;
-                            break;
-                        }
-                        if (pindexCheck->pprev == nullptr)
-                            break;
-                        pindexCheck = pindexCheck->pprev;
-                    }
-                    
-                    // If no SHA256 blocks found, use minimum difficulty
-                    if (!foundSha256Block) {
-                        LogPrintf("CreateNewBlock: No SHA256 blocks found, using minimum difficulty for first SHA256 block\n");
-                        pblock->nBits = UintToArith256(chainparams.GetConsensus().powTypeLimits[POW_TYPE_SHA256]).GetCompact();
-                    } else {
-                        // Use normal difficulty calculation if SHA256 blocks exist
-                        pblock->nBits = GetNextWorkRequiredLWMA(pindexPrev, pblock, chainparams.GetConsensus(), powType);
-                    }
-                } else {
-                    // Normal case for non-SHA256 PoW types
-                    pblock->nBits = GetNextWorkRequiredLWMA(pindexPrev, pblock, chainparams.GetConsensus(), powType);
-                }
-            } else {
-                // Pre-MinotaurX case - always SHA256
-                pblock->nBits = GetNextWorkRequired(pindexPrev, pblock, chainparams.GetConsensus());
-            }
-        } catch (const std::runtime_error& e) {
-            // If we get an exception, fall back to minimum difficulty for safety
-            LogPrintf("CreateNewBlock: Exception calculating difficulty: %s, using minimum difficulty\n", e.what());
-            if (IsMinotaurXEnabled(pindexPrev, chainparams.GetConsensus())) {
-                pblock->nBits = UintToArith256(chainparams.GetConsensus().powTypeLimits[powType]).GetCompact();
-            } else {
-                pblock->nBits = UintToArith256(chainparams.GetConsensus().powLimitSHA).GetCompact();
-            }
-        }
+    else {
+        // Cascoin: MinotaurX+Hive1.2: If MinotaurX is enabled, handle nBits with pow-specific diff algo
+        if (IsMinotaurXEnabled(pindexPrev, chainparams.GetConsensus()))
+            pblock->nBits = GetNextWorkRequiredLWMA(pindexPrev, pblock, chainparams.GetConsensus(), powType);
+        else
+            pblock->nBits = GetNextWorkRequired(pindexPrev, pblock, chainparams.GetConsensus());
     }
 
     // Cascoin: Hive: Set nonce marker for hivemined blocks
