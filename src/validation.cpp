@@ -3173,60 +3173,6 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
     if (block.fChecked)
         return true;
 
-    // Special bypass for the first SHA256 block after MinotaurX activation
-    if (fCheckPOW && block.GetPoWType() == POW_TYPE_SHA256 && !block.IsHiveMined(consensusParams)) {
-        // Get previous block
-        CBlockIndex* pindexPrev = nullptr;
-        {
-            LOCK(cs_main);
-            BlockMap::iterator mi = mapBlockIndex.find(block.hashPrevBlock);
-            if (mi != mapBlockIndex.end()) {
-                pindexPrev = mi->second;
-            }
-        }
-        
-        // If previous block exists and MinotaurX is active
-        if (pindexPrev != nullptr && IsMinotaurXEnabled(pindexPrev, consensusParams)) {
-            // Look for any prior SHA256 blocks
-            bool foundSha256Block = false;
-            const CBlockIndex* pindexCheck = pindexPrev;
-            int checkCount = 0;
-            
-            // Try to find any previous SHA256 blocks
-            while (pindexCheck != nullptr && checkCount < 1000) {
-                checkCount++;
-                
-                try {
-                    // Check if this is a SHA256 block
-                    if (!pindexCheck->GetBlockHeader().IsHiveMined(consensusParams) && 
-                        pindexCheck->GetBlockHeader().GetPoWType() == POW_TYPE_SHA256) {
-                        foundSha256Block = true;
-                        break;
-                    }
-                    pindexCheck = pindexCheck->pprev;
-                } catch (const std::exception& e) {
-                    // If we hit an exception, just assume we didn't find a SHA256 block
-                    break;
-                }
-            }
-            
-            // If we didn't find any prior SHA256 blocks, this is the first one
-            // Check if nBits is set to minimum difficulty
-            if (!foundSha256Block) {
-                arith_uint256 targetLimit = UintToArith256(consensusParams.powTypeLimits[POW_TYPE_SHA256]);
-                arith_uint256 blockTarget;
-                blockTarget.SetCompact(block.nBits);
-                
-                // If this is at minimum difficulty, skip POW check entirely
-                if (blockTarget == targetLimit) {
-                    LogPrintf("CheckBlock: First SHA256 block after MinotaurX at minimum difficulty - bypassing POW checks\n");
-                    // Skip POW checks by setting fCheckPOW to false
-                    fCheckPOW = false;
-                }
-            }
-        }
-    }
-
     // Check that the header is valid (particularly PoW).  This is mostly
     // redundant with the call in AcceptBlockHeader.
     if (!CheckBlockHeader(block, state, consensusParams, fCheckPOW))
@@ -3888,89 +3834,17 @@ bool ProcessNewBlock(const CChainParams& chainparams, const std::shared_ptr<cons
     {
         CBlockIndex *pindex = nullptr;
         if (fNewBlock) *fNewBlock = false;
-        
-        // Special handling for first SHA256 block after MinotaurX activation
-        bool isFirstSha256Block = false;
-        
-        // Check if this is a SHA256 block (not hive mined)
-        if (pblock->GetPoWType() == POW_TYPE_SHA256 && !pblock->IsHiveMined(chainparams.GetConsensus())) {
-            // Find the previous block
-            CBlockIndex* pindexPrev = nullptr;
-            {
-                LOCK(cs_main);
-                BlockMap::iterator mi = mapBlockIndex.find(pblock->hashPrevBlock);
-                if (mi != mapBlockIndex.end()) {
-                    pindexPrev = mi->second;
-                }
-            }
-            
-            // If previous block exists and MinotaurX is active
-            if (pindexPrev != nullptr && IsMinotaurXEnabled(pindexPrev, chainparams.GetConsensus())) {
-                // Check if this is at the minimum difficulty
-                arith_uint256 targetLimit = UintToArith256(chainparams.GetConsensus().powTypeLimits[POW_TYPE_SHA256]);
-                arith_uint256 blockTarget;
-                blockTarget.SetCompact(pblock->nBits);
-                
-                if (blockTarget == targetLimit) {
-                    // Look for any prior SHA256 blocks
-                    bool foundSha256Block = false;
-                    const CBlockIndex* pindexCheck = pindexPrev;
-                    int checkCount = 0;
-                    
-                    // Scan up to 1000 blocks to find any SHA256 blocks
-                    while (pindexCheck != nullptr && checkCount < 1000) {
-                        checkCount++;
-                        
-                        try {
-                            if (!pindexCheck->GetBlockHeader().IsHiveMined(chainparams.GetConsensus()) && 
-                                pindexCheck->GetBlockHeader().GetPoWType() == POW_TYPE_SHA256) {
-                                foundSha256Block = true;
-                                break;
-                            }
-                            pindexCheck = pindexCheck->pprev;
-                        } catch (const std::exception& e) {
-                            break;
-                        }
-                    }
-                    
-                    // If we didn't find any prior SHA256 blocks and this is minimum difficulty, it's the first one
-                    if (!foundSha256Block) {
-                        isFirstSha256Block = true;
-                        LogPrintf("ProcessNewBlock: Detected first SHA256 block after MinotaurX at minimum difficulty\n");
-                        // Force processing of this block regardless of POW
-                        fForceProcessing = true;
-                    }
-                }
-            }
-        }
-
         CValidationState state;
         // Ensure that CheckBlock() passes before calling AcceptBlock, as
         // belt-and-suspenders.
         bool ret = CheckBlock(*pblock, state, chainparams.GetConsensus());
-        
-        // If this is the special first SHA256 block and CheckBlock failed due to POW, override the result
-        if (!ret && isFirstSha256Block && state.GetRejectReason() == "high-hash") {
-            LogPrintf("ProcessNewBlock: Overriding POW check failure for first SHA256 block\n");
-            ret = true;
-        }
-        
+
         LOCK(cs_main);
-        
+
         if (ret) {
             // Store to disk
             ret = g_chainstate.AcceptBlock(pblock, state, chainparams, &pindex, fForceProcessing, nullptr, fNewBlock);
         }
-        
-        // If this is the special first SHA256 block and AcceptBlock failed due to POW, override the result
-        if (!ret && isFirstSha256Block && state.GetRejectReason() == "high-hash") {
-            LogPrintf("ProcessNewBlock: Forcing acceptance of first SHA256 block despite POW check failure\n");
-            
-            // Try again with max force
-            state = CValidationState();
-            ret = g_chainstate.AcceptBlock(pblock, state, chainparams, &pindex, true, nullptr, fNewBlock);
-        }
-        
         if (!ret) {
             GetMainSignals().BlockChecked(*pblock, state);
             return error("%s: AcceptBlock FAILED (%s)", __func__, state.GetDebugMessage());
