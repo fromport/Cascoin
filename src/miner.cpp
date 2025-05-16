@@ -338,47 +338,20 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         if (blockTarget == targetLimit) {
             LogPrintf("CreateNewBlock: Mining a SHA256 block at minimum difficulty, ensuring valid POW\n");
             
-            // Start with a random nonce to avoid predictable patterns
-            pblock->nNonce = GetRand(0xFFFFFFFF);
-            LogPrintf("CreateNewBlock: Starting nonce search from random value: %u\n", pblock->nNonce);
-            
-            // Try to find a valid nonce
-            uint256 hash;
-            unsigned int nTries = 0;
-            unsigned int maxNonceTries = 10000000; // Increase max tries to ensure we find a solution
-            
-            do {
-                hash = pblock->GetPoWHash();
-                
-                // Check if this nonce produces a valid hash
-                if (UintToArith256(hash) <= blockTarget) {
-                    LogPrintf("CreateNewBlock: Found valid nonce: %u for SHA256 block after %u attempts\n", 
-                              pblock->nNonce, nTries);
-                    break;
-                }
-                
-                // Try the next nonce
+            // Pre-validate before mining loop
+            while (!CheckProofOfWork(pblock->GetPoWHash(), pblock->nBits, chainparams.GetConsensus())) {
+                // Try a new nonce
                 ++pblock->nNonce;
-                ++nTries;
-                
-                // Provide some logging feedback during the search
-                if (nTries % 1000000 == 0) {
-                    LogPrintf("CreateNewBlock: Still searching for valid nonce, attempts: %u\n", nTries);
-                }
                 
                 // Safety limit to avoid infinite loops
-                if (nTries >= maxNonceTries) {
-                    LogPrintf("CreateNewBlock: WARNING! Couldn't find valid nonce in %u attempts\n", nTries);
+                if (pblock->nNonce > 1000000) {
+                    LogPrintf("CreateNewBlock: WARNING! Couldn't find valid nonce in 1M attempts\n");
                     break;
                 }
-            } while (true);
+            }
             
-            // Final verification
-            if (!CheckProofOfWork(pblock->GetPoWHash(), pblock->nBits, chainparams.GetConsensus())) {
-                LogPrintf("CreateNewBlock: WARNING! Failed to generate a valid proof-of-work\n");
-            } else {
-                LogPrintf("CreateNewBlock: Successfully verified POW with nonce: %u, hash: %s\n", 
-                          pblock->nNonce, hash.ToString());
+            if (CheckProofOfWork(pblock->GetPoWHash(), pblock->nBits, chainparams.GetConsensus())) {
+                LogPrintf("CreateNewBlock: Successfully found valid nonce: %u for SHA256 block\n", pblock->nNonce);
             }
         }
     }
