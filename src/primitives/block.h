@@ -20,13 +20,15 @@ const std::string DEFAULT_POW_TYPE = "sha256d";
 // Cascoin: MinotaurX+Hive1.2: Pow type names
 const char* const POW_TYPE_NAMES[] = {
     "sha256d",
-    "minotaurx"
+    "minotaurx",
+    "scrypt"
 };
 
 // Cascoin: MinotaurX+Hive1.2: Pow type IDs
 enum POW_TYPE {
     POW_TYPE_SHA256,
     POW_TYPE_MINOTAURX,
+    POW_TYPE_SCRYPT,
     //
     NUM_BLOCK_TYPES
 };

@@ -3460,7 +3460,8 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationSta
             POW_TYPE effectivePowType = block.GetEffectivePoWTypeForHashing(consensusParams); // New: Get type as GetPoWHash would interpret it
 
             // Log the derived effective PoW type for diagnostics
-            if (LogAcceptCategory(BCLog::VALIDATION) || LogAcceptCategory(BCLog::POW)) { // Log if either category is enabled
+            // if (LogAcceptCategory(BCLog::VALIDATION) || LogAcceptCategory(BCLog::POW)) { // Old: Used non-existent categories
+            if (LogAcceptCategory(BCLog::ALL)) { // New: Use BCLog::ALL for now to ensure visibility
                 LogPrintf("ContextualCheckBlockHeader: block.nVersion=0x%08x, raw block.GetPoWType()=%d, effectivePoWTypeForHashing=%d (%s)\n",
                     block.nVersion, static_cast<int>(block.GetPoWType()), static_cast<int>(effectivePowType),
                     (effectivePowType < NUM_BLOCK_TYPES ? POW_TYPE_NAMES[effectivePowType] : "EFFECTIVE_TYPE_OUT_OF_BOUNDS_FOR_NAME")
