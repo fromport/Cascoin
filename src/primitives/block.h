@@ -18,7 +18,7 @@ const uint256 HIGH_HASH = uint256S("0x0fffffffffffffffffffffffffffffffffffffffff
 const std::string DEFAULT_POW_TYPE = "sha256d";
 
 // Cascoin: MinotaurX+Hive1.2: Pow type names
-const std::string POW_TYPE_NAMES[] = {
+const char* const POW_TYPE_NAMES[] = {
     "sha256d",
     "minotaurx"
 };
