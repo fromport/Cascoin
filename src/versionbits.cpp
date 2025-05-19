@@ -5,7 +5,6 @@
 #include <versionbits.h>
 #include <consensus/params.h>
 #include <validation.h> // Cascoin: MinotaurX+Hive1.2: For IsMinotaurXEnabled
-#include <timedata.h> // Added for GetAdjustedTime
 
 const struct VBDeploymentInfo VersionBitsDeploymentInfo[Consensus::MAX_VERSION_BITS_DEPLOYMENTS] = {
     {
@@ -166,12 +165,10 @@ ThresholdState AbstractThresholdConditionChecker::GetStateFor(const CBlockIndex*
                 break;
             }
             case THRESHOLD_LOCKED_IN: {
-                // Always progresses into ACTIVE.
-                // The custom logic for nMinLockedBlocks and nLockPeriodBlocks was here.
-                // If that logic is specific to a deployment, it should be handled via
-                // that deployment's parameters (BeginTime, EndTime, Period, Threshold)
-                // or in an overridden method in a derived class.
-                stateNext = THRESHOLD_ACTIVE;
+                // Litecoin Cash: Add MinLockedBlocks and LockPeriodBlocks logic
+                if (pindexWalk->nHeight >= pindexPeriod->nHeight + nMinLockedBlocks && ((pindexWalk->nHeight - pindexPeriod->nHeight) % nLockPeriodBlocks == 0)) {
+                    stateNext = THRESHOLD_ACTIVE;
+                } // else, it stays LOCKED_IN
                 break;
             }
             case THRESHOLD_FAILED:

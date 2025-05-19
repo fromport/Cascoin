@@ -23,7 +23,6 @@ enum ThresholdState {
     THRESHOLD_LOCKED_IN,
     THRESHOLD_ACTIVE,
     THRESHOLD_FAILED,
-    THRESHOLD_HIDDEN
 };
 
 // A map that gives the state for blocks whose height is a multiple of Period().
