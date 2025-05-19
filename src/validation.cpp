@@ -3841,11 +3841,13 @@ bool ProcessNewBlock(const CChainParams& chainparams, const std::shared_ptr<cons
 bool TestBlockValidity(CValidationState& state, const CChainParams& chainparams, const CBlock& block, CBlockIndex* pindexPrev, bool fCheckPOW, bool fCheckMerkleRoot)
 {
     AssertLockHeld(cs_main);
+    // pindexPrev can be nullptr for genesis block in tests
     assert(pindexPrev == chainActive.Tip() || pindexPrev == nullptr);
 
     // Cascoin: Log entry and parameters
-    LogPrintf("TestBlockValidity: Entered. block_hash_for_pow_check=%s, nBits=0x%08x, pindexPrev_height=%s, fCheckPOW=%s, fCheckMerkleRoot=%s\n",
-        block.GetPoWHash().ToString(), // Assuming GetPoWHash() exists and is correct for PoW check
+    LogPrintf("TestBlockValidity: Entered. Block hash: %s, PoW hash: %s, nBits: 0x%08x, pindexPrev_height: %s, fCheckPOW: %s, fCheckMerkleRoot: %s\n",
+        block.GetHash().ToString(),
+        block.GetPoWHash().ToString(), // Assuming GetPoWHash() is the correct hash for PoW
         block.nBits,
         pindexPrev ? std::to_string(pindexPrev->nHeight) : "null",
         fCheckPOW ? "true" : "false",

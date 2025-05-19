@@ -341,21 +341,39 @@ bool CheckProofOfWork(uint256 hash, unsigned int nBits, const Consensus::Params&
     bool fOverflow;
     arith_uint256 bnTarget;
 
+    LogPrintf("CheckProofOfWork: Entered. Hash: %s, nBits: 0x%08x\n", hash.ToString(), nBits);
+
     bnTarget.SetCompact(nBits, &fNegative, &fOverflow);
+    LogPrintf("CheckProofOfWork: bnTarget calculated: %s (Compact: 0x%08x). fNegative: %s, fOverflow: %s\n", bnTarget.ToString(), bnTarget.GetCompact(), fNegative ? "true" : "false", fOverflow ? "true" : "false");
 
     // Cascoin: MinotaurX+Hive1.2: Use highest pow limit for limit check
-    arith_uint256 powLimit = 0;
-    for (int i = 0; i < NUM_BLOCK_TYPES; i++)
-        if (UintToArith256(params.powTypeLimits[i]) > powLimit)
-            powLimit = UintToArith256(params.powTypeLimits[i]);
+    arith_uint256 overallPowLimit = 0;
+    for (int i = 0; i < NUM_BLOCK_TYPES; i++) {
+        arith_uint256 currentAlgoLimit = UintToArith256(params.powTypeLimits[i]);
+        if (currentAlgoLimit > overallPowLimit) {
+            overallPowLimit = currentAlgoLimit;
+        }
+        // LogPrintf("CheckProofOfWork: Algo %d (%s) Limit: %s (Compact: 0x%08x)\n", i, POW_TYPE_NAMES[i], currentAlgoLimit.ToString(), currentAlgoLimit.GetCompact()); // Optional: too verbose usually
+    }
+    LogPrintf("CheckProofOfWork: Overall derived powLimit for check: %s (Compact: 0x%08x)\n", overallPowLimit.ToString(), overallPowLimit.GetCompact());
 
     // Check range
-    if (fNegative || bnTarget == 0 || fOverflow || bnTarget > powLimit)
+    if (fNegative || bnTarget == 0 || fOverflow || bnTarget > overallPowLimit) {
+        LogPrintf("CheckProofOfWork: Range check FAILED. fNegative=%s, bnTarget==0 is %s, fOverflow=%s, bnTarget > overallPowLimit (%s > %s) is %s\n",
+            fNegative ? "true" : "false",
+            (bnTarget == 0) ? "true" : "false",
+            fOverflow ? "true" : "false",
+            bnTarget.ToString(), overallPowLimit.ToString(), (bnTarget > overallPowLimit) ? "true" : "false");
         return false;
+    }
+    LogPrintf("CheckProofOfWork: Range check PASSED.\n");
 
     // Check proof of work matches claimed amount
-    if (UintToArith256(hash) > bnTarget)
+    if (UintToArith256(hash) > bnTarget) {
+        LogPrintf("CheckProofOfWork: Hash > bnTarget FAILED. Hash_arith: %s, bnTarget: %s\n", UintToArith256(hash).ToString(), bnTarget.ToString());
         return false;
+    }
+    LogPrintf("CheckProofOfWork: Hash <= bnTarget check PASSED. Proof of work is valid.\n");
 
     return true;
 }
