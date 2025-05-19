@@ -48,86 +48,57 @@ unsigned int GetNextWorkRequiredLWMA(const CBlockIndex* pindexLast, const CBlock
         return powLimit.GetCompact();
     }
 
-    // Not enough blocks on chain? Return limit
-    if (height < N) {
-        if (verbose) LogPrintf("* GetNextWorkRequiredLWMA: Allowing %s pow limit (short chain)\\n", POW_TYPE_NAMES[powType]);
-        // Cascoin: Added detailed SHA256 logging
-        if (powType == POW_TYPE_SHA256) {
-            LogPrintf("GetNextWorkRequiredLWMA: SHA256 - Path: Short chain (height %lld < N %lld). Returning powLimit 0x%08x\\n", (long long)height, (long long)N, powLimit.GetCompact());
-        }
-        return powLimit.GetCompact();
-    }
+    // If pindexLast itself is null (e.g. before genesis has a pprev, though pindexLast should be chain tip), handle early.
+    // Or if height is less than N, it means we can't collect N blocks.
+    // The original code handles pindexLast->nHeight < N-1 later by returning powLimit if not enough blocks are found.
+    // We will make our loop robust.
 
-    arith_uint256 avgTarget, nextTarget;
-    int64_t thisTimestamp, previousTimestamp;
-    int64_t sumWeightedSolvetimes = 0, j = 0, blocksFound = 0;
-
-    // Find previousTimestamp (N blocks of this blocktype back), and build list of wanted-type blocks as we go
-    std::vector<const CBlockIndex*> wantedBlocks;
     const CBlockIndex* blockPreviousTimestamp = pindexLast;
-    while (blocksFound < N) {
-        // Reached forkpoint before finding N blocks of correct powtype? Return min
+    int64_t blocksFound = 0; 
+    std::vector<const CBlockIndex*> wantedBlocks;
+    wantedBlocks.reserve(N); // Reserve space
+
+    // Loop to find N blocks of the correct powType:
+    while(blocksFound < N) {
         if (!blockPreviousTimestamp) {
-            if (verbose) LogPrintf("* GetNextWorkRequiredLWMA: Allowing %s pow limit (reached end of chain)\\n", POW_TYPE_NAMES[powType]);
-            // Cascoin: Added detailed SHA256 logging
+            if (verbose) LogPrintf("* GetNextWorkRequiredLWMA: Not enough blocks of type %s (%lld collected out of %lld required), returning pow limit.\n", POW_TYPE_NAMES[powType], (long long)blocksFound, (long long)N);
+            // Cascoin: Added detailed SHA256 logging (consistent with existing style)
             if (powType == POW_TYPE_SHA256) {
-                LogPrintf("GetNextWorkRequiredLWMA: SHA256 - Path: Reached end of chain (null blockPreviousTimestamp). Returning powLimit 0x%08x\\n", powLimit.GetCompact());
+                LogPrintf("GetNextWorkRequiredLWMA: SHA256 - Path: Ran out of blocks (blockPreviousTimestamp is null) searching for %lld blocks (found %lld). Returning powLimit 0x%08x\n", (long long)N, (long long)blocksFound, powLimit.GetCompact());
             }
-            return powLimit.GetCompact();
+            return powLimit.GetCompact(); // Not enough blocks, return limit
         }
 
-        if (blockPreviousTimestamp->GetBlockHeader().nVersion >= 0x20000000) {
-            if (verbose) LogPrintf("* GetNextWorkRequiredLWMA: Allowing %s pow limit (previousTime calc reached forkpoint at height %i)\\n", POW_TYPE_NAMES[powType], blockPreviousTimestamp->nHeight);
-            // Cascoin: Added detailed SHA256 logging
-            if (powType == POW_TYPE_SHA256) {
-                LogPrintf("GetNextWorkRequiredLWMA: SHA256 - Path: Old version block encountered (height %d). Returning powLimit 0x%08x\\n", blockPreviousTimestamp->nHeight, powLimit.GetCompact());
-            }
-            return powLimit.GetCompact();
-        }
-
-        // Wrong block type? Skip
+        // Skip hive blocks or blocks of the wrong PoW type.
         if (blockPreviousTimestamp->GetBlockHeader().IsHiveMined(params) || blockPreviousTimestamp->GetBlockHeader().GetPoWType() != powType) {
-            if (!blockPreviousTimestamp->pprev) {
-                if (verbose) LogPrintf("* GetNextWorkRequiredLWMA: Allowing %s pow limit (reached end of chain while skipping blocks)\\n", POW_TYPE_NAMES[powType]);
-                // Cascoin: Added detailed SHA256 logging
-                if (powType == POW_TYPE_SHA256) {
-                    LogPrintf("GetNextWorkRequiredLWMA: SHA256 - Path: Reached end of chain while skipping unwanted blocks. Returning powLimit 0x%08x\\n", powLimit.GetCompact());
-                }
-                return powLimit.GetCompact();
-            }
             blockPreviousTimestamp = blockPreviousTimestamp->pprev;
-            continue;
+            continue; // Try next ancestor block
         }
     
-        wantedBlocks.push_back(blockPreviousTimestamp);
-
+        // Found a wanted block, add it to the front (as we are iterating backwards)
+        wantedBlocks.insert(wantedBlocks.begin(), blockPreviousTimestamp);
         blocksFound++;
-        if (blocksFound == N)   // Don't step to next one if we're at the one we want
-            break;
 
-        if (!blockPreviousTimestamp->pprev) {
-            if (verbose) LogPrintf("* GetNextWorkRequiredLWMA: Allowing %s pow limit (reached end of chain while collecting blocks)\\n", POW_TYPE_NAMES[powType]);
-            // Cascoin: Added detailed SHA256 logging
-             if (powType == POW_TYPE_SHA256) {
-                LogPrintf("GetNextWorkRequiredLWMA: SHA256 - Path: Reached end of chain (no pprev) while collecting blocks (found %lld). Returning powLimit 0x%08x\\n", (long long)blocksFound, powLimit.GetCompact());
-            }
-            return powLimit.GetCompact();
+        // Prepare for next iteration: move to previous block only if more blocks are needed
+        if (blocksFound < N) {
+            blockPreviousTimestamp = blockPreviousTimestamp->pprev;
         }
-        blockPreviousTimestamp = blockPreviousTimestamp->pprev;
     }
-
-    // Cascoin: Explicitly handle if no blocks of the specified powType were found
-    if (blocksFound == 0) {
-        if (verbose) LogPrintf("* GetNextWorkRequiredLWMA: Allowing %s pow limit (no blocks of type %s found in LWMA window)\\n", POW_TYPE_NAMES[powType], POW_TYPE_NAMES[powType]);
+    
+    // Sanity check: We should have N blocks now if we didn't return early
+    if (wantedBlocks.size() < static_cast<size_t>(N)) {
+         if (verbose) LogPrintf("* GetNextWorkRequiredLWMA: Sanity check failed. wantedBlocks.size() %u < N %lld. This should not happen if logic above is correct. Returning pow limit for %s.\n", (unsigned)wantedBlocks.size(), (long long)N, POW_TYPE_NAMES[powType]);
         // Cascoin: Added detailed SHA256 logging
         if (powType == POW_TYPE_SHA256) {
-            LogPrintf("GetNextWorkRequiredLWMA: SHA256 - Path: No blocks of type found (blocksFound == 0). Returning powLimit 0x%08x\\n", powLimit.GetCompact());
+            LogPrintf("GetNextWorkRequiredLWMA: SHA256 - Path: Sanity check failed post-loop (found %u, need %lld). Returning powLimit 0x%08x\n", (unsigned)wantedBlocks.size(), (long long)N, powLimit.GetCompact());
         }
         return powLimit.GetCompact();
     }
 
-    previousTimestamp = blockPreviousTimestamp->GetBlockTime();
-    //if (verbose) LogPrintf("* GetNextWorkRequiredLWMA: previousTime: First in period is %s at height %i\\n", blockPreviousTimestamp->GetBlockHeader().GetHash().ToString().c_str(), blockPreviousTimestamp->nHeight);
+    // Variables for LWMA calculation
+    arith_uint256 sum_target;
+    int64_t thisTimestamp, previousTimestamp;
+    int64_t sumWeightedSolvetimes = 0, j = 0;
 
     // Iterate forward from the oldest block (ie, reverse-iterate through the wantedBlocks vector)
     for (auto it = wantedBlocks.rbegin(); it != wantedBlocks.rend(); ++it) {
@@ -150,10 +121,10 @@ unsigned int GetNextWorkRequiredLWMA(const CBlockIndex* pindexLast, const CBlock
 
         arith_uint256 target;
         target.SetCompact(block->nBits);
-        avgTarget += target / N / k; // Dividing by k here prevents an overflow below.
+        sum_target += target / N / k; // Dividing by k here prevents an overflow below.
     } 
 
-    nextTarget = avgTarget * sumWeightedSolvetimes;
+    arith_uint256 nextTarget = sum_target * sumWeightedSolvetimes;
 
     // Also check if nextTarget is 0 (infinitely difficult)
     if (nextTarget > powLimit || nextTarget == 0) { 
