@@ -538,27 +538,13 @@ bool GetNetworkHiveInfo(int& immatureBees, int& immatureBCTs, int& matureBees, i
 
     for (int i = 0; i < totalBeeLifespan; i++) {
         if (fHavePruned && !(pindexPrev->nStatus & BLOCK_HAVE_DATA) && pindexPrev->nTx > 0) {
-            LogPrintf("! GetNetworkHiveInfo: Warn: Block not available (pruned data); can't calculate network bee count.\n");
+            LogPrintf("! GetNetworkHiveInfo: Warn: Block not available (pruned data); can't calculate network bee count.");
             return false;
         }
 
         if (!pindexPrev->GetBlockHeader().IsHiveMined(consensusParams)) {                          // Don't check Hivemined blocks (no BCTs will be found in them)
-            // Add more robust check for block data availability
-            if (pindexPrev->nFile < 0 || !(pindexPrev->nStatus & BLOCK_HAVE_DATA)) {
-                LogPrint(BCLog::HIVE, "! GetNetworkHiveInfo: Block data for height %d (hash %s) not available on disk (nFile=%d, nStatus=%x). Skipping BCT count for this block.\n",
-                    pindexPrev->nHeight, pindexPrev->GetBlockHash().ToString(), pindexPrev->nFile, pindexPrev->nStatus);
-                if (!pindexPrev->pprev) { // Reached the end of the chain while skipping
-                    LogPrint(BCLog::HIVE, "! GetNetworkHiveInfo: Reached end of chain while skipping unavailable blocks.\n");
-                    return true; // Or false, depending on desired behavior if all remaining blocks are unavailable
-                }
-                pindexPrev = pindexPrev->pprev;
-                continue; // Skip to the next block in the outer loop
-            }
-
             if (!ReadBlockFromDisk(block, pindexPrev, consensusParams)) {
-                LogPrintf("! GetNetworkHiveInfo: Warn: Block not available (ReadBlockFromDisk failed for height %d); can't calculate network bee count.\n", pindexPrev->nHeight);
-                // This log is redundant if ReadBlockFromDisk already logs the specific "OpenBlockFile failed" error.
-                // We might want to make this LogPrint(BCLog::HIVE, ...)
+                LogPrintf("! GetNetworkHiveInfo: Warn: Block not available (not found on disk); can't calculate network bee count.");
                 return false;
             }
             int blockHeight = pindexPrev->nHeight;
