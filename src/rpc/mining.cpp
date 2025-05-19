@@ -64,10 +64,16 @@ UniValue GetNetworkHashPS(int lookup, int height, POW_TYPE powType) {
         lookup = pb->nHeight;
 
     // Cascoin: MinotaurX+Hive1.2: Skip incorrect powType
-    while(IsMinotaurXEnabled(pb, Params().GetConsensus()) && pb->GetBlockHeader().GetPoWType() != powType) {
-        assert (pb->pprev);
+    while(pb && IsMinotaurXEnabled(pb, Params().GetConsensus()) && pb->GetBlockHeader().GetPoWType() != powType) {
+        if (!pb->pprev) {
+            pb = nullptr; // Signify we've walked off the chain for this type
+            break;
+        }
         pb = pb->pprev;
     }
+
+    if (!pb) return 0; // If pb is null after the first loop, no suitable block found
+
     // We have either stepped back to before minotaurx fork, or the requested powType block
     // If we have stepped back to (or started looking up from) pre minotaur, but requested minotaurx pow type, then there are no hashes
     if (!IsMinotaurXEnabled(pb, Params().GetConsensus()) && powType == POW_TYPE_MINOTAURX) {
@@ -81,7 +87,13 @@ UniValue GetNetworkHashPS(int lookup, int height, POW_TYPE powType) {
 	arith_uint256 workDiff = GetNumHashes(*pb, powType);    // Cascoin: MinotaurX+Hive1.2: add powType param
 	
     for (int i = 0; i < lookup; i++) {
+        if (!pb->pprev) { // Check before assigning to pprev
+            break; // Cannot go further back
+        }
         pb = pb->pprev;
+        if (!pb) { // Should not happen if pprev was checked, but as a safeguard
+             break;
+        }
 
         // Cascoin: MinotaurX+Hive1.2: Skip incorrect powType
 
@@ -90,13 +102,19 @@ UniValue GetNetworkHashPS(int lookup, int height, POW_TYPE powType) {
         // hive blocks almost immediately follow pow blocks, the contribution to timing
         // inaccuracies are most likely fairly insignificant.
 
-        while(IsMinotaurXEnabled(pb, Params().GetConsensus()) && pb->GetBlockHeader().GetPoWType() != powType) {
+        while(pb && IsMinotaurXEnabled(pb, Params().GetConsensus()) && pb->GetBlockHeader().GetPoWType() != powType) {
             // Check if we have a previous block to prevent assertion failure at genesis
             if (!pb->pprev) {
+                pb = nullptr; // Signify we've walked off the chain for this type
                 break;
             }
             pb = pb->pprev;
         }
+        
+        if (!pb) { // If inner loop made pb null
+            break; 
+        }
+
         if(!IsMinotaurXEnabled(pb, Params().GetConsensus()) && powType == POW_TYPE_MINOTAURX) {
             break;
         }
