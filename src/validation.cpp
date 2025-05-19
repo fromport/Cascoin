@@ -3461,7 +3461,7 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationSta
             if (powType >= NUM_BLOCK_TYPES)
                 return state.DoS(100, false, REJECT_INVALID, "bad-algo-id", false, "unrecognised pow type in block version");
 
-            // Cascoin: Add diagnostic logging for SHA256 difficulty check - This is the old log line, commented out for clarity below
+            // Old log line, commented out for reference
             /*if (powType == POW_TYPE_SHA256) {
                 LogPrintf("ContextualCheckBlockHeader: SHA256 check: block.nBits=0x%08x, pindexPrev->nHeight=%d, powType=%d. About to call GetNextWorkRequiredLWMA. pprev PoWType: %s\\n",
                     block.nBits, pindexPrev->nHeight, powType,
@@ -3469,21 +3469,25 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationSta
                 );
             }*/
 
-            // Call GetNextWorkRequiredLWMA and store its result
             unsigned int expected_nBits = GetNextWorkRequiredLWMA(pindexPrev, &block, consensusParams, powType);
+            
+            // Store the comparison result in a boolean variable
+            bool MismatchFound = (block.nBits != expected_nBits);
 
-            // Cascoin: Log values JUST BEFORE the comparison
+            // Log values JUST BEFORE the comparison, including the boolean result of the comparison
             if (powType == POW_TYPE_SHA256) {
-                LogPrintf("ContextualCheckBlockHeader: SHA256 PRE-CHECK: block.nBits=0x%08x, expected_nBits (from LWMA)=0x%08x. pindexPrev height %d, PoWType %d, PrevPoWType %s\\n",
+                LogPrintf("ContextualCheckBlockHeader: SHA256 PRE-CHECK: block.nBits=0x%08x, expected_nBits (from LWMA)=0x%08x. MismatchFound=%s. pindexPrev height %d, PoWType %d, PrevPoWType %s\\n",
                     block.nBits,
                     expected_nBits,
+                    MismatchFound ? "true" : "false", // Log the boolean result
                     pindexPrev->nHeight,
                     powType,
                     pindexPrev ? POW_TYPE_NAMES[pindexPrev->GetBlockHeader().GetPoWType()] : "null_pprev"
                 );
             }
 
-            if (block.nBits != expected_nBits) // Compare with the stored result
+            // Use the boolean variable in the if condition
+            if (MismatchFound)
                 return state.DoS(100, false, REJECT_INVALID, "bad-diff", false, "incorrect pow difficulty in for block type");
 
         } else if (block.nBits != GetNextWorkRequired(pindexPrev, &block, consensusParams)) // Original pre-MinotaurX logic
