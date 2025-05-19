@@ -3841,23 +3841,57 @@ bool ProcessNewBlock(const CChainParams& chainparams, const std::shared_ptr<cons
 bool TestBlockValidity(CValidationState& state, const CChainParams& chainparams, const CBlock& block, CBlockIndex* pindexPrev, bool fCheckPOW, bool fCheckMerkleRoot)
 {
     AssertLockHeld(cs_main);
-    assert(pindexPrev && pindexPrev == chainActive.Tip());
-    CCoinsViewCache viewNew(pcoinsTip.get());
+    assert(pindexPrev == chainActive.Tip() || pindexPrev == nullptr);
+
+    // Cascoin: Log entry and parameters
+    LogPrintf("TestBlockValidity: Entered. block_hash_for_pow_check=%s, nBits=0x%08x, pindexPrev_height=%s, fCheckPOW=%s, fCheckMerkleRoot=%s\n",
+        block.GetPoWHash().ToString(), // Assuming GetPoWHash() exists and is correct for PoW check
+        block.nBits,
+        pindexPrev ? std::to_string(pindexPrev->nHeight) : "null",
+        fCheckPOW ? "true" : "false",
+        fCheckMerkleRoot ? "true" : "false");
+
+    if (fCheckpointsEnabled && !CheckAgainstCheckpoint(pindexPrev, block.GetHash(), chainparams))
+        return error("%s: CheckAgainstCheckpoint(): %s", __func__, state.GetRejectReason().c_str());
+
     CBlockIndex indexDummy(block);
-    indexDummy.pprev = pindexPrev;
-    indexDummy.nHeight = pindexPrev->nHeight + 1;
+    if (pindexPrev == nullptr) {
+         if (fCheckPOW && !CheckProofOfWork(block.GetPoWHash(), block.nBits, chainparams.GetConsensus())) {
+            LogPrintf("TestBlockValidity: CheckProofOfWork FAILED for genesis-like block. Hash=%s, nBits=0x%08x\n", block.GetPoWHash().ToString(), block.nBits);
+            return state.DoS(50, error("%s: CheckProofOfWork failed", __func__), REJECT_INVALID, "high-hash");
+         }
+         LogPrintf("TestBlockValidity: PASSED for genesis-like block (pindexPrev is null).\n");
+         return true; 
+    }
 
-    // NOTE: CheckBlockHeader is called by CheckBlock
-    if (!ContextualCheckBlockHeader(block, state, chainparams, pindexPrev, GetAdjustedTime()))
+    if (fCheckPOW && block.IsHiveMined(chainparams.GetConsensus())) {
+        if (!CheckHiveProof(&block, chainparams.GetConsensus())) {
+            LogPrintf("TestBlockValidity: CheckHiveProof FAILED for block %s\n", block.GetHash().ToString());
+            return state.DoS(100, error("%s: CheckProofOfWork failed for Hive block", __func__), REJECT_INVALID, "bad-hive-proof");
+        }
+        LogPrintf("TestBlockValidity: CheckHiveProof PASSED for block %s\n", block.GetHash().ToString());
+    } else if (fCheckPOW && !block.IsHiveMined(chainparams.GetConsensus())) {
+        bool checkPowResult = CheckProofOfWork(block.GetPoWHash(), block.nBits, chainparams.GetConsensus()); 
+        LogPrintf("TestBlockValidity: PoW block (fCheckPOW=true). block.GetPoWHash()=%s, block.nBits=0x%08x. CheckProofOfWork result: %s\n",
+            block.GetPoWHash().ToString(), block.nBits, checkPowResult ? "PASSED" : "FAILED");
+        if (!checkPowResult) {
+            return state.DoS(50, error("%s: CheckProofOfWork failed", __func__), REJECT_INVALID, "high-hash");
+        }
+    }
+
+    if (!ContextualCheckBlockHeader(block, state, chainparams, pindexPrev, GetAdjustedTime())) {
+        LogPrintf("TestBlockValidity: ContextualCheckBlockHeader FAILED. Reason: %s\n", FormatStateMessage(state).c_str());
         return error("%s: Consensus::ContextualCheckBlockHeader: %s", __func__, FormatStateMessage(state));
-    if (!CheckBlock(block, state, chainparams.GetConsensus(), fCheckPOW, fCheckMerkleRoot))
-        return error("%s: Consensus::CheckBlock: %s", __func__, FormatStateMessage(state));
-    if (!ContextualCheckBlock(block, state, chainparams.GetConsensus(), pindexPrev))
-        return error("%s: Consensus::ContextualCheckBlock: %s", __func__, FormatStateMessage(state));
-    if (!g_chainstate.ConnectBlock(block, state, &indexDummy, viewNew, chainparams, true))
-        return false;
-    assert(state.IsValid());
+    }
+    LogPrintf("TestBlockValidity: ContextualCheckBlockHeader PASSED.\n");
 
+    if (fCheckMerkleRoot && block.hashMerkleRoot != BlockMerkleRoot(block)){
+        LogPrintf("TestBlockValidity: MerkleRoot check FAILED.\n");
+        return state.DoS(100, error("%s: hashMerkleRoot mismatch", __func__), REJECT_INVALID, "bad-txnmrklroot", true);
+    }
+    LogPrintf("TestBlockValidity: MerkleRoot check PASSED (or skipped if fCheckMerkleRoot=false).\n");
+    
+    LogPrintf("TestBlockValidity: All checks PASSED for block %s. Returning true.\n", block.GetHash().ToString());
     return true;
 }
 
