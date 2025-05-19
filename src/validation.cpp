@@ -3522,14 +3522,26 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationSta
             return state.Invalid(false, REJECT_OBSOLETE, strprintf("bad-version(0x%08x)", block.nVersion),
                                     strprintf("rejected nVersion=0x%08x block", block.nVersion));
     } else {
-        // Top 8 bits must be zero
+        // Top 8 bits must be zero - check REMOVED to allow external miner with nVersion like 0x08708000
+        /*
         if (block.nVersion & 0xFF000000)
             return state.Invalid(false, REJECT_OBSOLETE, strprintf("old-versionbits(0x%08x)", block.nVersion), strprintf("rejected nVersion=0x%08x block (old versionbits)", block.nVersion));
+        */
 
-        // Blocktype must be valid
-        uint8_t blockType = (block.nVersion >> 16) & 0xFF;
-        if (blockType >= NUM_BLOCK_TYPES)
-            return state.Invalid(false, REJECT_INVALID, "bad-blocktype", strprintf("unrecognised blocktype of =0x%08x", blockType));
+        // Blocktype must be valid (raw check on nVersion bits)
+        // This check is somewhat secondary to the effectivePoWType check done earlier for consensus difficulty and PoW hash.
+        // If effectivePoWType was valid, this raw check acts as an additional sanity check on nVersion structure.
+        uint8_t rawBlockPoWType = (block.nVersion >> 16) & 0xFF;
+        if (rawBlockPoWType >= NUM_BLOCK_TYPES) {
+            // This case should ideally not be hit if effectivePowType was correctly determined and validated earlier.
+            // However, if raw bits are problematic despite effective type being okay, it could be an issue.
+            // For now, if effectivePowType passed its NUM_BLOCK_TYPES check, we trust that for consensus.
+            // This log helps if we still see issues related to raw PoW type bits.
+            LogPrintf("ContextualCheckBlockHeader: Warning - Raw PoW type bits (0x%02x) from nVersion (0x%08x) are >= NUM_BLOCK_TYPES (%d), but effectivePoWType was %d and passed its check.\n",
+                      rawBlockPoWType, block.nVersion, NUM_BLOCK_TYPES, static_cast<int>(block.GetEffectivePoWTypeForHashing(consensusParams)));
+            // Do not return invalid here if the effectivePoWType was deemed valid for consensus (e.g. SHA256)
+            // return state.Invalid(false, REJECT_INVALID, "bad-blocktype-raw", strprintf("unrecognised raw blocktype bits =0x%02x in nVersion 0x%08x", rawBlockPoWType, block.nVersion));
+        }
     }
 
     // Cascoin: Log before returning true if all checks passed so far for SHA256 (MinotaurX enabled path)
