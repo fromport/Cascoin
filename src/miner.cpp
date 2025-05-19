@@ -837,15 +837,21 @@ bool BusyBees(const Consensus::Params& consensusParams, int height) {
     if (verbose) LogPrintf("BusyBees: beeHashTarget             = %s\n", beeHashTarget.ToString());
 
     // Find bin size
-    std::vector<CBeeCreationTransactionInfo> potentialBcts = pwallet->GetBCTs(false, false, consensusParams);
+    std::vector<CBeeCreationTransactionInfo> potentialBcts;
     std::vector<CBeeCreationTransactionInfo> bcts;
     int totalBees = 0;
-    for (std::vector<CBeeCreationTransactionInfo>::const_iterator it = potentialBcts.begin(); it != potentialBcts.end(); it++) {
-        CBeeCreationTransactionInfo bct = *it;
-        if (bct.beeStatus != "mature")
-            continue;
-        bcts.push_back(bct);
-        totalBees += bct.beeCount;
+    {
+        LOCK(cs_main); // Lock cs_main before accessing wallet functions that might call GetDepthInMainChain
+        potentialBcts = pwallet->GetBCTs(false, false, consensusParams);
+        for (std::vector<CBeeCreationTransactionInfo>::const_iterator it = potentialBcts.begin(); it != potentialBcts.end(); it++) {
+            CBeeCreationTransactionInfo bct = *it;
+            if (bct.beeStatus != "mature")
+                continue;
+            // TODO: Add a check here to ensure the BCT is confirmed to a certain depth if GetDepthInMainChain itself isn't sufficient or if it's too slow to call per BCT.
+            // For now, the AssertLockHeld in GetDepthInMainChain will be satisfied.
+            bcts.push_back(bct);
+            totalBees += bct.beeCount;
+        }
     }
 
     if (totalBees == 0) {
