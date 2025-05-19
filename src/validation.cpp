@@ -3461,18 +3461,32 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationSta
             if (powType >= NUM_BLOCK_TYPES)
                 return state.DoS(100, false, REJECT_INVALID, "bad-algo-id", false, "unrecognised pow type in block version");
 
-            // Cascoin: Add diagnostic logging for SHA256 difficulty check
-            if (powType == POW_TYPE_SHA256) {
+            // Cascoin: Add diagnostic logging for SHA256 difficulty check - This is the old log line, commented out for clarity below
+            /*if (powType == POW_TYPE_SHA256) {
                 LogPrintf("ContextualCheckBlockHeader: SHA256 check: block.nBits=0x%08x, pindexPrev->nHeight=%d, powType=%d. About to call GetNextWorkRequiredLWMA. pprev PoWType: %s\\n",
                     block.nBits, pindexPrev->nHeight, powType,
                     pindexPrev ? POW_TYPE_NAMES[pindexPrev->GetBlockHeader().GetPoWType()] : "null_pprev_for_type_name_check" 
                 );
+            }*/
+
+            // Call GetNextWorkRequiredLWMA and store its result
+            unsigned int expected_nBits = GetNextWorkRequiredLWMA(pindexPrev, &block, consensusParams, powType);
+
+            // Cascoin: Log values JUST BEFORE the comparison
+            if (powType == POW_TYPE_SHA256) {
+                LogPrintf("ContextualCheckBlockHeader: SHA256 PRE-CHECK: block.nBits=0x%08x, expected_nBits (from LWMA)=0x%08x. pindexPrev height %d, PoWType %d, PrevPoWType %s\\n",
+                    block.nBits,
+                    expected_nBits,
+                    pindexPrev->nHeight,
+                    powType,
+                    pindexPrev ? POW_TYPE_NAMES[pindexPrev->GetBlockHeader().GetPoWType()] : "null_pprev"
+                );
             }
 
-            if (block.nBits != GetNextWorkRequiredLWMA(pindexPrev, &block, consensusParams, powType))
+            if (block.nBits != expected_nBits) // Compare with the stored result
                 return state.DoS(100, false, REJECT_INVALID, "bad-diff", false, "incorrect pow difficulty in for block type");
 
-        } else if (block.nBits != GetNextWorkRequired(pindexPrev, &block, consensusParams))
+        } else if (block.nBits != GetNextWorkRequired(pindexPrev, &block, consensusParams)) // Original pre-MinotaurX logic
             return state.DoS(100, false, REJECT_INVALID, "bad-diffbits", false, "incorrect pow difficulty in block");
     }
 
