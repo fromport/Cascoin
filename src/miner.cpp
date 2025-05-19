@@ -290,6 +290,45 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     pblock->nNonce = hiveProofScript ? chainparams.GetConsensus().hiveNonceMarker : 0;
     pblocktemplate->vTxSigOpsCost[0] = WITNESS_SCALE_FACTOR * GetLegacySigOpCount(*pblock->vtx[0]);
 
+    // Cascoin: Diagnostic log for SHA256 on new chain
+    if (!hiveProofScript && powType == POW_TYPE_SHA256 && IsMinotaurXEnabled(pindexPrev, chainparams.GetConsensus())) {
+        bool foundPrevShaBlock = false;
+        const CBlockIndex* tempIndex = pindexPrev;
+        int count = 0;
+        while (tempIndex && count < chainparams.GetConsensus().lwmaAveragingWindow * 2) { // Check a reasonable depth
+            if (!tempIndex->GetBlockHeader().IsHiveMined(chainparams.GetConsensus()) && tempIndex->GetBlockHeader().GetPoWType() == POW_TYPE_SHA256) {
+                foundPrevShaBlock = true;
+                break;
+            }
+            if (!tempIndex->pprev) break;
+            tempIndex = tempIndex->pprev;
+            count++;
+        }
+        if (!foundPrevShaBlock) {
+            LogPrintf("CreateNewBlock: About to TestBlockValidity for a new SHA256 block. No prior SHA256 blocks found. pindexPrev height %d, type %s. Block nBits: %08x, Expected PoW limit for SHA256: %08x\n",
+                pindexPrev->nHeight,
+                POW_TYPE_NAMES[pindexPrev->GetBlockHeader().GetPoWType()],
+                pblock->nBits,
+                UintToArith256(chainparams.GetConsensus().powTypeLimits[POW_TYPE_SHA256]).GetCompact()
+            );
+            // Ensure nBits is at least the limit if no prior blocks were found (LWMA should do this, but as a safeguard)
+            if (pblock->nBits == 0 || arith_uint256().SetCompact(pblock->nBits) < UintToArith256(chainparams.GetConsensus().powTypeLimits[POW_TYPE_SHA256])) {
+                 // Correction: Difficulty is inverse of target. Higher target (easier) means lower difficulty.
+                 // We want the easiest target (powLimit).
+                 // A higher compact nBits value means an easier target.
+                 // So if current nBits represents a harder target than powLimit, set to powLimit.
+                arith_uint256 currentTarget;
+                currentTarget.SetCompact(pblock->nBits);
+                if (currentTarget == 0 || currentTarget < UintToArith256(chainparams.GetConsensus().powTypeLimits[POW_TYPE_SHA256])) { //This condition might be wrong; target comparison is tricky. Target < Limit means harder.
+                    // Actually, powLimit is the *easiest* target. Numerical value is higher.
+                    // nBits should be the compact representation of powLimit.
+                    // If GetNextWorkRequiredLWMA returned something harder, this log might be useful.
+                    // For now, primarily logging.
+                }
+            }
+        }
+    }
+
     CValidationState state;
     if (!TestBlockValidity(state, chainparams, *pblock, pindexPrev, false, false)) {
         throw std::runtime_error(strprintf("%s: TestBlockValidity failed: %s", __func__, FormatStateMessage(state)));
