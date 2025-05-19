@@ -58,47 +58,67 @@ double GetDifficulty(const CChain& chain, const CBlockIndex* blockindex, bool ge
 {
     if (blockindex == nullptr)
     {
-        if (chain.Tip() == nullptr)
+        blockindex = chain.Tip(); // Use Tip() if provided blockindex is null
+        if (blockindex == nullptr) // If chain.Tip() is also null (empty chain)
             return 1.0;
-        else
-            blockindex = chain.Tip();
     }
 
     const Consensus::Params& consensusParams = Params().GetConsensus();
 
-    // Cascoin: Hive: If tip is PoW and we want hivemined, step back until we find a Hive block
-    // Cascoin: Hive 1.1: Allow there to be multiple hive blocks in the way
     if (getHiveDifficulty) {
-        while (!blockindex->GetBlockHeader().IsHiveMined(consensusParams)) {
-            if (!blockindex->pprev || blockindex->nHeight < consensusParams.minHiveCheckBlock) {   // Ran out of blocks without finding a Hive block? Return min target
-                LogPrint(BCLog::HIVE, "GetDifficulty: No hivemined blocks found in history\n");
+        while (blockindex && !blockindex->GetBlockHeader().IsHiveMined(consensusParams)) { // Check blockindex
+            if (!blockindex->pprev || blockindex->nHeight < consensusParams.minHiveCheckBlock) {
+                LogPrint(BCLog::HIVE, "GetDifficulty: No hivemined blocks found in history or reached min check block\n");
                 return 1.0;
             }
-
             blockindex = blockindex->pprev;
         }
+        if (!blockindex) { // If loop terminated due to null blockindex
+            LogPrint(BCLog::HIVE, "GetDifficulty: Ran out of blocks searching for hive block\n");
+            return 1.0;
+        }
     } else {
-        // Cascoin: MinotaurX+Hive1.2: Skip over incorrect powTypes
-        if (IsMinotaurXEnabled(blockindex, consensusParams)) {
-            while (blockindex->GetBlockHeader().IsHiveMined(consensusParams) || blockindex->GetBlockHeader().GetPoWType() != powType) {
-               // assert (blockindex->pprev);
-                if (blockindex->pprev == nullptr) {
-                    // If no previous block exists, return 0 or handle accordingly
-                    return 0;
+        if (IsMinotaurXEnabled(blockindex, consensusParams)) { // Initial check for blockindex if !getHiveDifficulty
+            while (blockindex && (blockindex->GetBlockHeader().IsHiveMined(consensusParams) || blockindex->GetBlockHeader().GetPoWType() != powType)) { // Check blockindex
+                if (!blockindex->pprev) {
+                    LogPrint(BCLog::RPC, "GetDifficulty: Ran out of blocks (no pprev) searching for PoW block of type %s\n", POW_TYPE_NAMES[powType]);
+                    return 0; // Or appropriate default for "not found"
                 }
                 blockindex = blockindex->pprev;
-                if (!IsMinotaurXEnabled(blockindex, consensusParams)) {
-                    return 0;
+                if (blockindex && !IsMinotaurXEnabled(blockindex, consensusParams)) { // Check blockindex again after pprev
+                    LogPrint(BCLog::RPC, "GetDifficulty: Stepped back before MinotaurX activation searching for PoW block of type %s\n", POW_TYPE_NAMES[powType]);
+                    return 0; // Or powLimit for that type if that's more appropriate
                 }
             }
-        } else {
-            while (blockindex->GetBlockHeader().IsHiveMined(consensusParams)) {
-                assert (blockindex->pprev);
+            if (!blockindex) { // If loop terminated due to null blockindex
+                 LogPrint(BCLog::RPC, "GetDifficulty: Ran out of blocks (null blockindex) searching for PoW block of type %s\n", POW_TYPE_NAMES[powType]);
+                return 0; // Or powLimit
+            }
+        } else { // Pre-MinotaurX
+            while (blockindex && blockindex->GetBlockHeader().IsHiveMined(consensusParams)) { // Check blockindex
+                // assert (blockindex->pprev); // Original assert might crash if blockindex is null
+                if (!blockindex->pprev) { // Should be caught by blockindex check, but good for safety
+                     LogPrint(BCLog::RPC, "GetDifficulty: Ran out of blocks (no pprev) in pre-MinotaurX hive skip\n");
+                    return 0; // Or 1.0, or powLimit depending on desired "not found" behavior
+                }
                 blockindex = blockindex->pprev;
+            }
+            if (!blockindex) { // If loop terminated due to null blockindex
+                LogPrint(BCLog::RPC, "GetDifficulty: Ran out of blocks (null blockindex) in pre-MinotaurX hive skip\n");
+                return 0; // Or 1.0
             }
         }
     }
     
+    // At this point, blockindex should be valid and of the correct type (or the last valid one if criteria not met perfectly)
+    // However, if any path above could return early, this code might not be reached with a blockindex that satisfies all conditions.
+    // The original code proceeded to calculate difficulty using blockindex->nBits.
+    // Ensure blockindex is not null before using nBits.
+    if (!blockindex) {
+        // This should ideally be unreachable if loops above are correct and return.
+        LogPrintf("ERROR: GetDifficulty: blockindex is unexpectedly null before nBits access!\n");
+        return 1.0; // Fallback difficulty
+    }
 
     int nShift = (blockindex->nBits >> 24) & 0xff;
     double dDiff =
