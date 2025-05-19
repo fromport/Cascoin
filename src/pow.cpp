@@ -91,6 +91,13 @@ unsigned int GetNextWorkRequiredLWMA(const CBlockIndex* pindexLast, const CBlock
         }
         blockPreviousTimestamp = blockPreviousTimestamp->pprev;
     }
+
+    // Cascoin: Explicitly handle if no blocks of the specified powType were found
+    if (blocksFound == 0) {
+        if (verbose) LogPrintf("* GetNextWorkRequiredLWMA: Allowing %s pow limit (no blocks of type %s found in LWMA window)\n", POW_TYPE_NAMES[powType], POW_TYPE_NAMES[powType]);
+        return powLimit.GetCompact();
+    }
+
     previousTimestamp = blockPreviousTimestamp->GetBlockTime();
     //if (verbose) LogPrintf("* GetNextWorkRequiredLWMA: previousTime: First in period is %s at height %i\n", blockPreviousTimestamp->GetBlockHeader().GetHash().ToString().c_str(), blockPreviousTimestamp->nHeight);
 
@@ -120,8 +127,8 @@ unsigned int GetNextWorkRequiredLWMA(const CBlockIndex* pindexLast, const CBlock
 
     nextTarget = avgTarget * sumWeightedSolvetimes;
 
-    if (nextTarget > powLimit) {
-        if (verbose) LogPrintf("* GetNextWorkRequiredLWMA: Allowing %s pow limit (target too high)\n", POW_TYPE_NAMES[powType]);
+    if (nextTarget > powLimit || nextTarget == 0) { // Also check if nextTarget is 0 (infinitely difficult)
+        if (verbose) LogPrintf("* GetNextWorkRequiredLWMA: Allowing %s pow limit (target %s calculated higher than limit, or zero)\n", POW_TYPE_NAMES[powType], nextTarget.ToString().c_str());
         return powLimit.GetCompact();
     }
 
