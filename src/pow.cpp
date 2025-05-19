@@ -81,8 +81,8 @@ unsigned int GetNextWorkRequiredLWMA(const CBlockIndex* pindexLast, const CBlock
 
         // Prepare for next iteration: move to previous block only if more blocks are needed
         if (blocksFound < N) {
-        blockPreviousTimestamp = blockPreviousTimestamp->pprev;
-    }
+            blockPreviousTimestamp = blockPreviousTimestamp->pprev;
+        }
     }
     
     // Sanity check: We should have N blocks now if we didn't return early
@@ -661,11 +661,11 @@ bool CheckHiveProof(const CBlock* pblock, const Consensus::Params& consensusPara
         if (it != mapBlockIndex.end()) {
             pindexPrev = it->second;
             if (pindexPrev) {
-        blockHeight = pindexPrev->nHeight + 1;
+                blockHeight = pindexPrev->nHeight + 1;
             } else {
                 // Log if the map contained a null pointer for this key, which is unexpected.
                 LogPrint(BCLog::HIVE, "CheckHiveProof: mapBlockIndex contains a null pointer for hashPrevBlock %s\n", pblock->hashPrevBlock.ToString());
-    }
+            }
         }
     }
 
