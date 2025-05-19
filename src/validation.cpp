@@ -1727,7 +1727,20 @@ int32_t ComputeBlockVersion(const CBlockIndex* pindexPrev, const Consensus::Para
     LOCK(cs_main);
     int32_t nVersion = VERSIONBITS_TOP_BITS;
 
+    if (!pindexPrev) { // Handle genesis case (or any case where pindexPrev is null)
+        // For the block after genesis, or if pindexPrev is otherwise null,
+        // no version bits have been signaled by a previous block.
+        // MinotaurX also wouldn't be enabled based on pindexPrev if pindexPrev is null.
+        // So, returning the initial VERSIONBITS_TOP_BITS is appropriate.
+        // Specific MinotaurX nVersion modifications for the *current* block being built
+        // (if this is called for a new block) are handled by the caller (e.g. CreateNewBlock).
+        return VERSIONBITS_TOP_BITS; 
+    }
+
     // Cascoin: MinotaurX+Hive1.2: Set bit 29 to 0
+    // This logic seems to imply that if MinotaurX is enabled *based on pindexPrev*,
+    // then the *starting point* for nVersion (before version bits are ORed in) is 0.
+    // If pindexPrev is null, IsMinotaurXEnabled should handle it gracefully.
     if (IsMinotaurXEnabled(pindexPrev, params))
         nVersion = 0;
 
