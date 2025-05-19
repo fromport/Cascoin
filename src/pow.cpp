@@ -157,26 +157,44 @@ unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const CBlockHeader *
 
     // Cascoin: Hive 1.1: Skip over Hivemined blocks at tip
     if (IsHive11Enabled(pindexLast, params)) {
-        while (pindexLast->GetBlockHeader().IsHiveMined(params)) {
-            //LogPrintf("DarkGravityWave: Skipping hivemined block at %i\n", pindex->nHeight);
-            assert(pindexLast->pprev); // should never fail
+        while (pindexLast && pindexLast->GetBlockHeader().IsHiveMined(params)) { // Check pindexLast
+            if (!pindexLast->pprev) { // Should not happen if IsHive11Enabled implies sufficient chain depth, but safety for very short chains
+                pindexLast = nullptr;
+                break;
+            }
             pindexLast = pindexLast->pprev;
         }
     }
 
     // Cascoin: Make sure we have at least (nPastBlocks + 1) blocks since the fork, otherwise just return powLimitSHA
-    if (!pindexLast || pindexLast->nHeight - params.lastScryptBlock < nPastBlocks)
+    if (!pindexLast || pindexLast->nHeight - params.lastScryptBlock < nPastBlocks) {
+        LogPrint(BCLog::POW, "DarkGravityWave: Not enough blocks or pindexLast is null. pindexLast: %p. Returning difficulty limit.\n", static_cast<const void*>(pindexLast));
         return bnPowLimit.GetCompact();
+    }
 
     const CBlockIndex *pindex = pindexLast;
     arith_uint256 bnPastTargetAvg;
 
     for (unsigned int nCountBlocks = 1; nCountBlocks <= nPastBlocks; nCountBlocks++) {
+        // pindex is guaranteed not null at the start of the first iteration due to checks above.
+        // In subsequent iterations, it's assigned pindex->pprev.
+        if (!pindex) { // Should be caught by checks after pindex = pindex->pprev if loop continues
+            LogPrint(BCLog::POW, "DarkGravityWave: pindex became null unexpectedly mid-loop. nCountBlocks: %u. Returning difficulty limit.\n", nCountBlocks);
+            return bnPowLimit.GetCompact();
+        }
+
         // Cascoin: Hive: Skip over Hivemined blocks; we only want to consider PoW blocks
-        while (pindex->GetBlockHeader().IsHiveMined(params)) {
-            //LogPrintf("DarkGravityWave: Skipping hivemined block at %i\n", pindex->nHeight);
-            assert(pindex->pprev); // should never fail
+        while (pindex && pindex->GetBlockHeader().IsHiveMined(params)) { // Check pindex
+            if (!pindex->pprev) {
+                pindex = nullptr; // Reached genesis or start while skipping
+                break;    // Break inner while loop
+            }
             pindex = pindex->pprev;
+        }
+
+        if (!pindex) { // If we ran out of blocks while skipping Hive blocks
+            LogPrint(BCLog::POW, "DarkGravityWave: Ran out of blocks (pindex is null) while skipping Hive blocks for target calculation. nCountBlocks: %u. Returning difficulty limit.\n", nCountBlocks);
+            return bnPowLimit.GetCompact();
         }
 
         arith_uint256 bnTarget = arith_uint256().SetCompact(pindex->nBits);
@@ -188,8 +206,13 @@ unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const CBlockHeader *
         }
 
         if(nCountBlocks != nPastBlocks) {
-            assert(pindex->pprev); // should never fail
+            if (!pindex->pprev) { // Check before assigning pprev
+                 LogPrint(BCLog::POW, "DarkGravityWave: Unexpectedly ran out of blocks (pindex->pprev is null) before DGW window was filled. nCountBlocks: %u. Returning difficulty limit.\n", nCountBlocks);
+                 return bnPowLimit.GetCompact();
+            }
             pindex = pindex->pprev;
+            // After this assignment, pindex could be null. It will be checked at the start of the next for-loop iteration's "if (!pindex)"
+            // or by the inner while (pindex && ...) condition.
         }
     }
 
