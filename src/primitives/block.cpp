@@ -45,24 +45,37 @@ uint256 CBlockHeader::MinotaurHashString(std::string data) {
 // Cascoin: MinotaurX+Hive1.2: Get pow hash based on block type and UASF activation
 uint256 CBlockHeader::GetPoWHash() const
 {
-    // Cascoin: After powForkTime, the pow hash may be sha256 or MinotaurX
-    if (nTime > Params().GetConsensus().powForkTime) {
-        if (nVersion >= 0x20000000)                                 // Check for MinotaurX activation (Note: This is a safe check, so long as we are only considering blocks since CAS forked from LTC)
-            return GetHash();                                       // MinotaurX not activated; definitely sha256
+    // Log basic info for this specific call to GetPoWHash
+    LogPrintf("GetPoWHash (Block: %s): nTime=%u, nVersion=0x%08x, Consensus.powForkTime=%u\n", GetHash().ToString().substr(0,10), nTime, nVersion, Params().GetConsensus().powForkTime);
 
-        switch (GetPoWType()) {                                     // Call appropriate hash for blockType
+    if (nTime > Params().GetConsensus().powForkTime) {
+        LogPrintf("GetPoWHash: nTime > powForkTime branch taken.\n");
+        
+        POW_TYPE calculatedPowType = GetPoWType(); // Call it once
+        LogPrintf("GetPoWHash: GetPoWType() returned: %d (%s) from nVersion 0x%08x\n", static_cast<int>(calculatedPowType), (calculatedPowType < NUM_BLOCK_TYPES ? POW_TYPE_NAMES[calculatedPowType] : "unknown_type_value"), nVersion);
+
+        // This version check might be part of an older UASF logic for MinotaurX.
+        // If MinotaurX is enabled by height (via IsMinotaurXEnabled), this might conflict or be redundant.
+        if (nVersion >= 0x20000000) { // Bitcoin core uses this for BIP9 version bits usually.
+            LogPrintf("GetPoWHash: nVersion >= 0x20000000 branch. Assuming SHA256. Returning GetHash().\n");
+            return GetHash(); // MinotaurX not activated by *this specific version scheme*; assumes sha256
+        }
+        LogPrintf("GetPoWHash: nVersion < 0x20000000. Proceeding to switch on PoWType.\n");
+
+        switch (calculatedPowType) {
             case POW_TYPE_SHA256:
+                LogPrintf("GetPoWHash: Switch case POW_TYPE_SHA256. Returning GetHash().\n");
                 return GetHash();
-                break;
             case POW_TYPE_MINOTAURX:
+                LogPrintf("GetPoWHash: Switch case POW_TYPE_MINOTAURX. Returning Minotaur(...).\n");
                 return Minotaur(BEGIN(nVersion), END(nNonce), true);
-                break;
-            default:                                                // Don't crash the client on invalid blockType, just return a bad hash
+            default:
+                LogPrintf("GetPoWHash: Switch case DEFAULT! calculatedPowType=%d. Returning HIGH_HASH.\n", static_cast<int>(calculatedPowType));
                 return HIGH_HASH;
         }
     }
     
-    // CAS not forked yet; still on Litecoin chain - definitely scrypt
+    LogPrintf("GetPoWHash: nTime <= powForkTime branch. Pre-fork logic (Scrypt). Returning scrypt hash.\n");
     uint256 thash;
     scrypt_1024_1_1_256(BEGIN(nVersion), BEGIN(thash));
     return thash;

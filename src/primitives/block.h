@@ -104,7 +104,11 @@ public:
 
     // Cascoin: MinotaurX+Hive1.2: Get pow type from version bits
     POW_TYPE GetPoWType() const {
-        return (POW_TYPE)((nVersion >> 16) & 0xFF);
+        // LogPrintf("GetPoWType: nVersion=0x%08x\n", nVersion); // Already present or similar in GetPoWHash, avoid duplicate
+        POW_TYPE type = (POW_TYPE)((nVersion >> 16) & 0xFF);
+        // It's better to log this inside GetPoWHash where we have more context like block hash for correlation
+        // LogPrintf("GetPoWType: calculated type=%d from nVersion=0x%08x\n", static_cast<int>(type), nVersion);
+        return type;
     }
 
     // Cascoin: MinotaurX+Hive1.2: Get pow type name
