@@ -109,7 +109,7 @@ ThresholdState AbstractThresholdConditionChecker::GetStateFor(const CBlockIndex*
     // Walk backwards in steps of nPeriod_val to find a pindexPeriod whose information is known
     std::vector<const CBlockIndex*> vToCompute;
     const CBlockIndex* pindexWalk = pindexPeriod;
-    while (cache_in.count(pindexWalk) == 0) {
+    while (pindexWalk && cache_in.count(pindexWalk) == 0) {
         if (pindexWalk->GetMedianTimePast() < nTimeStart_val) {
             // Optimization: don't recompute down further, as we know every earlier block will be before the start time
             cache_in[pindexWalk] = THRESHOLD_DEFINED;
