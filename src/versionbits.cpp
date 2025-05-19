@@ -124,9 +124,17 @@ ThresholdState AbstractThresholdConditionChecker::GetStateFor(const CBlockIndex*
         pindexWalk = pindexWalk->GetAncestor(pindexWalk->nHeight - nPeriod_val);
     }
 
-    // At this point, cache[pindexWalk] is known
-    assert(cache_in.count(pindexWalk));
-    ThresholdState state = cache_in[pindexWalk];
+    // At this point, cache_in[pindexWalk] is known if pindexWalk is not nullptr.
+    // If pindexWalk is nullptr, it implies we've gone past genesis or a point
+    // where the state is implicitly THRESHOLD_DEFINED.
+    ThresholdState state;
+    if (pindexWalk) {
+        assert(cache_in.count(pindexWalk)); // This assertion should hold true if pindexWalk is not null
+        state = cache_in[pindexWalk];
+    } else {
+        // If pindexWalk is null, we've iterated past known blocks. The state defaults to DEFINED.
+        state = THRESHOLD_DEFINED;
+    }
 
     // Now walk forward and compute the state of descendants of pindexWalk
     while (!vToCompute.empty()) {
