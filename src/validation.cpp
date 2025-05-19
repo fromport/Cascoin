@@ -3461,37 +3461,28 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationSta
             if (powType >= NUM_BLOCK_TYPES)
                 return state.DoS(100, false, REJECT_INVALID, "bad-algo-id", false, "unrecognised pow type in block version");
 
-            // Old log line, commented out for reference
-            /*if (powType == POW_TYPE_SHA256) {
-                LogPrintf("ContextualCheckBlockHeader: SHA256 check: block.nBits=0x%08x, pindexPrev->nHeight=%d, powType=%d. About to call GetNextWorkRequiredLWMA. pprev PoWType: %s\\n",
-                    block.nBits, pindexPrev->nHeight, powType,
-                    pindexPrev ? POW_TYPE_NAMES[pindexPrev->GetBlockHeader().GetPoWType()] : "null_pprev_for_type_name_check" 
-                );
-            }*/
-
             unsigned int expected_nBits = GetNextWorkRequiredLWMA(pindexPrev, &block, consensusParams, powType);
-            
-            // Store the comparison result in a boolean variable
             bool MismatchFound = (block.nBits != expected_nBits);
 
-            // Log values JUST BEFORE the comparison, including the boolean result of the comparison
             if (powType == POW_TYPE_SHA256) {
                 LogPrintf("ContextualCheckBlockHeader: SHA256 PRE-CHECK: block.nBits=0x%08x, expected_nBits (from LWMA)=0x%08x. MismatchFound=%s. pindexPrev height %d, PoWType %d, PrevPoWType %s\\n",
-                    block.nBits,
-                    expected_nBits,
-                    MismatchFound ? "true" : "false", // Log the boolean result
-                    pindexPrev->nHeight,
-                    powType,
-                    pindexPrev ? POW_TYPE_NAMES[pindexPrev->GetBlockHeader().GetPoWType()] : "null_pprev"
-                );
+                    block.nBits, expected_nBits, MismatchFound ? "true" : "false",
+                    pindexPrev->nHeight, powType, pindexPrev ? POW_TYPE_NAMES[pindexPrev->GetBlockHeader().GetPoWType()] : "null_pprev");
             }
 
-            // Use the boolean variable in the if condition
-            if (MismatchFound)
+            if (MismatchFound) {
+                if (powType == POW_TYPE_SHA256) {
+                    LogPrintf("ContextualCheckBlockHeader: SHA256 MISMATCH CONFIRMED (block.nBits != expected_nBits). Returning DoS for bad-diff.\\n");
+                }
                 return state.DoS(100, false, REJECT_INVALID, "bad-diff", false, "incorrect pow difficulty in for block type");
-
-        } else if (block.nBits != GetNextWorkRequired(pindexPrev, &block, consensusParams)) // Original pre-MinotaurX logic
+            } else {
+                if (powType == POW_TYPE_SHA256) {
+                    LogPrintf("ContextualCheckBlockHeader: SHA256 nBits OK (MismatchFound=false). Proceeding with other contextual checks.\\n");
+                }
+            }
+        } else if (block.nBits != GetNextWorkRequired(pindexPrev, &block, consensusParams)) {
             return state.DoS(100, false, REJECT_INVALID, "bad-diffbits", false, "incorrect pow difficulty in block");
+        }
     }
 
     // Check against checkpoints
@@ -3536,6 +3527,11 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationSta
         uint8_t blockType = (block.nVersion >> 16) & 0xFF;
         if (blockType >= NUM_BLOCK_TYPES)
             return state.Invalid(false, REJECT_INVALID, "bad-blocktype", strprintf("unrecognised blocktype of =0x%08x", blockType));
+    }
+
+    // Cascoin: Log before returning true if all checks passed so far for SHA256 (MinotaurX enabled path)
+    if (block.GetPoWType() == POW_TYPE_SHA256 && !block.IsHiveMined(consensusParams) && IsMinotaurXEnabled(pindexPrev, consensusParams) ) {
+         LogPrintf("ContextualCheckBlockHeader: SHA256 All contextual checks PASSED. Returning true.\\n");
     }
     return true;
 }
