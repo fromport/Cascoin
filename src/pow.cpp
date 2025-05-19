@@ -654,23 +654,14 @@ bool CheckHiveProof(const CBlock* pblock, const Consensus::Params& consensusPara
 
     // Get height (a CBlockIndex isn't always available when this func is called, eg in reads from disk)
     int blockHeight;
-    CBlockIndex* pindexPrev = nullptr; // Initialize to null
+    CBlockIndex* pindexPrev;
     {
         LOCK(cs_main);
-        auto it = mapBlockIndex.find(pblock->hashPrevBlock);
-        if (it != mapBlockIndex.end()) {
-            pindexPrev = it->second;
-            if (pindexPrev) {
-                blockHeight = pindexPrev->nHeight + 1;
-            } else {
-                // Log if the map contained a null pointer for this key, which is unexpected.
-                LogPrint(BCLog::HIVE, "CheckHiveProof: mapBlockIndex contains a null pointer for hashPrevBlock %s\n", pblock->hashPrevBlock.ToString());
-            }
-        }
+        pindexPrev = mapBlockIndex[pblock->hashPrevBlock];
+        blockHeight = pindexPrev->nHeight + 1;
     }
-
     if (!pindexPrev) {
-        LogPrint(BCLog::HIVE, "CheckHiveProof: Couldn't get previous block's CBlockIndex for hashPrevBlock %s (not found or pointer was null)\n", pblock->hashPrevBlock.ToString());
+        LogPrintf("CheckHiveProof: Couldn't get previous block's CBlockIndex!\n");
         return false;
     }
     if (verbose)
