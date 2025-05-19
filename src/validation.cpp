@@ -3461,6 +3461,14 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationSta
             if (powType >= NUM_BLOCK_TYPES)
                 return state.DoS(100, false, REJECT_INVALID, "bad-algo-id", false, "unrecognised pow type in block version");
 
+            // Cascoin: Add diagnostic logging for SHA256 difficulty check
+            if (powType == POW_TYPE_SHA256) {
+                LogPrintf("ContextualCheckBlockHeader: SHA256 check: block.nBits=0x%08x, pindexPrev->nHeight=%d, powType=%d. About to call GetNextWorkRequiredLWMA. pprev PoWType: %s\\n",
+                    block.nBits, pindexPrev->nHeight, powType,
+                    pindexPrev ? POW_TYPE_NAMES[pindexPrev->GetBlockHeader().GetPoWType()] : "null_pprev_for_type_name_check" 
+                );
+            }
+
             if (block.nBits != GetNextWorkRequiredLWMA(pindexPrev, &block, consensusParams, powType))
                 return state.DoS(100, false, REJECT_INVALID, "bad-diff", false, "incorrect pow difficulty in for block type");
 
