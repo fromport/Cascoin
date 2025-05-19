@@ -168,7 +168,7 @@ unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const CBlockHeader *
 
     // Cascoin: Make sure we have at least (nPastBlocks + 1) blocks since the fork, otherwise just return powLimitSHA
     if (!pindexLast || pindexLast->nHeight - params.lastScryptBlock < nPastBlocks) {
-        LogPrint(BCLog::ALL, "DarkGravityWave: Not enough blocks or pindexLast is null. pindexLast: %p. Returning difficulty limit.\n", static_cast<const void*>(pindexLast));
+        LogPrint(BCLog::POW, "DarkGravityWave: Not enough blocks or pindexLast is null. pindexLast: %p. Returning difficulty limit.\n", static_cast<const void*>(pindexLast));
         return bnPowLimit.GetCompact();
     }
 
@@ -179,7 +179,7 @@ unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const CBlockHeader *
         // pindex is guaranteed not null at the start of the first iteration due to checks above.
         // In subsequent iterations, it's assigned pindex->pprev.
         if (!pindex) { // Should be caught by checks after pindex = pindex->pprev if loop continues
-            LogPrint(BCLog::ALL, "DarkGravityWave: pindex became null unexpectedly mid-loop. nCountBlocks: %u. Returning difficulty limit.\n", nCountBlocks);
+            LogPrint(BCLog::POW, "DarkGravityWave: pindex became null unexpectedly mid-loop. nCountBlocks: %u. Returning difficulty limit.\n", nCountBlocks);
             return bnPowLimit.GetCompact();
         }
 
@@ -193,7 +193,7 @@ unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const CBlockHeader *
         }
 
         if (!pindex) { // If we ran out of blocks while skipping Hive blocks
-            LogPrint(BCLog::ALL, "DarkGravityWave: Ran out of blocks (pindex is null) while skipping Hive blocks for target calculation. nCountBlocks: %u. Returning difficulty limit.\n", nCountBlocks);
+            LogPrint(BCLog::POW, "DarkGravityWave: Ran out of blocks (pindex is null) while skipping Hive blocks for target calculation. nCountBlocks: %u. Returning difficulty limit.\n", nCountBlocks);
             return bnPowLimit.GetCompact();
         }
 
@@ -207,7 +207,7 @@ unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const CBlockHeader *
 
         if(nCountBlocks != nPastBlocks) {
             if (!pindex->pprev) { // Check before assigning pprev
-                 LogPrint(BCLog::ALL, "DarkGravityWave: Unexpectedly ran out of blocks (pindex->pprev is null) before DGW window was filled. nCountBlocks: %u. Returning difficulty limit.\n", nCountBlocks);
+                 LogPrint(BCLog::POW, "DarkGravityWave: Unexpectedly ran out of blocks (pindex->pprev is null) before DGW window was filled. nCountBlocks: %u. Returning difficulty limit.\n", nCountBlocks);
                  return bnPowLimit.GetCompact();
             }
             pindex = pindex->pprev;
