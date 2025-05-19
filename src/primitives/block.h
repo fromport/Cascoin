@@ -112,7 +112,7 @@ public:
     }
 
     // Cascoin: MinotaurX+Hive1.2: Get pow type name
-    std::string GetPoWTypeName() const {
+    const char* GetPoWTypeName() const {
         if (nVersion >= 0x20000000)
             return POW_TYPE_NAMES[0];
 
@@ -121,6 +121,8 @@ public:
             return "unrecognised";
         return POW_TYPE_NAMES[pt];
     }
+
+    POW_TYPE GetEffectivePoWTypeForHashing(const Consensus::Params& consensusParams) const;
 };
 
 class CBlock : public CBlockHeader

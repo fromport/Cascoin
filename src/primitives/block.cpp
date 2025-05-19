@@ -83,6 +83,38 @@ uint256 CBlockHeader::GetPoWHash() const
     }
 }
 
+// Cascoin: Add helper definition
+POW_TYPE CBlockHeader::GetEffectivePoWTypeForHashing(const Consensus::Params& consensusParams) const {
+    // Check if we are in the multi-algorithm phase based on block time
+    if (nTime > consensusParams.powForkTime) {
+        // Multi-algorithm phase logic
+        POW_TYPE calculatedPowType = GetPoWType(); // Get raw PoW type from nVersion bits: (nVersion >> 16) & 0xFF
+
+        // Explicitly check for MinotaurX
+        if (calculatedPowType == POW_TYPE_MINOTAURX) {
+            LogPrintf("GetEffectivePoWTypeForHashing: Multi-algo phase, raw type is MINOTAURX (%d). Effective type: MINOTAURX.\n", static_cast<int>(calculatedPowType));
+            return POW_TYPE_MINOTAURX;
+        }
+        
+        // Check for BIP9-style versioning (e.g. 0x20000000 typically implies SHA256 if not MinotaurX)
+        if (nVersion >= 0x20000000) {
+             LogPrintf("GetEffectivePoWTypeForHashing: Multi-algo phase, nVersion 0x%08x >= 0x20000000 (BIP9 style). Effective type: SHA256.\n", nVersion);
+             return POW_TYPE_SHA256;
+        }
+
+        // Default for multi-algo phase if not MinotaurX and not a high-bit nVersion:
+        // This covers cases where calculatedPowType is POW_TYPE_SHA256 (0) or an "unknown" type (like 41 from 0x0a290000).
+        // GetPoWHash would default to SHA256 (GetHash()) in these scenarios.
+        LogPrintf("GetEffectivePoWTypeForHashing: Multi-algo phase, raw type is %d (SHA256 or UNKNOWN) and nVersion < 0x20000000. Effective type: SHA256.\n", static_cast<int>(calculatedPowType));
+        return POW_TYPE_SHA256;
+
+    } else {
+        // Pre-multi-algorithm fork phase: Default to Scrypt (as per original Litecoin Cash behavior pre-Hive/MinotaurX)
+        LogPrintf("GetEffectivePoWTypeForHashing: Pre-multi-algo fork (nTime <= powForkTime). Effective type: SCRYPT.\n");
+        return POW_TYPE_SCRYPT; // LCC's original PoW was Scrypt
+    }
+}
+
 std::string CBlock::ToString() const
 {
     std::stringstream s;

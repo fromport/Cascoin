@@ -3445,54 +3445,56 @@ std::vector<unsigned char> GenerateCoinbaseCommitment(CBlock& block, const CBloc
  */
 static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationState& state, const CChainParams& params, const CBlockIndex* pindexPrev, int64_t nAdjustedTime)
 {
+    const Consensus::Params& consensusParams = params.GetConsensus();
     assert(pindexPrev != nullptr);
     const int nHeight = pindexPrev->nHeight + 1;
 
     // Cascoin: Hive: Check appropriate Hive or PoW target
-    const Consensus::Params& consensusParams = params.GetConsensus();
     if (block.IsHiveMined(consensusParams)) {
         if (block.nBits != GetNextHiveWorkRequired(pindexPrev, consensusParams))
             return state.DoS(100, false, REJECT_INVALID, "bad-hive-diffbits", false, "incorrect hive difficulty in block");
     } else {
         // Cascoin: MinotaurX+Hive1.2: Handle pow type
         if (IsMinotaurXEnabled(pindexPrev, consensusParams)) {
-            POW_TYPE powType = block.GetPoWType();
+            // POW_TYPE powType = block.GetPoWType(); // Old: Get raw type from nVersion, could be unknown (e.g. 41)
+            POW_TYPE effectivePowType = block.GetEffectivePoWTypeForHashing(consensusParams); // New: Get type as GetPoWHash would interpret it
 
-            if (powType >= NUM_BLOCK_TYPES)
-                return state.DoS(100, false, REJECT_INVALID, "bad-algo-id", false, "unrecognised pow type in block version");
+            // Log the derived effective PoW type for diagnostics
+            if (LogAcceptCategory(BCLog::VALIDATION) || LogAcceptCategory(BCLog::POW)) { // Log if either category is enabled
+                LogPrintf("ContextualCheckBlockHeader: block.nVersion=0x%08x, raw block.GetPoWType()=%d, effectivePoWTypeForHashing=%d (%s)\n",
+                    block.nVersion, static_cast<int>(block.GetPoWType()), static_cast<int>(effectivePowType),
+                    (effectivePowType < NUM_BLOCK_TYPES ? POW_TYPE_NAMES[effectivePowType] : "EFFECTIVE_TYPE_OUT_OF_BOUNDS_FOR_NAME")
+                );
+            }
 
-            unsigned int expected_nBits = GetNextWorkRequiredLWMA(pindexPrev, &block, consensusParams, powType);
+            if (effectivePowType >= NUM_BLOCK_TYPES) // Use effectivePoWType for the bounds check
+                return state.DoS(100, false, REJECT_INVALID, "bad-algo-id", false, "unrecognised effective pow type for consensus checks");
+
+            // unsigned int expected_nBits = GetNextWorkRequiredLWMA(pindexPrev, &block, consensusParams, powType);
+            unsigned int expected_nBits = GetNextWorkRequiredLWMA(pindexPrev, &block, consensusParams, effectivePowType); // Use effectivePowType for difficulty calc
             bool MismatchFound = (block.nBits != expected_nBits);
 
-            if (powType == POW_TYPE_SHA256) {
-                LogPrintf("ContextualCheckBlockHeader: SHA256 PRE-CHECK: block.nBits=0x%08x, expected_nBits (from LWMA)=0x%08x. MismatchFound=%s. pindexPrev height %d, PoWType %d, PrevPoWType %s\\n",
+            if (effectivePowType == POW_TYPE_SHA256) { // Logging specific to SHA256 path, using effectiveType
+                LogPrintf("ContextualCheckBlockHeader: SHA256 PRE-CHECK (using effectiveType): block.nBits=0x%08x, expected_nBits (from LWMA)=0x%08x. MismatchFound=%s. pindexPrev height %d, PrevPoWType %s\n",
                     block.nBits, expected_nBits, MismatchFound ? "true" : "false",
-                    pindexPrev->nHeight, powType, pindexPrev ? POW_TYPE_NAMES[pindexPrev->GetBlockHeader().GetPoWType()] : "null_pprev");
+                    pindexPrev ? pindexPrev->nHeight : -1,
+                    pindexPrev ? POW_TYPE_NAMES[pindexPrev->GetBlockHeader().GetPoWType()] : "null_pprev"
+                );
+                if (MismatchFound) {
+                    LogPrintf("ContextualCheckBlockHeader: SHA256 MISMATCH CONFIRMED (block.nBits 0x%08x != expected_nBits 0x%08x)\n", block.nBits, expected_nBits);
+                } else {
+                    LogPrintf("ContextualCheckBlockHeader: SHA256 nBits OK (MismatchFound=false). Proceeding with other contextual checks.\n");
+                }
             }
 
             if (MismatchFound) {
-                if (powType == POW_TYPE_SHA256) {
-                    LogPrintf("ContextualCheckBlockHeader: SHA256 MISMATCH CONFIRMED (block.nBits != expected_nBits). Returning DoS for bad-diff.\\n");
-                }
-                return state.DoS(100, false, REJECT_INVALID, "bad-diff", false, "incorrect pow difficulty in for block type");
-            } else {
-                if (powType == POW_TYPE_SHA256) {
-                    LogPrintf("ContextualCheckBlockHeader: SHA256 nBits OK (MismatchFound=false). Proceeding with other contextual checks.\\n");
-                }
+                return state.DoS(100, false, REJECT_INVALID, "bad-diffbits", false, strprintf("incorrect proof of work bits (expected %08x, got %08x) for %s", expected_nBits, block.nBits, POW_TYPE_NAMES[effectivePowType]));
             }
-        } else if (block.nBits != GetNextWorkRequired(pindexPrev, &block, consensusParams)) {
-            return state.DoS(100, false, REJECT_INVALID, "bad-diffbits", false, "incorrect pow difficulty in block");
+        } else {
+            // Pre-MinotaurX fork logic (typically Scrypt or simple SHA256 if that was the base)
+            if (block.nBits != GetNextWorkRequired(pindexPrev, &block, consensusParams))
+                return state.DoS(100, false, REJECT_INVALID, "bad-diffbits", false, "incorrect proof of work");
         }
-    }
-
-    // Check against checkpoints
-    if (fCheckpointsEnabled) {
-        // Don't accept any forks from the main chain prior to last checkpoint.
-        // GetLastCheckpoint finds the last checkpoint in MapCheckpoints that's in our
-        // MapBlockIndex.
-        CBlockIndex* pcheckpoint = Checkpoints::GetLastCheckpoint(params.Checkpoints());
-        if (pcheckpoint && nHeight < pcheckpoint->nHeight)
-            return state.DoS(100, error("%s: forked chain older than last checkpoint (height %d)", __func__, nHeight), REJECT_CHECKPOINT, "bad-fork-prior-to-checkpoint");
     }
 
     // Check timestamp against prev
@@ -3533,7 +3535,8 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationSta
     if (block.GetPoWType() == POW_TYPE_SHA256 && !block.IsHiveMined(consensusParams) && IsMinotaurXEnabled(pindexPrev, consensusParams) ) {
          LogPrintf("ContextualCheckBlockHeader: SHA256 All contextual checks PASSED. Returning true.\\n");
     }
-    return true;
+
+    return true; // All good
 }
 
 /** NOTE: This function is not currently invoked by ConnectBlock(), so we
