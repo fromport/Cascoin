@@ -549,6 +549,11 @@ bool GetNetworkHiveInfo(int& immatureBees, int& immatureBCTs, int& matureBees, i
     CScript scriptPubKeyCF = GetScriptForDestination(DecodeDestination(consensusParams.hiveCommunityAddress));
 
     for (int i = 0; i < totalBeeLifespan; i++) {
+        if (!pindexPrev) { // Add this check at the beginning of the loop
+            LogPrint(BCLog::HIVE, "! GetNetworkHiveInfo: pindexPrev became null during loop. Processed %d blocks out of %d for BCTs.\n", i, totalBeeLifespan);
+            break; // Stop processing if we ran out of blocks
+        }
+
         if (fHavePruned && !(pindexPrev->nStatus & BLOCK_HAVE_DATA) && pindexPrev->nTx > 0) {
             LogPrintf("! GetNetworkHiveInfo: Warn: Block not available (pruned data); can't calculate network bee count.\n");
             return false;
@@ -672,8 +677,10 @@ bool CheckHiveProof(const CBlock* pblock, const Consensus::Params& consensusPara
     if (IsHive11Enabled(pindexPrev, consensusParams)) {
         int hiveBlocksAtTip = 0;
         CBlockIndex* pindexTemp = pindexPrev;
-        while (pindexTemp->GetBlockHeader().IsHiveMined(consensusParams)) {
-            assert(pindexTemp->pprev);
+        while (pindexTemp && pindexTemp->GetBlockHeader().IsHiveMined(consensusParams)) {
+            if (!pindexTemp->pprev) {
+                break;
+            }
             pindexTemp = pindexTemp->pprev;
             hiveBlocksAtTip++;
         }
