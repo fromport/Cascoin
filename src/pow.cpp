@@ -381,7 +381,11 @@ unsigned int GetNextHive11WorkRequired(const CBlockIndex* pindexLast, const Cons
     int totalBlockCount = 0;
 
     // Step back till we have found 24 hive blocks, or we ran out...
-    while (hiveBlockCount < params.hiveDifficultyWindow && pindexLast->pprev && pindexLast->nHeight >= params.minHiveCheckBlock) {
+    while (hiveBlockCount < params.hiveDifficultyWindow) {
+        if (!pindexLast || !pindexLast->pprev || pindexLast->nHeight < params.minHiveCheckBlock) {
+            break; // Ran out of blocks or reached min height
+        }
+
         if (pindexLast->GetBlockHeader().IsHiveMined(params)) {
             beeHashTarget += arith_uint256().SetCompact(pindexLast->nBits);
             hiveBlockCount++;
@@ -417,7 +421,11 @@ unsigned int GetNextHive12WorkRequired(const CBlockIndex* pindexLast, const Cons
     int totalBlockCount = 0;
 
     // Step back till we have found 24 hive blocks, or we ran out...
-    while (hiveBlockCount < params.hiveDifficultyWindow && pindexLast->pprev && IsMinotaurXEnabled(pindexLast, params)) {        
+    while (hiveBlockCount < params.hiveDifficultyWindow) {
+        if (!pindexLast || !pindexLast->pprev || !IsMinotaurXEnabled(pindexLast, params)) {
+            break; // Ran out of blocks or MinotaurX not enabled for current pindexLast
+        }
+
         if (pindexLast->GetBlockHeader().IsHiveMined(params)) {
             beeHashTarget += arith_uint256().SetCompact(pindexLast->nBits);
             hiveBlockCount++;
@@ -465,8 +473,12 @@ unsigned int GetNextHiveWorkRequired(const CBlockIndex* pindexLast, const Consen
     int numPowBlocks = 0;
     CBlockHeader block;
     while (true) {
+        if (!pindexLast) { // Added null check for pindexLast itself
+            LogPrintf("GetNextHiveWorkRequired: pindexLast became null while searching for previous Hive block.\n");
+            return bnPowLimit.GetCompact();
+        }
         if (!pindexLast->pprev || pindexLast->nHeight < params.minHiveCheckBlock) {   // Ran out of blocks without finding a Hive block? Return min target
-            LogPrintf("GetNextHiveWorkRequired: No hivemined blocks found in history\n");
+            LogPrintf("GetNextHiveWorkRequired: No hivemined blocks found in history (or pprev is null/height too low)\n");
             //LogPrintf("GetNextHiveWorkRequired: This target= %s\n", bnPowLimit.ToString());
             return bnPowLimit.GetCompact();
         }
