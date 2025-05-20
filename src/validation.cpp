@@ -3462,19 +3462,9 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationSta
             // Log the derived effective PoW type for diagnostics
             // if (LogAcceptCategory(BCLog::VALIDATION) || LogAcceptCategory(BCLog::POW)) { // Old: Used non-existent categories
             if (LogAcceptCategory(BCLog::ALL)) { // New: Use BCLog::ALL for now to ensure visibility
-                const char* pow_type_display_name;
-                if (effectivePowType >= 0 && effectivePowType < NUM_BLOCK_TYPES) {
-                    pow_type_display_name = POW_TYPE_NAMES[effectivePowType];
-                    if (pow_type_display_name == nullptr) { 
-                        pow_type_display_name = "[Error: POW_TYPE_NAME was null]";
-                        LogPrintf("CRITICAL_ERROR: ContextualCheckBlockHeader: POW_TYPE_NAMES[%d] was unexpectedly null for LogPrintf.\\n", static_cast<int>(effectivePowType));
-                    }
-                } else {
-                    pow_type_display_name = "EFFECTIVE_TYPE_OUT_OF_BOUNDS_FOR_NAME";
-                }
-                LogPrintf("ContextualCheckBlockHeader: block.nVersion=0x%08x, raw block.GetPoWType()=%d, effectivePoWTypeForHashing=%d (%s)\\n",
+                LogPrintf("ContextualCheckBlockHeader: block.nVersion=0x%08x, raw block.GetPoWType()=%d, effectivePoWTypeForHashing=%d (%s)\n",
                     block.nVersion, static_cast<int>(block.GetPoWType()), static_cast<int>(effectivePowType),
-                    pow_type_display_name
+                    (effectivePowType < NUM_BLOCK_TYPES ? POW_TYPE_NAMES[effectivePowType] : "EFFECTIVE_TYPE_OUT_OF_BOUNDS_FOR_NAME")
                 );
             }
 
@@ -3499,22 +3489,7 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationSta
             }
 
             if (MismatchFound) {
-                const char* debug_pow_type_name;
-                // effectivePowType should be valid here due to the check if (effectivePowType >= NUM_BLOCK_TYPES) further up.
-                // However, we add full checks for maximum robustness in this specific path.
-                if (effectivePowType >= 0 && effectivePowType < NUM_BLOCK_TYPES) {
-                    debug_pow_type_name = POW_TYPE_NAMES[effectivePowType];
-                    if (debug_pow_type_name == nullptr) {
-                         debug_pow_type_name = "[Error: POW_TYPE_NAME was null for strprintf]";
-                         // Using LogPrintf here might be risky if tinyformat itself is the issue, but this is a critical error log.
-                         LogPrintf("CRITICAL_ERROR: ContextualCheckBlockHeader: POW_TYPE_NAMES[%d] was unexpectedly null for strprintf debug message.\\n", static_cast<int>(effectivePowType));
-                    }
-                } else {
-                     // This case indicates an issue with earlier logic if reached, as effectivePowType should have been caught by the NUM_BLOCK_TYPES check.
-                     debug_pow_type_name = "UNKNOWN_POW_TYPE_FOR_DEBUG_MSG";
-                     LogPrintf("WARNING: ContextualCheckBlockHeader: effectivePowType %d was out of bounds when preparing debug message for 'bad-diffbits'.\\n", static_cast<int>(effectivePowType));
-                }
-                return state.DoS(100, false, REJECT_INVALID, "bad-diffbits", false, strprintf("incorrect proof of work bits (expected %08x, got %08x) for %s", expected_nBits, block.nBits, debug_pow_type_name));
+                return state.DoS(100, false, REJECT_INVALID, "bad-diffbits", false, strprintf("incorrect proof of work bits (expected %08x, got %08x) for %s", expected_nBits, block.nBits, POW_TYPE_NAMES[effectivePowType]));
             }
         } else {
             // Pre-MinotaurX fork logic (typically Scrypt or simple SHA256 if that was the base)
