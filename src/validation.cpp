@@ -3501,9 +3501,9 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationSta
                     prev_pow_type_name_for_log
                 );
                 if (MismatchFound) {
-                    LogPrintf("ContextualCheckBlockHeader: SHA256 MISMATCH CONFIRMED (block.nBits 0x%08x != expected_nBits 0x%08x)\\n\", block.nBits, expected_nBits);
+                    LogPrintf("ContextualCheckBlockHeader: SHA256 MISMATCH CONFIRMED (block.nBits 0x%08x != expected_nBits 0x%08x)\\n", block.nBits, expected_nBits);
                 } else {
-                    LogPrintf("ContextualCheckBlockHeader: SHA256 nBits OK (MismatchFound=false). Proceeding with other contextual checks.\\n\");
+                    LogPrintf("ContextualCheckBlockHeader: SHA256 nBits OK (MismatchFound=false). Proceeding with other contextual checks.\\n");
                 }
             }
 
