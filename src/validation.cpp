@@ -3456,40 +3456,61 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationSta
     } else {
         // Cascoin: MinotaurX+Hive1.2: Handle pow type
         if (IsMinotaurXEnabled(pindexPrev, consensusParams)) {
-            // POW_TYPE powType = block.GetPoWType(); // Old: Get raw type from nVersion, could be unknown (e.g. 41)
-            POW_TYPE effectivePowType = block.GetEffectivePoWTypeForHashing(consensusParams); // New: Get type as GetPoWHash would interpret it
+            POW_TYPE effectivePowType = block.GetEffectivePoWTypeForHashing(consensusParams);
+            const char* effective_pow_type_name_for_log = "UNKNOWN_EFFECTIVE_POW_TYPE";
+            if (effectivePowType >= 0 && effectivePowType < NUM_BLOCK_TYPES) {
+                if (POW_TYPE_NAMES[effectivePowType] != nullptr) {
+                    effective_pow_type_name_for_log = POW_TYPE_NAMES[effectivePowType];
+                } else {
+                    effective_pow_type_name_for_log = "[EFFECTIVE_POW_TYPE_NAME_IS_NULL]";
+                }
+            } else {
+                effective_pow_type_name_for_log = "EFFECTIVE_POW_TYPE_OUT_OF_BOUNDS";
+            }
 
-            // Log the derived effective PoW type for diagnostics
-            // if (LogAcceptCategory(BCLog::VALIDATION) || LogAcceptCategory(BCLog::POW)) { // Old: Used non-existent categories
-            if (LogAcceptCategory(BCLog::ALL)) { // New: Use BCLog::ALL for now to ensure visibility
-                LogPrintf("ContextualCheckBlockHeader: block.nVersion=0x%08x, raw block.GetPoWType()=%d, effectivePoWTypeForHashing=%d (%s)\n",
+            if (LogAcceptCategory(BCLog::ALL)) { 
+                LogPrintf("ContextualCheckBlockHeader: block.nVersion=0x%08x, raw block.GetPoWType()=%d, effectivePowTypeForHashing=%d (%s)\\n",
                     block.nVersion, static_cast<int>(block.GetPoWType()), static_cast<int>(effectivePowType),
-                    (effectivePowType < NUM_BLOCK_TYPES ? POW_TYPE_NAMES[effectivePowType] : "EFFECTIVE_TYPE_OUT_OF_BOUNDS_FOR_NAME")
+                    effective_pow_type_name_for_log
                 );
             }
 
-            if (effectivePowType >= NUM_BLOCK_TYPES) // Use effectivePoWType for the bounds check
+            if (effectivePowType >= NUM_BLOCK_TYPES || effectivePowType < 0) // Ensure effectivePowType is a valid index range
                 return state.DoS(100, false, REJECT_INVALID, "bad-algo-id", false, "unrecognised effective pow type for consensus checks");
 
-            // unsigned int expected_nBits = GetNextWorkRequiredLWMA(pindexPrev, &block, consensusParams, powType);
-            unsigned int expected_nBits = GetNextWorkRequiredLWMA(pindexPrev, &block, consensusParams, effectivePowType); // Use effectivePowType for difficulty calc
+            unsigned int expected_nBits = GetNextWorkRequiredLWMA(pindexPrev, &block, consensusParams, effectivePowType); 
             bool MismatchFound = (block.nBits != expected_nBits);
 
-            if (effectivePowType == POW_TYPE_SHA256) { // Logging specific to SHA256 path, using effectiveType
-                LogPrintf("ContextualCheckBlockHeader: SHA256 PRE-CHECK (using effectiveType): block.nBits=0x%08x, expected_nBits (from LWMA)=0x%08x. MismatchFound=%s. pindexPrev height %d, PrevPoWType %s\n",
+            if (effectivePowType == POW_TYPE_SHA256) { 
+                const char* prev_pow_type_name_for_log = "null_pprev";
+                if (pindexPrev) {
+                    POW_TYPE prev_raw_pow_type = pindexPrev->GetBlockHeader().GetPoWType();
+                    if (prev_raw_pow_type >= 0 && prev_raw_pow_type < NUM_BLOCK_TYPES) {
+                        if (POW_TYPE_NAMES[prev_raw_pow_type] != nullptr) {
+                            prev_pow_type_name_for_log = POW_TYPE_NAMES[prev_raw_pow_type];
+                        } else {
+                            prev_pow_type_name_for_log = "[PREV_POW_TYPE_NAME_IS_NULL]";
+                        }
+                    } else {
+                        prev_pow_type_name_for_log = "PREV_POW_TYPE_OUT_OF_BOUNDS";
+                    }
+                }
+                LogPrintf("ContextualCheckBlockHeader: SHA256 PRE-CHECK (using effectiveType): block.nBits=0x%08x, expected_nBits (from LWMA)=0x%08x. MismatchFound=%s. pindexPrev height %d, PrevPoWType %s\\n",
                     block.nBits, expected_nBits, MismatchFound ? "true" : "false",
                     pindexPrev ? pindexPrev->nHeight : -1,
-                    pindexPrev ? POW_TYPE_NAMES[pindexPrev->GetBlockHeader().GetPoWType()] : "null_pprev"
+                    prev_pow_type_name_for_log
                 );
                 if (MismatchFound) {
-                    LogPrintf("ContextualCheckBlockHeader: SHA256 MISMATCH CONFIRMED (block.nBits 0x%08x != expected_nBits 0x%08x)\n", block.nBits, expected_nBits);
+                    LogPrintf("ContextualCheckBlockHeader: SHA256 MISMATCH CONFIRMED (block.nBits 0x%08x != expected_nBits 0x%08x)\\n\", block.nBits, expected_nBits);
                 } else {
-                    LogPrintf("ContextualCheckBlockHeader: SHA256 nBits OK (MismatchFound=false). Proceeding with other contextual checks.\n");
+                    LogPrintf("ContextualCheckBlockHeader: SHA256 nBits OK (MismatchFound=false). Proceeding with other contextual checks.\\n\");
                 }
             }
 
             if (MismatchFound) {
-                return state.DoS(100, false, REJECT_INVALID, "bad-diffbits", false, strprintf("incorrect proof of work bits (expected %08x, got %08x) for %s", expected_nBits, block.nBits, POW_TYPE_NAMES[effectivePowType]));
+                // Use the already validated effective_pow_type_name_for_log for the error message
+                // No need to re-evaluate POW_TYPE_NAMES[effectivePowType] as effective_pow_type_name_for_log is derived from it and safe.
+                return state.DoS(100, false, REJECT_INVALID, "bad-diffbits", false, strprintf("incorrect proof of work bits (expected %08x, got %08x) for %s", expected_nBits, block.nBits, effective_pow_type_name_for_log));
             }
         } else {
             // Pre-MinotaurX fork logic (typically Scrypt or simple SHA256 if that was the base)
