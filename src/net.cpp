@@ -2129,7 +2129,8 @@ void Discover(boost::thread_group& threadGroup)
 #ifdef WIN32
     // Get local host IP
     char pszHostName[256] = "";
-    if (gethostname(pszHostName, sizeof(pszHostName)) != SOCKET_ERROR)
+    DWORD dwSize = sizeof(pszHostName);
+    if (GetComputerNameExA(ComputerNameDnsHostname, pszHostName, &dwSize))
     {
         std::vector<CNetAddr> vaddr;
         if (LookupHost(pszHostName, vaddr, 0, true))
