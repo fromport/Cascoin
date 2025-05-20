@@ -66,3 +66,12 @@ Translations
 ------------
 
 Any translation corrections or expansions are welcomed as GitHub pull requests.
+
+
+Links
+------------
+
+🌐 Website: [cascoin.net]
+⛏ Pool: [mining-pool.io]
+💬 Discord: [https://discord.gg/J2NxATBS8z]
+📂 GitHub: [https://github.com/Casraw/Cascoin]
