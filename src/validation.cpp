@@ -3499,22 +3499,19 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationSta
             }
 
             if (MismatchFound) {
-                const char* debug_pow_type_name;
-                // effectivePowType should be valid here due to the check if (effectivePowType >= NUM_BLOCK_TYPES) further up.
-                // However, we add full checks for maximum robustness in this specific path.
-                if (effectivePowType >= 0 && effectivePowType < NUM_BLOCK_TYPES) {
-                    debug_pow_type_name = POW_TYPE_NAMES[effectivePowType];
-                    if (debug_pow_type_name == nullptr) {
-                         debug_pow_type_name = "[Error: POW_TYPE_NAME was null for strprintf]";
-                         // Using LogPrintf here might be risky if tinyformat itself is the issue, but this is a critical error log.
-                         LogPrintf("CRITICAL_ERROR: ContextualCheckBlockHeader: POW_TYPE_NAMES[%d] was unexpectedly null for strprintf debug message.\\n", static_cast<int>(effectivePowType));
+                // Safely get declared PoW type name for error message
+                if (declaredPowType >= 0 && declaredPowType < NUM_BLOCK_TYPES) {
+                    declared_pow_type_name_for_error = POW_TYPE_NAMES[declaredPowType];
+                    if (declared_pow_type_name_for_error == nullptr) {
+                        declared_pow_type_name_for_error = "[Error: Declared POW_TYPE_NAME was null]";
+                        LogPrintf("CRITICAL_ERROR: ContextualCheckBlockHeader: POW_TYPE_NAMES[%d] (declared) was unexpectedly null for 'bad-diffbits' error.\\n", static_cast<int>(declaredPowType));
                     }
                 } else {
-                     // This case indicates an issue with earlier logic if reached, as effectivePowType should have been caught by the NUM_BLOCK_TYPES check.
-                     debug_pow_type_name = "UNKNOWN_POW_TYPE_FOR_DEBUG_MSG";
-                     LogPrintf("WARNING: ContextualCheckBlockHeader: effectivePowType %d was out of bounds when preparing debug message for 'bad-diffbits'.\\n", static_cast<int>(effectivePowType));
+                    declared_pow_type_name_for_error = "DECLARED_TYPE_OUT_OF_BOUNDS_FOR_NAME";
+                    LogPrintf("WARNING: ContextualCheckBlockHeader: declaredPowType %d was out of bounds for 'bad-diffbits' error.\\n", static_cast<int>(declaredPowType));
                 }
-                return state.DoS(100, false, REJECT_INVALID, "bad-diffbits", false, strprintf("incorrect proof of work bits (expected %08x, got %08x) for %s", expected_nBits, block.nBits, debug_pow_type_name));
+                // Cascoin: Debug Log for difficulty mismatch (using the safe name)
+                LogPrintf("ContextualCheckBlockHeader: ERROR: Difficulty mismatch for %s. Expected nBits: %08x, Block nBits: %08x\\n", declared_pow_type_name_for_error, expected_nBits, block.nBits);
             }
         } else {
             // Pre-MinotaurX fork logic (typically Scrypt or simple SHA256 if that was the base)
