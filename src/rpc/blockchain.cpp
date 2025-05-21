@@ -150,10 +150,44 @@ UniValue blockheaderToJSON(const CBlockIndex* blockindex)
     result.push_back(Pair("mediantime", (int64_t)blockindex->GetMedianTimePast()));
     result.push_back(Pair("nonce", (uint64_t)blockindex->nNonce));
     result.push_back(Pair("bits", strprintf("%08x", blockindex->nBits)));
-    result.push_back(Pair("difficulty", GetDifficulty(blockindex)));
-    if (IsMinotaurXEnabled(blockindex, consensusParams))
-        result.push_back(Pair("minotaurxdifficulty", GetDifficulty(blockindex, false, POW_TYPE_MINOTAURX)));    // Cascoin: MinotaurX+Hive1.2
-    result.push_back(Pair("hivedifficulty", GetDifficulty(blockindex, true)));  // Cascoin: Hive
+
+    // Cascoin: Calculate main difficulty directly from this block's nBits
+    // if it's an effective PoW type that uses standard nBits to difficulty conversion.
+    // This avoids GetDifficulty() searching for an older "pure" SHA256 block.
+    double mainDifficultyValue = 1.0; // Default if something goes wrong or type is unexpected for this calc
+    if (!isHive) {
+        POW_TYPE effectivePoWType = blockindex->GetBlockHeader().GetEffectivePoWTypeForHashing(consensusParams);
+        // Assume SHA256 and MinotaurX use the same nBits to difficulty calculation logic.
+        // Other PoW types might need different base targets if they were ever the "default".
+        // For current Cascoin, effective types are SHA256, MinotaurX, or Scrypt (pre-fork).
+        // The generic "difficulty" field is typically understood as SHA256d's difficulty scale.
+        if (effectivePoWType == POW_TYPE_SHA256 || effectivePoWType == POW_TYPE_MINOTAURX || (blockindex->nTime <= consensusParams.powForkTime && effectivePoWType == POW_TYPE_SCRYPT)) {
+            int nShift = (blockindex->nBits >> 24) & 0xff;
+            if ((blockindex->nBits & 0x00ffffff) == 0) { // Avoid division by zero if mantissa is zero
+                 mainDifficultyValue = std::numeric_limits<double>::infinity(); // Or some other representation of max difficulty
+            } else {
+                 mainDifficultyValue = (double)0x0000ffff / (double)(blockindex->nBits & 0x00ffffff);
+            }
+            // Adjust based on the exponent, relative to a common reference exponent (like 29 for 0x1d00ffff)
+            // The original GetDifficulty uses 29 as the reference.
+            // Standard nBits for difficulty 1 (0x1d00ffff) has exponent 0x1d (29).
+            // Iterate nShift towards 29.
+            while (nShift < 29) { mainDifficultyValue *= 256.0; nShift++; }
+            while (nShift > 29) { mainDifficultyValue /= 256.0; nShift--; }
+        } else {
+            // Fallback for any other PoW type or if logic above isn't comprehensive enough
+            // This will use the old GetDifficulty behavior which might search backwards.
+            mainDifficultyValue = GetDifficulty(blockindex);
+        }
+    } else {
+         mainDifficultyValue = GetDifficulty(blockindex, true); // For Hive blocks, get Hive difficulty for the main "difficulty" field
+    }
+    result.push_back(Pair("difficulty", mainDifficultyValue));
+
+    if (!isHive && IsMinotaurXEnabled(blockindex, consensusParams)) // Only show minotaurxdifficulty if relevant
+        result.push_back(Pair("minotaurxdifficulty", GetDifficulty(blockindex, false, POW_TYPE_MINOTAURX)));
+    if (IsHiveEnabled(blockindex, consensusParams)) // Only show hivedifficulty if Hive is generally enabled up to this block
+        result.push_back(Pair("hivedifficulty", GetDifficulty(blockindex, true)));
     result.push_back(Pair("chainwork", blockindex->nChainWork.GetHex()));
 
     if (blockindex->pprev)
@@ -205,11 +239,33 @@ UniValue blockToJSON(const CBlock& block, const CBlockIndex* blockindex, bool tx
     result.push_back(Pair("mediantime", (int64_t)blockindex->GetMedianTimePast()));
     result.push_back(Pair("nonce", (uint64_t)block.nNonce));
     result.push_back(Pair("bits", strprintf("%08x", block.nBits)));
-    result.push_back(Pair("difficulty", GetDifficulty(blockindex)));
-    if (IsMinotaurXEnabled(blockindex, consensusParams)) {
-        result.push_back(Pair("minotaurxdifficulty", GetDifficulty(blockindex, false, POW_TYPE_MINOTAURX)));    // Cascoin: MinotaurX+Hive1.2
+
+    // Cascoin: Calculate main difficulty directly from this block's nBits
+    double mainDifficultyValue = 1.0; // Default
+    if (!isHive) {
+        POW_TYPE effectivePoWType = blockindex->GetBlockHeader().GetEffectivePoWTypeForHashing(consensusParams);
+        if (effectivePoWType == POW_TYPE_SHA256 || effectivePoWType == POW_TYPE_MINOTAURX || (blockindex->nTime <= consensusParams.powForkTime && effectivePoWType == POW_TYPE_SCRYPT)) {
+            int nShift = (blockindex->nBits >> 24) & 0xff;
+            if ((blockindex->nBits & 0x00ffffff) == 0) {
+                 mainDifficultyValue = std::numeric_limits<double>::infinity();
+            } else {
+                 mainDifficultyValue = (double)0x0000ffff / (double)(blockindex->nBits & 0x00ffffff);
+            }
+            while (nShift < 29) { mainDifficultyValue *= 256.0; nShift++; }
+            while (nShift > 29) { mainDifficultyValue /= 256.0; nShift--; }
+        } else {
+            mainDifficultyValue = GetDifficulty(blockindex);
+        }
+    } else {
+        mainDifficultyValue = GetDifficulty(blockindex, true);
     }
-    result.push_back(Pair("hivedifficulty", GetDifficulty(blockindex, true)));  // Cascoin: Hive
+    result.push_back(Pair("difficulty", mainDifficultyValue));
+
+    if (!isHive && IsMinotaurXEnabled(blockindex, consensusParams)) {
+        result.push_back(Pair("minotaurxdifficulty", GetDifficulty(blockindex, false, POW_TYPE_MINOTAURX)));
+    }
+    if (IsHiveEnabled(blockindex, consensusParams))
+        result.push_back(Pair("hivedifficulty", GetDifficulty(blockindex, true)));
     result.push_back(Pair("chainwork", blockindex->nChainWork.GetHex()));
 
     if (blockindex->pprev)
