@@ -68,30 +68,36 @@ unsigned int GetNextWorkRequiredLWMA(const CBlockIndex* pindexLast, const CBlock
     while (blocksFound < N) {
         // Reached forkpoint before finding N blocks of correct powtype? Return min
         if (!blockPreviousTimestamp) {
-            if (verbose) LogPrintf("* GetNextWorkRequiredLWMA: Allowing %s pow limit (reached end of chain)\\n", POW_TYPE_NAMES[powType]);
+            if (verbose) LogPrintf("* GetNextWorkRequiredLWMA: Allowing %s pow limit (reached end of chain)\n", POW_TYPE_NAMES[powType]);
             // Cascoin: Added detailed SHA256 logging
             if (powType == POW_TYPE_SHA256) {
-                LogPrintf("GetNextWorkRequiredLWMA: SHA256 - Path: Reached end of chain (null blockPreviousTimestamp). Returning powLimit 0x%08x\\n", powLimit.GetCompact());
+                LogPrintf("GetNextWorkRequiredLWMA: SHA256 - Path: Reached end of chain (null blockPreviousTimestamp). Returning powLimit 0x%08x\n", powLimit.GetCompact());
             }
             return powLimit.GetCompact();
         }
 
-        if (blockPreviousTimestamp->GetBlockHeader().nVersion >= 0x20000000) {
-            if (verbose) LogPrintf("* GetNextWorkRequiredLWMA: Allowing %s pow limit (previousTime calc reached forkpoint at height %i)\\n", POW_TYPE_NAMES[powType], blockPreviousTimestamp->nHeight);
-            // Cascoin: Added detailed SHA256 logging
-            if (powType == POW_TYPE_SHA256) {
-                LogPrintf("GetNextWorkRequiredLWMA: SHA256 - Path: Old version block encountered (height %d). Returning powLimit 0x%08x\\n", blockPreviousTimestamp->nHeight, powLimit.GetCompact());
-            }
-            return powLimit.GetCompact();
-        }
+        // Cascoin: MinotaurX+Hive1.2: Check for old version blocks only relevant if MinotaurX is NOT enabled.
+        // If MinotaurX is enabled, GetEffectivePoWTypeForHashing handles versioning.
+        // The original check here was: if (blockPreviousTimestamp->GetBlockHeader().nVersion >= 0x20000000)
+        // This would incorrectly return powLimit if MinotaurX was active and a block had a high nVersion
+        // (e.g. a BIP9-style SHA256 block, which GetEffectivePoWTypeForHashing would correctly identify).
+        // We should rely on IsMinotaurXEnabled and GetEffectivePoWTypeForHashing for type determination
+        // when MinotaurX is active.
+        // For pre-MinotaurX, the old version check might have been intended to stop at a "fork point"
+        // to a new versioning scheme, but LWMA is only for post-MinotaurX.
+        // Thus, the nVersion >= 0x20000000 check as a general stop condition here is problematic.
+        // The primary concern is ensuring we are using the correct PoW type logic.
+        // GetEffectivePoWTypeForHashing already considers powForkTime.
 
         // Wrong block type? Skip
-        if (blockPreviousTimestamp->GetBlockHeader().IsHiveMined(params) || blockPreviousTimestamp->GetBlockHeader().GetPoWType() != powType) {
+        // Use GetEffectivePoWTypeForHashing to determine the block's type for LWMA purposes.
+        POW_TYPE effectivePrevBlockType = blockPreviousTimestamp->GetBlockHeader().GetEffectivePoWTypeForHashing(params);
+        if (blockPreviousTimestamp->GetBlockHeader().IsHiveMined(params) || effectivePrevBlockType != powType) {
             if (!blockPreviousTimestamp->pprev) {
-                if (verbose) LogPrintf("* GetNextWorkRequiredLWMA: Allowing %s pow limit (reached end of chain while skipping blocks)\\n", POW_TYPE_NAMES[powType]);
+                if (verbose) LogPrintf("* GetNextWorkRequiredLWMA: Allowing %s pow limit (reached end of chain while skipping blocks)\n", POW_TYPE_NAMES[powType]);
                 // Cascoin: Added detailed SHA256 logging
                 if (powType == POW_TYPE_SHA256) {
-                    LogPrintf("GetNextWorkRequiredLWMA: SHA256 - Path: Reached end of chain while skipping unwanted blocks. Returning powLimit 0x%08x\\n", powLimit.GetCompact());
+                    LogPrintf("GetNextWorkRequiredLWMA: SHA256 - Path: Reached end of chain while skipping unwanted blocks (effective type %d vs wanted %d). Returning powLimit 0x%08x\n", static_cast<int>(effectivePrevBlockType), static_cast<int>(powType), powLimit.GetCompact());
                 }
                 return powLimit.GetCompact();
             }
@@ -106,10 +112,10 @@ unsigned int GetNextWorkRequiredLWMA(const CBlockIndex* pindexLast, const CBlock
             break;
 
         if (!blockPreviousTimestamp->pprev) {
-            if (verbose) LogPrintf("* GetNextWorkRequiredLWMA: Allowing %s pow limit (reached end of chain while collecting blocks)\\n", POW_TYPE_NAMES[powType]);
+            if (verbose) LogPrintf("* GetNextWorkRequiredLWMA: Allowing %s pow limit (reached end of chain while collecting blocks)\n", POW_TYPE_NAMES[powType]);
             // Cascoin: Added detailed SHA256 logging
              if (powType == POW_TYPE_SHA256) {
-                LogPrintf("GetNextWorkRequiredLWMA: SHA256 - Path: Reached end of chain (no pprev) while collecting blocks (found %lld). Returning powLimit 0x%08x\\n", (long long)blocksFound, powLimit.GetCompact());
+                LogPrintf("GetNextWorkRequiredLWMA: SHA256 - Path: Reached end of chain (no pprev) while collecting blocks (found %lld). Returning powLimit 0x%08x\n", (long long)blocksFound, powLimit.GetCompact());
             }
             return powLimit.GetCompact();
         }
@@ -118,10 +124,10 @@ unsigned int GetNextWorkRequiredLWMA(const CBlockIndex* pindexLast, const CBlock
 
     // Cascoin: Explicitly handle if no blocks of the specified powType were found
     if (blocksFound == 0) {
-        if (verbose) LogPrintf("* GetNextWorkRequiredLWMA: Allowing %s pow limit (no blocks of type %s found in LWMA window)\\n", POW_TYPE_NAMES[powType], POW_TYPE_NAMES[powType]);
+        if (verbose) LogPrintf("* GetNextWorkRequiredLWMA: Allowing %s pow limit (no blocks of type %s found in LWMA window)\n", POW_TYPE_NAMES[powType], POW_TYPE_NAMES[powType]);
         // Cascoin: Added detailed SHA256 logging
         if (powType == POW_TYPE_SHA256) {
-            LogPrintf("GetNextWorkRequiredLWMA: SHA256 - Path: No blocks of type found (blocksFound == 0). Returning powLimit 0x%08x\\n", powLimit.GetCompact());
+            LogPrintf("GetNextWorkRequiredLWMA: SHA256 - Path: No blocks of type found (blocksFound == 0). Returning powLimit 0x%08x\n", powLimit.GetCompact());
         }
         return powLimit.GetCompact();
     }
@@ -157,17 +163,17 @@ unsigned int GetNextWorkRequiredLWMA(const CBlockIndex* pindexLast, const CBlock
 
     // Also check if nextTarget is 0 (infinitely difficult)
     if (nextTarget > powLimit || nextTarget == 0) { 
-        if (verbose) LogPrintf("* GetNextWorkRequiredLWMA: Allowing %s pow limit (target %s calculated higher than limit, or zero)\\n", POW_TYPE_NAMES[powType], nextTarget.ToString().c_str());
+        if (verbose) LogPrintf("* GetNextWorkRequiredLWMA: Allowing %s pow limit (target %s calculated higher than limit, or zero)\n", POW_TYPE_NAMES[powType], nextTarget.ToString().c_str());
         // Cascoin: Added detailed SHA256 logging
         if (powType == POW_TYPE_SHA256) {
-            LogPrintf("GetNextWorkRequiredLWMA: SHA256 - Path: Calculated nextTarget (%s) is > powLimit (%s) or zero. Returning powLimit 0x%08x\\n", nextTarget.ToString().c_str(), powLimit.ToString().c_str(), powLimit.GetCompact());
+            LogPrintf("GetNextWorkRequiredLWMA: SHA256 - Path: Calculated nextTarget (%s) is > powLimit (%s) or zero. Returning powLimit 0x%08x\n", nextTarget.ToString().c_str(), powLimit.ToString().c_str(), powLimit.GetCompact());
         }
         return powLimit.GetCompact();
     }
 
     // Cascoin: Added detailed SHA256 logging
     if (powType == POW_TYPE_SHA256) {
-        LogPrintf("GetNextWorkRequiredLWMA: SHA256 - Path: Successful calculation. Returning nextTarget 0x%08x (Actual: %s)\\n", nextTarget.GetCompact(), nextTarget.ToString().c_str());
+        LogPrintf("GetNextWorkRequiredLWMA: SHA256 - Path: Successful calculation. Returning nextTarget 0x%08x (Actual: %s)\n", nextTarget.GetCompact(), nextTarget.ToString().c_str());
     }
     return nextTarget.GetCompact();
 }
