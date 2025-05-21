@@ -307,7 +307,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         if (!foundPrevShaBlock) {
             LogPrintf("CreateNewBlock: About to TestBlockValidity for a new SHA256 block. No prior SHA256 blocks found. pindexPrev height %d, type %s. Block nBits: %08x, Expected PoW limit for SHA256: %08x\n",
                 pindexPrev->nHeight,
-                POW_TYPE_NAMES[pindexPrev->GetBlockHeader().GetPoWType()],
+                pindexPrev->GetBlockHeader().GetPoWTypeName(),
                 pblock->nBits,
                 UintToArith256(chainparams.GetConsensus().powTypeLimits[POW_TYPE_SHA256]).GetCompact()
             );

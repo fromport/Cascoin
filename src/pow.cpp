@@ -433,7 +433,7 @@ unsigned int GetNextHive12WorkRequired(const CBlockIndex* pindexLast, const Cons
     }
 
     // Handle bootstrapping of the Hive system with insufficient history
-    if (hiveBlockCount < params.hiveDifficultyWindow) {
+    if (hiveBlockCount < 24) {
         // Always return the easiest difficulty during blockchain startup
         // This helps bootstrap the Hive mining system
         LogPrintf("GetNextHive12WorkRequired: Insufficient hive blocks - using easiest target for bootstrapping.\n");
