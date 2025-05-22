@@ -12,6 +12,11 @@
 #include <thread>
 #include <mutex>
 
+// Attempt to mitigate issues with DEBUG_LOCKORDER, possibly related to thread_local support
+#ifdef DEBUG_LOCKORDER
+#undef DEBUG_LOCKORDER
+#warning "DEBUG_LOCKORDER was forcibly undefined in sync.h due to potential issues. Investigate thread_local support in build environment."
+#endif
 
 ////////////////////////////////////////////////
 //                                            //
