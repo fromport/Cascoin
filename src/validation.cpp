@@ -3589,9 +3589,19 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
         nLockTimeFlags |= LOCKTIME_MEDIAN_TIME_PAST;
     }
 
-    int64_t nLockTimeCutoff = (nLockTimeFlags & LOCKTIME_MEDIAN_TIME_PAST)
-                              ? pindexPrev->GetMedianTimePast()
-                              : block.GetBlockTime();
+    int64_t nLockTimeCutoff;
+    if (nLockTimeFlags & LOCKTIME_MEDIAN_TIME_PAST) {
+        if (pindexPrev) {
+            nLockTimeCutoff = pindexPrev->GetMedianTimePast();
+        } else {
+            // For the genesis block (where pindexPrev is null),
+            // MTP of a non-existent previous block isn't well-defined.
+            // Fall back to the block's own time. IsFinalTx will use nHeight = 0 for genesis.
+            nLockTimeCutoff = block.GetBlockTime();
+        }
+    } else {
+        nLockTimeCutoff = block.GetBlockTime();
+    }
 
     // Check that all transactions are finalized
     for (const auto& tx : block.vtx) {
