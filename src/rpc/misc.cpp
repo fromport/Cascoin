@@ -303,7 +303,7 @@ UniValue createmultisig(const JSONRPCRequest& request)
                 pubkeys.push_back(AddrToPubKey(pwallet, keys[i].get_str()));
             } else
 #endif
-            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, strprintf("Invalid public key: %s\nNote that from v0.16, createmultisig no longer accepts addresses."
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, strprintf("Invalid public key: %s\nNote that from v2.0.2, createmultisig no longer accepts addresses."
             " Clients must transition to using addmultisigaddress to create multisig addresses with addresses known to the wallet before upgrading to v0.17."
             " To use the deprecated functionality, start cascoind with -deprecatedrpc=createmultisig", keys[i].get_str()));
         }
