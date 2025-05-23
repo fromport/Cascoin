@@ -834,7 +834,7 @@ bool BusyBees(const Consensus::Params& consensusParams, int height) {
     // Find beeHashTarget
     arith_uint256 beeHashTarget;
     beeHashTarget.SetCompact(GetNextHiveWorkRequired(pindexPrev, consensusParams));
-    if (verbose) LogPrintf("BusyBees: beeHashTarget             = %s\n", beeHashTarget.ToString());
+    LogPrintf("BusyBees: beeHashTarget for current attempt = %s\n", beeHashTarget.ToString());
 
     // Find bin size
     std::vector<CBeeCreationTransactionInfo> potentialBcts;
