@@ -140,7 +140,7 @@ public:
         consensus.communityContribFactor = 10;              // Optionally, donate bct_value/maxCommunityContribFactor to community fund
         consensus.beeGestationBlocks = 48*24;               // The number of blocks for a new bee to mature
         consensus.beeLifespanBlocks = 48*24*14;             // The number of blocks a bee lives for after maturation
-        consensus.powLimitHive = uint256S("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");  // Highest (easiest) bee hash target
+        consensus.powLimitHive = uint256S("000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");  // Highest (easiest) bee hash target, aligned with MinotaurX easiest
         consensus.minHiveCheckBlock = 0;              // Allow checking for Hive blocks from the start (was 1537566)
         consensus.hiveTargetAdjustAggression = 30;          // Snap speed for bee hash target adjustment EMA
         consensus.hiveBlockSpacingTarget = 2;               // Target Hive block frequency (1 out of this many blocks should be Hivemined)
@@ -301,7 +301,7 @@ public:
         consensus.communityContribFactor = 10;              // Optionally, donate bct_value/maxCommunityContribFactor to community fund
         consensus.beeGestationBlocks = 40;                  // The number of blocks for a new bee to mature
         consensus.beeLifespanBlocks = 48*24*14;             // The number of blocks a bee lives for after maturation
-        consensus.powLimitHive = uint256S("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");  // Highest (easiest) bee hash target
+        consensus.powLimitHive = uint256S("000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");  // Highest (easiest) bee hash target, aligned with MinotaurX easiest
         consensus.minHiveCheckBlock = 50;                   // Don't bother checking below this height for Hive blocks (not used for consensus/validation checks, just efficiency when looking for potential BCTs)
         consensus.hiveTargetAdjustAggression = 30;          // Snap speed for bee hash target adjustment EMA
         consensus.hiveBlockSpacingTarget = 2;               // Target Hive block frequency (1 out of this many blocks should be Hivemined)
@@ -424,7 +424,7 @@ public:
         consensus.totalMoneySupplyHeight = 6215968;         // Height at which TMS is reached, do not issue rewards past this point (Note, not accurate value for testnet)
         consensus.hiveNonceMarker = 192;                    // Nonce marker for hivemined blocks
         // Cascoin: Add powLimitHive for regtest, matching the other networks for consistency during bootstrap
-        consensus.powLimitHive = uint256S("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+        consensus.powLimitHive = uint256S("000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"); // Aligned with MinotaurX easiest
 
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x00");
