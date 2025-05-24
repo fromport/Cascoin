@@ -34,7 +34,7 @@
 
 #include <iostream>
 
-#include <QtGui/QAction> // Changed from <QAction>
+#include <QAction> // Changed from <QAction>
 #include <QApplication>
 #include <QDateTime>
 #include <QDragEnterEvent>
