@@ -28,7 +28,7 @@
 #endif
 
 #include <QScreen> // Added for QScreen
-#include <QtGui/QAction> // Added for QAction
+#include <QAction> // Added for QAction
 #include <QKeyEvent>
 #include <QMenu>
 #include <QMessageBox>

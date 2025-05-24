@@ -52,6 +52,10 @@
 #include <QMouseEvent>
 #include <QRegularExpression>
 #include <QRegularExpressionMatch>
+#include <QRect>        // Added for QRect
+#include <QStringList>  // Added for QStringList
+#include <vector>       // Added for std::vector
+#include <string>       // Added for std::string
 
 #if QT_VERSION < 0x050000
 #include <QUrl>
@@ -1021,6 +1025,41 @@ void ClickableLabel::mouseReleaseEvent(QMouseEvent *event)
 void ClickableProgressBar::mouseReleaseEvent(QMouseEvent *event)
 {
     Q_EMIT clicked(event->pos().toPoint());
+}
+
+bool parsePhysicalGeometry(const std::string& str, QRect& rect)
+{
+    QString qstr = QString::fromStdString(str);
+    // This is a simplified parser for "x,y,w,h" or similar, common in debug outputs.
+    // Qt's own QByteArray-based geometry saving/restoring is more complex and not handled here.
+    // This function is primarily for making sense of stringified geometry for logging or simple cases.
+    QStringList parts = qstr.split(QRegExp("[\\s,x]+")); // Split by space, comma, or 'x'
+    if (parts.size() == 4) {
+        bool ok1, ok2, ok3, ok4;
+        int x = parts[0].toInt(&ok1);
+        int y = parts[1].toInt(&ok2);
+        int w = parts[2].toInt(&ok3);
+        int h = parts[3].toInt(&ok4);
+        if (ok1 && ok2 && ok3 && ok4) {
+            rect.setRect(x, y, w, h);
+            return true;
+        }
+    }
+    // Attempt to parse a more direct QDebug-like format, e.g., "QRect(x,y wxh)"
+    QRegularExpression qrect_re("QRect\\((\\d+),(\\d+) (\\d+)x(\\d+)\\)");
+    QRegularExpressionMatch match = qrect_re.match(qstr);
+    if (match.hasMatch()) {
+        bool ok1, ok2, ok3, ok4;
+        int x = match.captured(1).toInt(&ok1);
+        int y = match.captured(2).toInt(&ok2);
+        int w = match.captured(3).toInt(&ok3);
+        int h = match.captured(4).toInt(&ok4);
+        if (ok1 && ok2 && ok3 && ok4) {
+            rect.setRect(x, y, w, h);
+            return true;
+        }
+    }
+    return false; 
 }
 
 } // namespace GUIUtil

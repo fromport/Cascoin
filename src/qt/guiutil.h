@@ -203,6 +203,8 @@ namespace GUIUtil
 
     qreal calculateIdealFontSize(int width, const QString& text, QFont font, qreal minPointSize = 4, qreal startPointSize = 14);
 
+    bool parsePhysicalGeometry(const std::string& str, QRect& rect);
+
     class ClickableLabel : public QLabel
     {
         Q_OBJECT

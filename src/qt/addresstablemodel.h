@@ -7,6 +7,7 @@
 
 #include <QAbstractTableModel>
 #include <QStringList>
+#include <QtGlobal> // Added QtGlobal
 
 enum OutputType : int;
 

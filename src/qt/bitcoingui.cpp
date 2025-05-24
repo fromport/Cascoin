@@ -145,14 +145,16 @@ BitcoinGUI::BitcoinGUI(const PlatformStyle *_platformStyle, const NetworkStyle *
         if (screen) {
             // Set a default size before moving, in case the current size is also invalid
             // Using a common default like 1200x700 as a fallback.
-            // DEFAULT_WINDOW_GEOMETRY could be used if defined and valid.
             // For now, let's assume a fixed default if restore failed completely.
             QRect default_geom(0, 0, 1200, 700);
-             if (defined(DEFAULT_WINDOW_GEOMETRY) && DEFAULT_WINDOW_GEOMETRY.isValid()) {
-                setGeometry(DEFAULT_WINDOW_GEOMETRY);
-            } else {
-                setGeometry(default_geom);
-            }
+            // The following block was removed as DEFAULT_WINDOW_GEOMETRY is not standard
+            // and its usage with defined() was incorrect.
+            // if (defined(DEFAULT_WINDOW_GEOMETRY) && DEFAULT_WINDOW_GEOMETRY.isValid()) {
+            //    setGeometry(DEFAULT_WINDOW_GEOMETRY);
+            // } else {
+            //    setGeometry(default_geom);
+            // }
+            setGeometry(default_geom); // Set to hardcoded default
             move(screen->availableGeometry().center() - frameGeometry().center());
         }
     } else {
