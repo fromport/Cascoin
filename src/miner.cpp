@@ -968,7 +968,7 @@ bool BusyBees(const Consensus::Params& consensusParams, int height) {
         LogPrintf("BusyBees: No bee meets hash target (%i bees checked with %i threads in %ims)\n", totalBees, threadCount, checkTime);
         return false;
     }
-    LogPrintf("BusyBees: Bee meets hash target (check aborted after %ims). Solution with bee #%i from BCT %s. Honey address is %s.\n", checkTime, solvingBee, solvingRange.txid, solvingRange.honeyAddress);
+    LogPrintf("BusyBees: Bee meets hash target (check aborted after %ims). Solution with bee #%i from BCT %s. Honey address is %s.\\n", checkTime, solvingBee, solvingRange.txid, solvingRange.honeyAddress);
 
     // Assemble the Hive proof script
     std::vector<unsigned char> messageProofVec;
@@ -978,24 +978,47 @@ bool BusyBees(const Consensus::Params& consensusParams, int height) {
     {   // Don't lock longer than needed
         LOCK2(cs_main, pwallet->cs_wallet);
 
+        uint256 initialTipHashAtStartOfBusyBees = pindexPrev->GetBlockHash(); // pindexPrev is from the start of BusyBees
+        uint256 currentActiveTipHash = chainActive.Tip() ? chainActive.Tip()->GetBlockHash() : uint256();
+        uint256 currentPcoinsTipHash = pcoinsTip ? pcoinsTip->GetBestBlock() : uint256();
+
         // Re-verify BCT before using it
         CTransactionRef txBCT;
-        uint256 hashBlockBCT;
-        // Ensure mapBlockIndex access is safe if hashBlockBCT is null or not found
-        if (!GetTransaction(uint256S(solvingRange.txid), txBCT, consensusParams, hashBlockBCT, true) || 
-            hashBlockBCT.IsNull() || 
-            mapBlockIndex.find(hashBlockBCT) == mapBlockIndex.end() || 
-            !chainActive.Contains(mapBlockIndex[hashBlockBCT])) {
-            LogPrintf("BusyBees: BCT %s for winning bee is no longer in the active chain (reorg?). Aborting.\n", solvingRange.txid);
+        uint256 hashBlockBCT; // Block containing the BCT
+
+        if (!GetTransaction(uint256S(solvingRange.txid), txBCT, consensusParams, hashBlockBCT, true)) {
+            LogPrintf("BusyBees: BCT %s for winning bee: GetTransaction failed. Aborting. StartTip: %s, ActiveTip: %s, UTXOTip: %s\\n",
+                solvingRange.txid, initialTipHashAtStartOfBusyBees.ToString(), currentActiveTipHash.ToString(), currentPcoinsTipHash.ToString());
             return false;
         }
+
+        if (hashBlockBCT.IsNull() || mapBlockIndex.find(hashBlockBCT) == mapBlockIndex.end() || !chainActive.Contains(mapBlockIndex[hashBlockBCT])) {
+            LogPrintf("BusyBees: BCT %s (expected in block %s) for winning bee is no longer in the active chain (reorg?). Aborting. StartTip: %s, ActiveTip: %s, UTXOTip: %s\\n",
+                solvingRange.txid, hashBlockBCT.ToString(), initialTipHashAtStartOfBusyBees.ToString(), currentActiveTipHash.ToString(), currentPcoinsTipHash.ToString());
+            return false;
+        }
+
         COutPoint outBCTForCheck(uint256S(solvingRange.txid), 0);
         Coin coinBCTForCheck;
-        if (!pcoinsTip || !pcoinsTip->GetCoin(outBCTForCheck, coinBCTForCheck)) {
-            LogPrintf("BusyBees: BCT %s for winning bee is no longer in UTXO set (spent or reorg?). Aborting.\n", solvingRange.txid);
+
+        if (!pcoinsTip) {
+             LogPrintf("BusyBees: pcoinsTip is NULL when checking BCT %s. Aborting. StartTip: %s, ActiveTip: %s\\n",
+                solvingRange.txid, initialTipHashAtStartOfBusyBees.ToString(), currentActiveTipHash.ToString());
             return false;
         }
-        // BCT seems to still be valid, proceed.
+
+        if (!pcoinsTip->GetCoin(outBCTForCheck, coinBCTForCheck)) {
+            LogPrintf("BusyBees: BCT %s (in block %s, which IS in active chain) for winning bee is no longer in UTXO set (spent or reorg?). Aborting. StartTip: %s, ActiveTip: %s, UTXOTip: %s\\n",
+                solvingRange.txid, hashBlockBCT.ToString(), initialTipHashAtStartOfBusyBees.ToString(), currentActiveTipHash.ToString(), currentPcoinsTipHash.ToString());
+            // Further diagnostic if UTXO tip and active chain tip seem to differ
+            if (currentActiveTipHash != currentPcoinsTipHash) {
+                LogPrintf("BusyBees: DIAGNOSTIC: Active chain tip (%s) and UTXO set tip (%s) MISMATCH for BCT %s!\\n",
+                    currentActiveTipHash.ToString(), currentPcoinsTipHash.ToString(), solvingRange.txid);
+            }
+            return false;
+        }
+        // BCT seems to still be valid, use its details
+        bctHeight = coinBCTForCheck.nHeight;
 
         CTxDestination dest = DecodeDestination(solvingRange.honeyAddress);
         if (!IsValidDestination(dest)) {
@@ -1023,14 +1046,6 @@ bool BusyBees(const Consensus::Params& consensusParams, int height) {
             return false;
         }
         if (verbose) LogPrintf("BusyBees: messageSig                = %s\n", HexStr(&messageProofVec[0], &messageProofVec[messageProofVec.size()]));
-
-        COutPoint out(uint256S(solvingRange.txid), 0);
-        Coin coin;
-        if (!pcoinsTip || !pcoinsTip->GetCoin(out, coin)) {
-            LogPrintf("BusyBees: Couldn't get the bct utxo!\n");
-            return false;
-        }
-        bctHeight = coin.nHeight;
     }
 
     unsigned char beeNonceEncoded[4];
