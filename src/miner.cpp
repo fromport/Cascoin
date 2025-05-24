@@ -978,6 +978,21 @@ bool BusyBees(const Consensus::Params& consensusParams, int height) {
     {   // Don't lock longer than needed
         LOCK2(cs_main, pwallet->cs_wallet);
 
+        // Re-verify BCT before using it
+        CTransactionRef txBCT;
+        uint256 hashBlockBCT;
+        if (!GetTransaction(uint256S(solvingRange.txid), txBCT, consensusParams, hashBlockBCT, true) || !chainActive.Contains(mapBlockIndex[hashBlockBCT])) {
+            LogPrintf("BusyBees: BCT %s for winning bee is no longer in the active chain (reorg?). Aborting.\n", solvingRange.txid);
+            return false;
+        }
+        COutPoint outBCTForCheck(uint256S(solvingRange.txid), 0);
+        Coin coinBCTForCheck;
+        if (!pcoinsTip || !pcoinsTip->GetCoin(outBCTForCheck, coinBCTForCheck)) {
+            LogPrintf("BusyBees: BCT %s for winning bee is no longer in UTXO set (spent or reorg?). Aborting.\n", solvingRange.txid);
+            return false;
+        }
+        // BCT seems to still be valid, proceed.
+
         CTxDestination dest = DecodeDestination(solvingRange.honeyAddress);
         if (!IsValidDestination(dest)) {
             LogPrintf("BusyBees: Honey destination invalid\n");
