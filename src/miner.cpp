@@ -981,7 +981,11 @@ bool BusyBees(const Consensus::Params& consensusParams, int height) {
         // Re-verify BCT before using it
         CTransactionRef txBCT;
         uint256 hashBlockBCT;
-        if (!GetTransaction(uint256S(solvingRange.txid), txBCT, consensusParams, hashBlockBCT, true) || !chainActive.Contains(mapBlockIndex[hashBlockBCT])) {
+        // Ensure mapBlockIndex access is safe if hashBlockBCT is null or not found
+        if (!GetTransaction(uint256S(solvingRange.txid), txBCT, consensusParams, hashBlockBCT, true) || 
+            hashBlockBCT.IsNull() || 
+            mapBlockIndex.find(hashBlockBCT) == mapBlockIndex.end() || 
+            !chainActive.Contains(mapBlockIndex[hashBlockBCT])) {
             LogPrintf("BusyBees: BCT %s for winning bee is no longer in the active chain (reorg?). Aborting.\n", solvingRange.txid);
             return false;
         }
