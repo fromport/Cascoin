@@ -16,7 +16,7 @@
 #include <qt/guiutil.h>
 #include <qt/platformstyle.h>
 
-#include <QtGui/QAction> // Added for QAction
+#include <QAction> // Added for QAction
 #include <QIcon>
 #include <QMenu>
 #include <QMessageBox>
