@@ -688,7 +688,10 @@ void CheckBin(int threadID, std::vector<CBeeRange> bin, std::string deterministi
     int checkCount = 0;
     for (std::vector<CBeeRange>::const_iterator it = bin.begin(); it != bin.end(); it++) {
         CBeeRange beeRange = *it;
-        if (LogAcceptCategory(BCLog::DEBUG)) LogPrint(BCLog::HIVE, "THREAD #%i: Checking %i-%i in %s\n", threadID, beeRange.offset, beeRange.offset + beeRange.count - 1, beeRange.txid.ToString());
+        if (LogAcceptCategory(BCLog::DEBUG)) {
+            std::string txidStr = beeRange.txid.ToString();
+            LogPrint(BCLog::HIVE, "THREAD #%i: Checking %i-%i in %s\n", threadID, beeRange.offset, beeRange.offset + beeRange.count - 1, txidStr);
+        }
         // Iterate over bees in this range
         for (int i = beeRange.offset; i < beeRange.offset + beeRange.count; i++) {
             // Check abort conditions (Only every N bees. The atomic load is expensive, but much cheaper than a mutex - esp on Windows, see https://www.arangodb.com/2015/02/comparing-atomic-mutex-rwlocks/)
@@ -727,7 +730,10 @@ void CheckBinMinotaur(int threadID, std::vector<CBeeRange> bin, std::string dete
     int checkCount = 0;
     for (std::vector<CBeeRange>::const_iterator it = bin.begin(); it != bin.end(); it++) {
         CBeeRange beeRange = *it;
-        if (LogAcceptCategory(BCLog::DEBUG)) LogPrint(BCLog::MINOTAURX, "THREAD #%i: Checking %i-%i in %s\n", threadID, beeRange.offset, beeRange.offset + beeRange.count - 1, beeRange.txid.ToString());
+        if (LogAcceptCategory(BCLog::DEBUG)) {
+            std::string txidStr = beeRange.txid.ToString();
+            LogPrint(BCLog::MINOTAURX, "THREAD #%i: Checking %i-%i in %s\n", threadID, beeRange.offset, beeRange.offset + beeRange.count - 1, txidStr);
+        }
         // Iterate over bees in this range
         for (int i = beeRange.offset; i < beeRange.offset + beeRange.count; i++) {
             // Check abort conditions (Only every N bees. The atomic load is expensive, but much cheaper than a mutex - esp on Windows, see https://www.arangodb.com/2015/02/comparing-atomic-mutex-rwlocks/)
@@ -916,7 +922,8 @@ bool BusyBees(const Consensus::Params& consensusParams, int height) {
             std::vector<CBeeRange>::const_iterator beeRangeIterator = beeBin.begin();
             while (beeRangeIterator != beeBin.end()) {
                 CBeeRange beeRange = *beeRangeIterator;
-                LogPrint(BCLog::HIVE, "  offset = %i, count = %i, txid = %s\n", beeRange.offset, beeRange.count, beeRange.txid.ToString());
+                std::string txidStr = beeRange.txid.ToString();
+                LogPrint(BCLog::HIVE, "  offset = %i, count = %i, txid = %s\n", beeRange.offset, beeRange.count, txidStr);
                 beeRangeIterator++;
             }
         }
@@ -949,7 +956,7 @@ bool BusyBees(const Consensus::Params& consensusParams, int height) {
     // Handle early aborts
     if (useEarlyAbortThread) {
         if (earlyAbort.load()) {
-            LogPrint(BCLog::HIVE, "BusyBees: Chain state changed (check aborted after %ims)\\n", checkTime);
+            LogPrint(BCLog::HIVE, "BusyBees: Chain state changed (check aborted after %ims)\n", checkTime);
             return false;
         } else {
             // We didn't abort; stop abort thread now
@@ -960,10 +967,11 @@ bool BusyBees(const Consensus::Params& consensusParams, int height) {
 
     // Check if a solution was found
     if (!solutionFound.load()) {
-        LogPrint(BCLog::HIVE, "BusyBees: No bee meets hash target (%i BCTs checked with %i threads in %ims)\\n", potentialBcts.size(), threadCount, checkTime); // Adjusted log message
+        LogPrint(BCLog::HIVE, "BusyBees: No bee meets hash target (%i BCTs checked with %i threads in %ims)\n", potentialBcts.size(), threadCount, checkTime); // Adjusted log message
         return false;
     }
-    LogPrintf("BusyBees: Bee meets hash target (check aborted after %ims). Solution with bee #%i from BCT %s. Honey address is %s.\\\\n", checkTime, solvingBee, solvingRange.txid.ToString(), solvingRange.honeyAddress); // .ToString() for txid
+    std::string solving_txid_str = solvingRange.txid.ToString();
+    LogPrintf("BusyBees: Bee meets hash target (check aborted after %ims). Solution with bee #%i from BCT %s. Honey address is %s.\n", checkTime, solvingBee, solving_txid_str, solvingRange.honeyAddress); // .ToString() for txid
 
     // Assemble the Hive proof script
     std::vector<unsigned char> messageProofVec;
@@ -980,31 +988,47 @@ bool BusyBees(const Consensus::Params& consensusParams, int height) {
         // Re-verify BCT before using it
         CTransactionRef txBCT;
         uint256 hashBlockBCT; // Block containing the BCT
+        std::string solving_range_txid_str = solvingRange.txid.ToString(); // Moved for all LogPrintf calls
 
         if (!GetTransaction(uint256S(solvingRange.txid), txBCT, consensusParams, hashBlockBCT, true)) {
-            LogPrintf("BusyBees: BCT %s for winning bee: GetTransaction failed. Aborting. StartTip: %s, ActiveTip: %s, UTXOTip: %s\\n",
-                solvingRange.txid, initialTipHashAtStartOfBusyBees.ToString(), currentActiveTipHash.ToString(), currentPcoinsTipHash.ToString());
+            std::string initial_tip_str = initialTipHashAtStartOfBusyBees.ToString();
+            std::string active_tip_str = currentActiveTipHash.ToString();
+            std::string pcoins_tip_str = currentPcoinsTipHash.ToString();
+            LogPrintf("BusyBees: BCT %s for winning bee: GetTransaction failed. Aborting. StartTip: %s, ActiveTip: %s, UTXOTip: %s\n",
+                solving_range_txid_str, initial_tip_str, active_tip_str, pcoins_tip_str);
             return false;
         }
 
         if (hashBlockBCT.IsNull() || mapBlockIndex.find(hashBlockBCT) == mapBlockIndex.end()) {
-            LogPrintf("BusyBees: BCT %s for winning bee: Block hash %s not found in mapBlockIndex. Aborting. StartTip: %s, ActiveTip: %s, UTXOTip: %s\\n",
-                solvingRange.txid, hashBlockBCT.ToString(), initialTipHashAtStartOfBusyBees.ToString(), currentActiveTipHash.ToString(), currentPcoinsTipHash.ToString());
+            std::string block_bct_str = hashBlockBCT.ToString();
+            std::string initial_tip_str = initialTipHashAtStartOfBusyBees.ToString();
+            std::string active_tip_str = currentActiveTipHash.ToString();
+            std::string pcoins_tip_str = currentPcoinsTipHash.ToString();
+            LogPrintf("BusyBees: BCT %s for winning bee: Block hash %s not found in mapBlockIndex. Aborting. StartTip: %s, ActiveTip: %s, UTXOTip: %s\n",
+                solving_range_txid_str, block_bct_str, initial_tip_str, active_tip_str, pcoins_tip_str);
             return false;
         }
         
         CBlockIndex* pindexBCT = mapBlockIndex[hashBlockBCT];
         if (!chainActive.Contains(pindexBCT)) {
-            LogPrintf("BusyBees: BCT %s (in block %s, height %d) for winning bee is no longer in the active chain (reorg?). Aborting. StartTip: %s, ActiveTip: %s, UTXOTip: %s\\n",
-                solvingRange.txid, hashBlockBCT.ToString(), pindexBCT->nHeight, initialTipHashAtStartOfBusyBees.ToString(), currentActiveTipHash.ToString(), currentPcoinsTipHash.ToString());
+            std::string block_bct_str = hashBlockBCT.ToString();
+            std::string initial_tip_str = initialTipHashAtStartOfBusyBees.ToString();
+            std::string active_tip_str = currentActiveTipHash.ToString();
+            std::string pcoins_tip_str = currentPcoinsTipHash.ToString();
+            LogPrintf("BusyBees: BCT %s (in block %s, height %d) for winning bee is no longer in the active chain (reorg?). Aborting. StartTip: %s, ActiveTip: %s, UTXOTip: %s\n",
+                solving_range_txid_str, block_bct_str, pindexBCT->nHeight, initial_tip_str, active_tip_str, pcoins_tip_str);
             return false;
         }
 
         // BCT transaction is confirmed in an active block.
         // Get the BCT height from its block index.
         bctHeight = pindexBCT->nHeight;
-        LogPrint(BCLog::HIVE, "BusyBees: Verified BCT %s is in active block %s at height %d. StartTip: %s, ActiveTip: %s, UTXOTip: %s\\n",
-            solvingRange.txid.ToString(), hashBlockBCT.ToString(), bctHeight, initialTipHashAtStartOfBusyBees.ToString(), currentActiveTipHash.ToString(), currentPcoinsTipHash.ToString()); // .ToString() for txid
+        std::string block_bct_str = hashBlockBCT.ToString();
+        std::string initial_tip_str = initialTipHashAtStartOfBusyBees.ToString();
+        std::string active_tip_str = currentActiveTipHash.ToString();
+        std::string pcoins_tip_str = currentPcoinsTipHash.ToString();
+        LogPrint(BCLog::HIVE, "BusyBees: Verified BCT %s is in active block %s at height %d. StartTip: %s, ActiveTip: %s, UTXOTip: %s\n",
+            solving_range_txid_str, block_bct_str, bctHeight, initial_tip_str, active_tip_str, pcoins_tip_str); // .ToString() for txid
 
         // The OP_RETURN output (vout[0]) of the BCT is not expected to be in the UTXO set (pcoinsTip).
         // Its validity is confirmed by GetTransaction and its presence in the active chain.
@@ -1031,10 +1055,10 @@ bool BusyBees(const Consensus::Params& consensusParams, int height) {
         ss << deterministicRandString;
         uint256 mhash = ss.GetHash();
         if (!key.SignCompact(mhash, messageProofVec)) {
-            LogPrintf("BusyBees: Couldn't sign the bee proof!\\n");
+            LogPrintf("BusyBees: Couldn't sign the bee proof!\n");
             return false;
         }
-        if (LogAcceptCategory(BCLog::DEBUG)) LogPrint(BCLog::HIVE, "BusyBees: messageSig                = %s\\n", HexStr(&messageProofVec[0], &messageProofVec[messageProofVec.size()]));
+        if (LogAcceptCategory(BCLog::DEBUG)) LogPrint(BCLog::HIVE, "BusyBees: messageSig                = %s\n", HexStr(&messageProofVec[0], &messageProofVec[messageProofVec.size()]));
     }
 
     unsigned char beeNonceEncoded[4];
@@ -1070,7 +1094,7 @@ bool BusyBees(const Consensus::Params& consensusParams, int height) {
     }
 
     if (LogAcceptCategory(BCLog::DEBUG)) {
-        LogPrint(BCLog::HIVE, "BusyBees: Block created:\\n%s", pblock->ToString());
+        LogPrint(BCLog::HIVE, "BusyBees: Block created:\n%s", pblock->ToString());
     }
 
     // Commit and propagate the block
