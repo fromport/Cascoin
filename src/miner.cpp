@@ -397,7 +397,7 @@ void BlockAssembler::AddToBlock(CTxMemPool::txiter iter)
 
     bool fPrintPriority = gArgs.GetBoolArg("-printpriority", DEFAULT_PRINTPRIORITY);
     if (fPrintPriority) {
-        LogPrintf("fee %s txid %s\n",
+        LogPrint(BCLog::MEMPOOL, "fee %s txid %s\n",
                   CFeeRate(iter->GetModifiedFee(), iter->GetTxSize()).ToString(),
                   iter->GetTx().GetHash().ToString());
     }
@@ -688,13 +688,13 @@ void CheckBin(int threadID, std::vector<CBeeRange> bin, std::string deterministi
     int checkCount = 0;
     for (std::vector<CBeeRange>::const_iterator it = bin.begin(); it != bin.end(); it++) {
         CBeeRange beeRange = *it;
-        //LogPrintf("THREAD #%i: Checking %i-%i in %s\n", threadID, beeRange.offset, beeRange.offset + beeRange.count - 1, beeRange.txid);
+        if (LogAcceptCategory(BCLog::DEBUG)) LogPrint(BCLog::HIVE, "THREAD #%i: Checking %i-%i in %s\n", threadID, beeRange.offset, beeRange.offset + beeRange.count - 1, beeRange.txid.ToString());
         // Iterate over bees in this range
         for (int i = beeRange.offset; i < beeRange.offset + beeRange.count; i++) {
             // Check abort conditions (Only every N bees. The atomic load is expensive, but much cheaper than a mutex - esp on Windows, see https://www.arangodb.com/2015/02/comparing-atomic-mutex-rwlocks/)
             if(checkCount++ % 1000 == 0) {
                 if (solutionFound.load() || earlyAbort.load()) {
-                    //LogPrintf("THREAD #%i: Solution found elsewhere or early abort requested, ending early\n", threadID);
+                    if (LogAcceptCategory(BCLog::DEBUG)) LogPrint(BCLog::HIVE, "THREAD #%i: Solution found elsewhere or early abort requested, ending early\n", threadID);
                     return;
                 }
             }
@@ -703,7 +703,7 @@ void CheckBin(int threadID, std::vector<CBeeRange> bin, std::string deterministi
             arith_uint256 beeHash = arith_uint256(hashHex);
             // Compare to target and write out result if successful
             if (beeHash < beeHashTarget) {
-                //LogPrintf("THREAD #%i: Solution found, returning\n", threadID);
+                if (LogAcceptCategory(BCLog::DEBUG)) LogPrint(BCLog::HIVE, "THREAD #%i: Solution found, returning\n", threadID);
                 LOCK(cs_solution_vars);                                 // Expensive mutex only happens at write-out
                 solutionFound.store(true);
                 solvingRange = beeRange;
@@ -712,7 +712,7 @@ void CheckBin(int threadID, std::vector<CBeeRange> bin, std::string deterministi
             }
         }
     }
-    //LogPrintf("THREAD #%i: Out of tasks\n", threadID);
+    if (LogAcceptCategory(BCLog::DEBUG)) LogPrint(BCLog::HIVE, "THREAD #%i: Out of tasks\n", threadID);
 }
 
 // Cascoin: MinotaurX+Hive1.2: Thread to check a single bee bin
@@ -727,13 +727,13 @@ void CheckBinMinotaur(int threadID, std::vector<CBeeRange> bin, std::string dete
     int checkCount = 0;
     for (std::vector<CBeeRange>::const_iterator it = bin.begin(); it != bin.end(); it++) {
         CBeeRange beeRange = *it;
-        //LogPrintf("THREAD #%i: Checking %i-%i in %s\n", threadID, beeRange.offset, beeRange.offset + beeRange.count - 1, beeRange.txid);
+        if (LogAcceptCategory(BCLog::DEBUG)) LogPrint(BCLog::MINOTAURX, "THREAD #%i: Checking %i-%i in %s\n", threadID, beeRange.offset, beeRange.offset + beeRange.count - 1, beeRange.txid.ToString());
         // Iterate over bees in this range
         for (int i = beeRange.offset; i < beeRange.offset + beeRange.count; i++) {
             // Check abort conditions (Only every N bees. The atomic load is expensive, but much cheaper than a mutex - esp on Windows, see https://www.arangodb.com/2015/02/comparing-atomic-mutex-rwlocks/)
             if(checkCount++ % 1000 == 0) {
                 if (solutionFound.load() || earlyAbort.load()) {
-                    //LogPrintf("THREAD #%i: Solution found elsewhere or early abort requested, ending early\n", threadID);
+                    if (LogAcceptCategory(BCLog::DEBUG)) LogPrint(BCLog::MINOTAURX, "THREAD #%i: Solution found elsewhere or early abort requested, ending early\n", threadID);
                     //yespower_free_local(&local);
                     return;
                 }
@@ -751,7 +751,7 @@ void CheckBinMinotaur(int threadID, std::vector<CBeeRange> bin, std::string dete
 
             // Compare to target and write out result if successful
             if (beeHash < beeHashTarget) {
-                //LogPrintf("THREAD #%i: Solution found, returning\n", threadID);
+                if (LogAcceptCategory(BCLog::DEBUG)) LogPrint(BCLog::MINOTAURX, "THREAD #%i: Solution found, returning\n", threadID);
                 LOCK(cs_solution_vars);     // Expensive mutex only happens at write-out
                 solutionFound.store(true);
                 solvingRange = beeRange;
@@ -763,14 +763,12 @@ void CheckBinMinotaur(int threadID, std::vector<CBeeRange> bin, std::string dete
             boost::this_thread::yield();
         }
     }
-    //LogPrintf("THREAD #%i: Out of tasks\n", threadID);
+    if (LogAcceptCategory(BCLog::DEBUG)) LogPrint(BCLog::MINOTAURX, "THREAD #%i: Out of tasks\n", threadID);
     //yespower_free_local(&local);
 }
 
 // Cascoin: Hive: Attempt to mint the next block
 bool BusyBees(const Consensus::Params& consensusParams, int height) {
-    bool verbose = LogAcceptCategory(BCLog::HIVE);
-
     CBlockIndex* pindexPrev = chainActive.Tip();
     assert(pindexPrev != nullptr);
 
@@ -802,13 +800,13 @@ bool BusyBees(const Consensus::Params& consensusParams, int height) {
             hiveBlocksAtTip++;
         }
         if (hiveBlocksAtTip >= consensusParams.maxConsecutiveHiveBlocks) {
-            LogPrintf("BusyBees: Skipping hive check (max Hive blocks without a POW block reached)\n");
+            LogPrint(BCLog::HIVE, "BusyBees: Skipping hive check (max Hive blocks without a POW block reached)\n");
             return false;
         }
     } else {
         // Check previous block wasn't hivemined
         if (pindexPrev->GetBlockHeader().IsHiveMined(consensusParams)) {
-            LogPrintf("BusyBees: Skipping hive check (Hive block must follow a POW block)\n");
+            LogPrint(BCLog::HIVE, "BusyBees: Skipping hive check (Hive block must follow a POW block)\n");
             return false;
         }
     }
@@ -829,12 +827,12 @@ bool BusyBees(const Consensus::Params& consensusParams, int height) {
 
     // Find deterministicRandString
     std::string deterministicRandString = GetDeterministicRandString(pindexPrev);
-    if (verbose) LogPrintf("BusyBees: deterministicRandString   = %s\n", deterministicRandString);
+    if (LogAcceptCategory(BCLog::DEBUG)) LogPrint(BCLog::HIVE, "BusyBees: deterministicRandString   = %s\n", deterministicRandString);
 
     // Find beeHashTarget
     arith_uint256 beeHashTarget;
     beeHashTarget.SetCompact(GetNextHiveWorkRequired(pindexPrev, consensusParams));
-    LogPrintf("BusyBees: beeHashTarget for current attempt = %s\n", beeHashTarget.ToString());
+    LogPrint(BCLog::HIVE, "BusyBees: beeHashTarget for current attempt = %s\n", beeHashTarget.ToString());
 
     // Grab all BCTs from wallet that are mature and not yet expired.
     // We don't need to scan for rewards here as we only need the txid and honey address.
@@ -868,7 +866,7 @@ bool BusyBees(const Consensus::Params& consensusParams, int height) {
     int beesPerBin = ceil(potentialBcts.size() / (float)threadCount);  // We want to check this many bees per thread
 
     // Bin the bees according to desired thead count
-    if (verbose) LogPrint(BCLog::HIVE, "BusyBees: Binning %i bees in %i bins (%i bees per bin)\n", potentialBcts.size(), threadCount, beesPerBin);
+    if (LogAcceptCategory(BCLog::DEBUG)) LogPrint(BCLog::HIVE, "BusyBees: Binning %i BCTs with %i total bees into %i bins (%i BCTs per bin if possible)\n", potentialBcts.size(), totalBees, threadCount, beesPerBin); // Adjusted log message
     std::vector<CBeeCreationTransactionInfo>::const_iterator bctIterator = potentialBcts.begin();
     CBeeCreationTransactionInfo bct = *bctIterator;
     std::vector<std::vector<CBeeRange>> beeBins;
@@ -902,7 +900,7 @@ bool BusyBees(const Consensus::Params& consensusParams, int height) {
     }
 
     // Create a worker thread for each bin
-    if (verbose) LogPrintf("BusyBees: Running bins\n");
+    if (LogAcceptCategory(BCLog::DEBUG)) LogPrint(BCLog::HIVE, "BusyBees: Running bins\n");
     solutionFound.store(false);
     earlyAbort.store(false);
     std::vector<std::vector<CBeeRange>>::const_iterator beeBinIterator = beeBins.begin();
@@ -913,12 +911,12 @@ bool BusyBees(const Consensus::Params& consensusParams, int height) {
     while (beeBinIterator != beeBins.end()) {
         std::vector<CBeeRange> beeBin = *beeBinIterator;
 
-        if (verbose) {
-            LogPrintf("BusyBees: Bin #%i\n", binID);
+        if (LogAcceptCategory(BCLog::DEBUG)) {
+            LogPrint(BCLog::HIVE, "BusyBees: Bin #%i\n", binID);
             std::vector<CBeeRange>::const_iterator beeRangeIterator = beeBin.begin();
             while (beeRangeIterator != beeBin.end()) {
                 CBeeRange beeRange = *beeRangeIterator;
-                LogPrintf("offset = %i, count = %i, txid = %s\n", beeRange.offset, beeRange.count, beeRange.txid);
+                LogPrint(BCLog::HIVE, "  offset = %i, count = %i, txid = %s\n", beeRange.offset, beeRange.count, beeRange.txid.ToString());
                 beeRangeIterator++;
             }
         }
@@ -933,8 +931,8 @@ bool BusyBees(const Consensus::Params& consensusParams, int height) {
 
     // Add an extra thread to watch external abort conditions (eg new incoming block)
     bool useEarlyAbortThread = gArgs.GetBoolArg("-hiveearlyout", DEFAULT_HIVE_EARLY_OUT);
-    if (verbose && useEarlyAbortThread)
-        LogPrintf("BusyBees: Will use early-abort thread\n");
+    if (LogAcceptCategory(BCLog::DEBUG) && useEarlyAbortThread)
+        LogPrint(BCLog::HIVE, "BusyBees: Will use early-abort thread\n");
 
     boost::thread earlyAbortThread;
     if (useEarlyAbortThread)
@@ -951,7 +949,7 @@ bool BusyBees(const Consensus::Params& consensusParams, int height) {
     // Handle early aborts
     if (useEarlyAbortThread) {
         if (earlyAbort.load()) {
-            LogPrintf("BusyBees: Chain state changed (check aborted after %ims)\n", checkTime);
+            LogPrint(BCLog::HIVE, "BusyBees: Chain state changed (check aborted after %ims)\\n", checkTime);
             return false;
         } else {
             // We didn't abort; stop abort thread now
@@ -962,10 +960,10 @@ bool BusyBees(const Consensus::Params& consensusParams, int height) {
 
     // Check if a solution was found
     if (!solutionFound.load()) {
-        LogPrintf("BusyBees: No bee meets hash target (%i bees checked with %i threads in %ims)\n", potentialBcts.size(), threadCount, checkTime);
+        LogPrint(BCLog::HIVE, "BusyBees: No bee meets hash target (%i BCTs checked with %i threads in %ims)\\n", potentialBcts.size(), threadCount, checkTime); // Adjusted log message
         return false;
     }
-    LogPrintf("BusyBees: Bee meets hash target (check aborted after %ims). Solution with bee #%i from BCT %s. Honey address is %s.\\n", checkTime, solvingBee, solvingRange.txid, solvingRange.honeyAddress);
+    LogPrintf("BusyBees: Bee meets hash target (check aborted after %ims). Solution with bee #%i from BCT %s. Honey address is %s.\\\\n", checkTime, solvingBee, solvingRange.txid.ToString(), solvingRange.honeyAddress); // .ToString() for txid
 
     // Assemble the Hive proof script
     std::vector<unsigned char> messageProofVec;
@@ -1005,8 +1003,8 @@ bool BusyBees(const Consensus::Params& consensusParams, int height) {
         // BCT transaction is confirmed in an active block.
         // Get the BCT height from its block index.
         bctHeight = pindexBCT->nHeight;
-        LogPrintf("BusyBees: Verified BCT %s is in active block %s at height %d. StartTip: %s, ActiveTip: %s, UTXOTip: %s\\n",
-            solvingRange.txid, hashBlockBCT.ToString(), bctHeight, initialTipHashAtStartOfBusyBees.ToString(), currentActiveTipHash.ToString(), currentPcoinsTipHash.ToString());
+        LogPrint(BCLog::HIVE, "BusyBees: Verified BCT %s is in active block %s at height %d. StartTip: %s, ActiveTip: %s, UTXOTip: %s\\n",
+            solvingRange.txid.ToString(), hashBlockBCT.ToString(), bctHeight, initialTipHashAtStartOfBusyBees.ToString(), currentActiveTipHash.ToString(), currentPcoinsTipHash.ToString()); // .ToString() for txid
 
         // The OP_RETURN output (vout[0]) of the BCT is not expected to be in the UTXO set (pcoinsTip).
         // Its validity is confirmed by GetTransaction and its presence in the active chain.
@@ -1033,10 +1031,10 @@ bool BusyBees(const Consensus::Params& consensusParams, int height) {
         ss << deterministicRandString;
         uint256 mhash = ss.GetHash();
         if (!key.SignCompact(mhash, messageProofVec)) {
-            LogPrintf("BusyBees: Couldn't sign the bee proof!\n");
+            LogPrintf("BusyBees: Couldn't sign the bee proof!\\n");
             return false;
         }
-        if (verbose) LogPrintf("BusyBees: messageSig                = %s\n", HexStr(&messageProofVec[0], &messageProofVec[messageProofVec.size()]));
+        if (LogAcceptCategory(BCLog::DEBUG)) LogPrint(BCLog::HIVE, "BusyBees: messageSig                = %s\\n", HexStr(&messageProofVec[0], &messageProofVec[messageProofVec.size()]));
     }
 
     unsigned char beeNonceEncoded[4];
@@ -1071,9 +1069,8 @@ bool BusyBees(const Consensus::Params& consensusParams, int height) {
         }
     }
 
-    if (verbose) {
-        LogPrintf("BusyBees: Block created:\n");
-        LogPrintf("%s",pblock->ToString());
+    if (LogAcceptCategory(BCLog::DEBUG)) {
+        LogPrint(BCLog::HIVE, "BusyBees: Block created:\\n%s", pblock->ToString());
     }
 
     // Commit and propagate the block

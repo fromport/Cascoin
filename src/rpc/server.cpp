@@ -368,7 +368,7 @@ void JSONRPCRequest::parse(const UniValue& valRequest)
     if (!valMethod.isStr())
         throw JSONRPCError(RPC_INVALID_REQUEST, "Method must be a string");
     strMethod = valMethod.get_str();
-    LogPrint(BCLog::RPC, "ThreadRPCServer method=%s\n", SanitizeString(strMethod));
+    if (LogAcceptCategory(BCLog::DEBUG)) LogPrint(BCLog::RPC, "ThreadRPCServer method=%s\n", SanitizeString(strMethod));
 
     // Parse params
     UniValue valParams = find_value(request, "params");
@@ -544,7 +544,7 @@ void RPCRunLater(const std::string& name, std::function<void(void)> func, int64_
     if (!timerInterface)
         throw JSONRPCError(RPC_INTERNAL_ERROR, "No timer handler registered for RPC");
     deadlineTimers.erase(name);
-    LogPrint(BCLog::RPC, "queue run of timer %s in %i seconds (using %s)\n", name, nSeconds, timerInterface->Name());
+    if (LogAcceptCategory(BCLog::DEBUG)) LogPrint(BCLog::RPC, "queue run of timer %s in %i seconds (using %s)\n", name, nSeconds, timerInterface->Name());
     deadlineTimers.emplace(name, std::unique_ptr<RPCTimerBase>(timerInterface->NewTimer(func, nSeconds*1000)));
 }
 
