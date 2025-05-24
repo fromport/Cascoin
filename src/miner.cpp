@@ -1007,8 +1007,13 @@ bool BusyBees(const Consensus::Params& consensusParams, int height) {
             return false;
         }
 
+        // Diagnostic: Check if pcoinsTip even has the coin listed, without caring about spent status initially
+        bool hasCoinInCache = pcoinsTip->HaveCoin(outBCTForCheck);
+        LogPrintf("BusyBees: DIAGNOSTIC for BCT %s: pcoinsTip->HaveCoin() returned: %s. StartTip: %s, ActiveTip: %s, UTXOTip: %s\\n",
+            solvingRange.txid, hasCoinInCache ? "true" : "false", initialTipHashAtStartOfBusyBees.ToString(), currentActiveTipHash.ToString(), currentPcoinsTipHash.ToString());
+
         if (!pcoinsTip->GetCoin(outBCTForCheck, coinBCTForCheck)) {
-            LogPrintf("BusyBees: BCT %s (in block %s, which IS in active chain) for winning bee is no longer in UTXO set (spent or reorg?). Aborting. StartTip: %s, ActiveTip: %s, UTXOTip: %s\\n",
+            LogPrintf("BusyBees: BCT %s (in block %s, which IS in active chain) for winning bee is no longer in UTXO set (GetCoin failed). Aborting. StartTip: %s, ActiveTip: %s, UTXOTip: %s\\n",
                 solvingRange.txid, hashBlockBCT.ToString(), initialTipHashAtStartOfBusyBees.ToString(), currentActiveTipHash.ToString(), currentPcoinsTipHash.ToString());
             // Further diagnostic if UTXO tip and active chain tip seem to differ
             if (currentActiveTipHash != currentPcoinsTipHash) {
