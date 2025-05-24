@@ -39,7 +39,8 @@
 #include <QDateTime>
 #include <QDragEnterEvent>
 #include <QListWidget>
-#include <QScreen> // Added for QScreen
+#include <QScreen>
+#include <QGuiApplication> // Added for QGuiApplication
 #include <QMenuBar>
 #include <QMessageBox>
 #include <QMimeData>
@@ -123,13 +124,105 @@ BitcoinGUI::BitcoinGUI(const PlatformStyle *_platformStyle, const NetworkStyle *
     platformStyle(_platformStyle)
 {
     QSettings settings;
-    if (!restoreGeometry(settings.value("MainWindowGeometry").toByteArray())) {
+    QByteArray raw_geometry_data = settings.value("MainWindowGeometry").toByteArray();
+    LogPrintf("GUI: Loaded MainWindowGeometry raw data: %s\n", raw_geometry_data.toHex().constData());
+
+    QRect restored_rect;
+    bool parse_ok = GUIUtil::parsePhysicalGeometry(raw_geometry_data.toStdString(), restored_rect);
+    if (parse_ok) {
+        LogPrintf("GUI: Parsed MainWindowGeometry from settings: x=%d, y=%d, w=%d, h=%d\n", restored_rect.x(), restored_rect.y(), restored_rect.width(), restored_rect.height());
+    } else if (!raw_geometry_data.isEmpty()) {
+        LogPrintf("GUI: Failed to parse MainWindowGeometry from settings: %s\n", raw_geometry_data.constData());
+    }
+
+
+    bool restored_geometry_successfully = restoreGeometry(raw_geometry_data);
+
+    if (!restored_geometry_successfully) {
+        LogPrintf("GUI: restoreGeometry() returned false. Centering window.\n");
         // Restore failed (perhaps missing setting), center the window
         const QScreen *screen = QGuiApplication::primaryScreen();
         if (screen) {
+            // Set a default size before moving, in case the current size is also invalid
+            // Using a common default like 1200x700 as a fallback.
+            // DEFAULT_WINDOW_GEOMETRY could be used if defined and valid.
+            // For now, let's assume a fixed default if restore failed completely.
+            QRect default_geom(0, 0, 1200, 700);
+             if (defined(DEFAULT_WINDOW_GEOMETRY) && DEFAULT_WINDOW_GEOMETRY.isValid()) {
+                setGeometry(DEFAULT_WINDOW_GEOMETRY);
+            } else {
+                setGeometry(default_geom);
+            }
             move(screen->availableGeometry().center() - frameGeometry().center());
         }
+    } else {
+        // Geometry restored, now check if it's visible
+        QRect current_geometry = this->geometry();
+        bool is_visible_on_any_screen = false;
+        QStringList log_messages; // To accumulate log messages
+
+        if (current_geometry.width() <= 0 || current_geometry.height() <= 0) {
+            log_messages << QString("Restored window geometry has invalid dimensions (%1x%2).")
+                            .arg(current_geometry.width()).arg(current_geometry.height());
+        } else {
+            QList<QScreen*> screens = QGuiApplication::screens();
+            if (screens.isEmpty()) {
+                // This case is unlikely in a normal desktop environment but handle defensively
+                log_messages << "No screens found. Assuming restored geometry is visible.";
+                is_visible_on_any_screen = true;
+            } else {
+                for (QScreen* screen : screens) {
+                    QRect screen_geometry = screen->availableGeometry();
+                    // Check if a significant portion of the window (e.g., intersection area > 100x100 pixels)
+                    // is on this screen. Contains check for top-left is a good first step.
+                    if (screen_geometry.intersects(current_geometry)) {
+                        QRect intersection = screen_geometry.intersected(current_geometry);
+                        if (intersection.width() * intersection.height() >= 100 * 100) { // Minimum 100x100 pixels visible
+                            is_visible_on_any_screen = true;
+                            break;
+                        }
+                    }
+                }
+                if (!is_visible_on_any_screen) {
+                     log_messages << QString("Restored window geometry (%1,%2 %3x%4) is not significantly visible on any screen.")
+                                     .arg(current_geometry.x()).arg(current_geometry.y())
+                                     .arg(current_geometry.width()).arg(current_geometry.height());
+                }
+            }
+        }
+
+        if (!is_visible_on_any_screen) {
+            LogPrintf("GUI: Invalid or off-screen window geometry detected. Resetting to default. Details: %s\n", log_messages.join(" ").toStdString().c_str());
+            
+            // Define a default size (e.g. 1200x700 or use DEFAULT_WINDOW_GEOMETRY if available)
+            QRect default_geom(0, 0, 1200, 700); // A common default size
+            // Note: DEFAULT_WINDOW_GEOMETRY is not a standard Qt define, seems specific to this codebase if used.
+            // For now, we rely on the hardcoded default_geom if current_geometry is invalid.
+            // Using 'defined()' preprocessor directive is not suitable for checking C++ variable validity here.
+
+            // Reset to default size if current size is invalid, or keep restored size if valid but off-screen
+            if (current_geometry.width() <= 0 || current_geometry.height() <= 0) {
+                 log_messages << QString("Applying default geometry due to invalid dimensions.");
+                 setGeometry(default_geom);
+            } else {
+                // Keep the restored size but move it to be centered
+                log_messages << QString("Keeping restored dimensions, centering window.");
+                resize(current_geometry.size());
+            }
+
+            const QScreen *primary_screen = QGuiApplication::primaryScreen();
+            if (primary_screen) {
+                move(primary_screen->availableGeometry().center() - frameGeometry().center());
+            } else {
+                // Fallback if no primary screen (very unlikely)
+                LogPrintf("GUI: No primary screen found. Cannot center window for reset.\n");
+                // As a last resort, move to 0,0 or some safe coordinates
+                move(0,0);
+            }
+        }
     }
+    QRect final_geometry = this->geometry();
+    LogPrintf("GUI: Final window geometry after constructor checks: x=%d, y=%d, w=%d, h=%d\n", final_geometry.x(), final_geometry.y(), final_geometry.width(), final_geometry.height());
 
     QString windowTitle = tr("Cascoin - "); // Cascoin: Don't use package name here; we want coin name with a space in window titles.
 #ifdef ENABLE_WALLET
@@ -276,7 +369,16 @@ BitcoinGUI::~BitcoinGUI()
     unsubscribeFromCoreSignals();
 
     QSettings settings;
-    settings.setValue("MainWindowGeometry", saveGeometry());
+    QByteArray geometry_to_save = saveGeometry();
+    QRect currentGeometryRect; // Helper to log human-readable version
+    // Attempt to parse it back for logging, actual saving uses raw QByteArray
+    if (GUIUtil::parsePhysicalGeometry(geometry_to_save.toStdString(), currentGeometryRect)) {
+        LogPrintf("GUI: Saving MainWindowGeometry: x=%d, y=%d, w=%d, h=%d (Raw: %s)\n", currentGeometryRect.x(), currentGeometryRect.y(), currentGeometryRect.width(), currentGeometryRect.height(), geometry_to_save.toHex().constData());
+    } else {
+        LogPrintf("GUI: Saving MainWindowGeometry (could not parse for logging, saving raw): %s\n", geometry_to_save.toHex().constData());
+    }
+    settings.setValue("MainWindowGeometry", geometry_to_save);
+
     if(trayIcon) // Hide tray icon, as deleting will let it linger until quit (on Ubuntu)
         trayIcon->hide();
 #ifdef Q_OS_MAC
@@ -471,10 +573,9 @@ void BitcoinGUI::createMenuBar()
     settings->addAction(optionsAction);
 
     QMenu *help = appMenuBar->addMenu(tr("&Help"));
-    if(walletFrame)
-    {
-        help->addAction(openRPCConsoleAction);
-    }
+    // The RPC console is available regardless of walletFrame, so show it always.
+    // openRPCConsoleAction is enabled in showEvent().
+    help->addAction(openRPCConsoleAction);
     help->addAction(showHelpMessageAction);
     help->addSeparator();
     help->addAction(aboutAction);
