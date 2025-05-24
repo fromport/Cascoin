@@ -105,8 +105,8 @@ public:
             cachedAddressTable.begin(), cachedAddressTable.end(), address, AddressTableEntryLessThan());
         QList<AddressTableEntry>::iterator upper = qUpperBound(
             cachedAddressTable.begin(), cachedAddressTable.end(), address, AddressTableEntryLessThan());
-        int lowerIndex = (lower - cachedAddressTable.begin());
-        int upperIndex = (upper - cachedAddressTable.begin());
+        auto lowerIndex = (lower - cachedAddressTable.begin());
+        auto upperIndex = (upper - cachedAddressTable.begin());
         bool inModel = (lower != upper);
         AddressTableEntry::Type newEntryType = translateTransactionType(purpose, isMine);
 
@@ -147,7 +147,7 @@ public:
 
     int size()
     {
-        return cachedAddressTable.size();
+        return static_cast<int>(cachedAddressTable.size());
     }
 
     AddressTableEntry *index(int idx)
@@ -185,7 +185,7 @@ int AddressTableModel::rowCount(const QModelIndex &parent) const
 int AddressTableModel::columnCount(const QModelIndex &parent) const
 {
     Q_UNUSED(parent);
-    return columns.length();
+    return static_cast<int>(columns.length());
 }
 
 QVariant AddressTableModel::data(const QModelIndex &index, int role) const

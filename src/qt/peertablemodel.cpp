@@ -64,7 +64,7 @@ public:
             if(g_connman)
                 g_connman->GetNodeStats(vstats);
 #if QT_VERSION >= 0x040700
-            cachedNodeStats.reserve(vstats.size());
+            cachedNodeStats.reserve(static_cast<int>(vstats.size()));
 #endif
             for (const CNodeStats& nodestats : vstats)
             {
@@ -101,7 +101,7 @@ public:
 
     int size() const
     {
-        return cachedNodeStats.size();
+        return static_cast<int>(cachedNodeStats.size());
     }
 
     CNodeCombinedStats *index(int idx)

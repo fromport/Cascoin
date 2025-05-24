@@ -34,12 +34,12 @@
 
 #include <iostream>
 
-#include <QAction>
+#include <QtGui/QAction> // Changed from <QAction>
 #include <QApplication>
 #include <QDateTime>
-#include <QDesktopWidget>
 #include <QDragEnterEvent>
 #include <QListWidget>
+#include <QScreen> // Added for QScreen
 #include <QMenuBar>
 #include <QMessageBox>
 #include <QMimeData>
@@ -125,7 +125,10 @@ BitcoinGUI::BitcoinGUI(const PlatformStyle *_platformStyle, const NetworkStyle *
     QSettings settings;
     if (!restoreGeometry(settings.value("MainWindowGeometry").toByteArray())) {
         // Restore failed (perhaps missing setting), center the window
-        move(QApplication::desktop()->availableGeometry().center() - frameGeometry().center());
+        const QScreen *screen = QGuiApplication::primaryScreen();
+        if (screen) {
+            move(screen->availableGeometry().center() - frameGeometry().center());
+        }
     }
 
     QString windowTitle = tr("Cascoin - "); // Cascoin: Don't use package name here; we want coin name with a space in window titles.
@@ -286,7 +289,7 @@ BitcoinGUI::~BitcoinGUI()
 
 void BitcoinGUI::createActions()
 {
-    QActionGroup *tabGroup = new QActionGroup(this);
+    QActionGroup *tabGroup = new QActionGroup(this); // QActionGroup is used here
 
     overviewAction = new QAction(platformStyle->SingleColorIcon(":/icons/overview"), tr("&Overview"), this);
     overviewAction->setStatusTip(tr("Show general overview of wallet"));

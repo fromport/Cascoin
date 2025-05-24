@@ -53,7 +53,7 @@ public:
 
         cachedBanlist.clear();
 #if QT_VERSION >= 0x040700
-        cachedBanlist.reserve(banMap.size());
+        cachedBanlist.reserve(static_cast<int>(banMap.size()));
 #endif
         for (const auto& entry : banMap)
         {
@@ -70,7 +70,7 @@ public:
 
     int size() const
     {
-        return cachedBanlist.size();
+        return static_cast<int>(cachedBanlist.size());
     }
 
     CCombinedBan *index(int idx)

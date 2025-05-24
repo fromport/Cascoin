@@ -26,8 +26,8 @@
 
 #include <ui_interface.h>
 
-#include <QAction>
-#include <QActionGroup>
+#include <QtGui/QAction>
+#include <QtGui/QActionGroup>
 #include <QFileDialog>
 #include <QHBoxLayout>
 #include <QProgressDialog>

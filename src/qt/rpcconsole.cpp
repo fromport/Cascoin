@@ -27,7 +27,8 @@
 #include <wallet/wallet.h>
 #endif
 
-#include <QDesktopWidget>
+#include <QScreen> // Added for QScreen
+#include <QtGui/QAction> // Added for QAction
 #include <QKeyEvent>
 #include <QMenu>
 #include <QMessageBox>
@@ -457,7 +458,10 @@ RPCConsole::RPCConsole(const PlatformStyle *_platformStyle, QWidget *parent) :
     QSettings settings;
     if (!restoreGeometry(settings.value("RPCConsoleWindowGeometry").toByteArray())) {
         // Restore failed (perhaps missing setting), center the window
-        move(QApplication::desktop()->availableGeometry().center() - frameGeometry().center());
+        const QScreen *screen = QGuiApplication::primaryScreen();
+        if (screen) {
+            move(screen->availableGeometry().center() - frameGeometry().center());
+        }
     }
 
     ui->openDebugLogfileButton->setToolTip(ui->openDebugLogfileButton->toolTip().arg(tr(PACKAGE_NAME)));
@@ -990,7 +994,7 @@ void RPCConsole::peerLayoutAboutToChange()
 {
     QModelIndexList selected = ui->peerWidget->selectionModel()->selectedIndexes();
     cachedNodeids.clear();
-    for(int i = 0; i < selected.size(); i++)
+    for(qsizetype i = 0; i < selected.size(); i++)
     {
         const CNodeCombinedStats *stats = clientModel->getPeerTableModel()->getNodeStats(selected.at(i).row());
         cachedNodeids.append(stats->nodeStats.nodeid);
@@ -1044,7 +1048,7 @@ void RPCConsole::peerLayoutChanged()
 
     if (fReselect)
     {
-        for(int i = 0; i < cachedNodeids.size(); i++)
+        for(qsizetype i = 0; i < cachedNodeids.size(); i++)
         {
             ui->peerWidget->selectRow(clientModel->getPeerTableModel()->getRowByNodeId(cachedNodeids.at(i)));
         }
@@ -1148,7 +1152,8 @@ void RPCConsole::disconnectSelectedNode()
     
     // Get selected peer addresses
     QList<QModelIndex> nodes = GUIUtil::getEntryData(ui->peerWidget, PeerTableModel::NetNodeId);
-    for(int i = 0; i < nodes.count(); i++)
+    for(qsizetype i = 0; i < nodes.count(); i++)
+    for(qsizetype i = 0; i < nodes.count(); i++)
     {
         // Get currently selected peer address
         NodeId id = nodes.at(i).data().toLongLong();
@@ -1192,7 +1197,7 @@ void RPCConsole::unbanSelectedNode()
 
     // Get selected ban addresses
     QList<QModelIndex> nodes = GUIUtil::getEntryData(ui->banlistWidget, BanTableModel::Address);
-    for(int i = 0; i < nodes.count(); i++)
+    for(qsizetype i = 0; i < nodes.count(); i++)
     {
         // Get currently selected ban address
         QString strNode = nodes.at(i).data().toString();

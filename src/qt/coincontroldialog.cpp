@@ -26,6 +26,7 @@
 #include <QCursor>
 #include <QDialogButtonBox>
 #include <QFlags>
+#include <QtGui/QAction> // Added for QAction
 #include <QIcon>
 #include <QSettings>
 #include <QTreeWidget>
@@ -492,7 +493,7 @@ void CoinControlDialog::updateLabels(WalletModel *model, QDialog* dialog)
     if (nQuantity > 0)
     {
         // Bytes
-        nBytes = nBytesInputs + ((CoinControlDialog::payAmounts.size() > 0 ? CoinControlDialog::payAmounts.size() + 1 : 2) * 34) + 10; // always assume +1 output for change here
+        nBytes = nBytesInputs + ((static_cast<int>(CoinControlDialog::payAmounts.size()) > 0 ? static_cast<int>(CoinControlDialog::payAmounts.size()) + 1 : 2) * 34) + 10; // always assume +1 output for change here
         if (fWitness)
         {
             // there is some fudging in these numbers related to the actual virtual transaction size calculation that will keep this estimate from being exact.

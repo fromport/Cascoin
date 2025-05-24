@@ -24,6 +24,7 @@
 #include <wallet/fees.h>
 
 #include <QFontMetrics>
+#include <QtGui/QAction> // Added for QAction
 #include <QScrollBar>
 #include <QSettings>
 #include <QTextDocument>

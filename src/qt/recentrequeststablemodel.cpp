@@ -39,7 +39,7 @@ int RecentRequestsTableModel::rowCount(const QModelIndex &parent) const
 {
     Q_UNUSED(parent);
 
-    return list.length();
+    return static_cast<int>(list.length());
 }
 
 int RecentRequestsTableModel::columnCount(const QModelIndex &parent) const

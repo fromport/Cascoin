@@ -85,7 +85,7 @@ void QRImageWidget::contextMenuEvent(QContextMenuEvent *event)
 {
     if(!pixmap())
         return;
-    contextMenu->exec(event->globalPos());
+    contextMenu->exec(event->globalPos().toPoint());
 }
 
 ReceiveRequestDialog::ReceiveRequestDialog(QWidget *parent) :
