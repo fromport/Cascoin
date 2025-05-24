@@ -836,25 +836,40 @@ bool BusyBees(const Consensus::Params& consensusParams, int height) {
     beeHashTarget.SetCompact(GetNextHiveWorkRequired(pindexPrev, consensusParams));
     LogPrintf("BusyBees: beeHashTarget for current attempt = %s\n", beeHashTarget.ToString());
 
-    // Find bin size
+    // Grab all BCTs from wallet that are mature and not yet expired.
+    // We don't need to scan for rewards here as we only need the txid and honey address.
+    std::vector<CBeeCreationTransactionInfo> potentialBctsWallet = pwallet->GetBCTs(false, false, consensusParams);
     std::vector<CBeeCreationTransactionInfo> potentialBcts;
-    std::vector<CBeeCreationTransactionInfo> bcts;
     int totalBees = 0;
+
+    // Filter out BCTs that are not currently in the UTXO set according to pcoinsTip
+    // and populate the 'potentialBcts' list with valid ones, recalculating totalBees.
     {
-        LOCK(cs_main); // Lock cs_main before accessing wallet functions that might call GetDepthInMainChain
-        potentialBcts = pwallet->GetBCTs(false, false, consensusParams);
-        for (std::vector<CBeeCreationTransactionInfo>::const_iterator it = potentialBcts.begin(); it != potentialBcts.end(); it++) {
-            CBeeCreationTransactionInfo bct = *it;
-            if (bct.beeStatus != "mature")
+        LOCK(cs_main); // Lock cs_main for pcoinsTip access
+        if (!pcoinsTip) {
+            LogPrintf("BusyBees: pcoinsTip is NULL before filtering potentialBCTs. Aborting.\\n");
+            return false;
+        }
+        uint256 currentPcoinsTipHash = pcoinsTip->GetBestBlock();
+        for (const auto& bctInfoWallet : potentialBctsWallet) {
+            if (bctInfoWallet.beeStatus != "mature") { // Still filter by mature status from wallet perspective first
                 continue;
-            // TODO: Add a check here to ensure the BCT is confirmed to a certain depth if GetDepthInMainChain itself isn't sufficient or if it's too slow to call per BCT.
-            // For now, the AssertLockHeld in GetDepthInMainChain will be satisfied.
-            bcts.push_back(bct);
-            totalBees += bct.beeCount;
+            }
+            uint256 bctTxid;
+            bctTxid.SetHex(bctInfoWallet.txid);
+            COutPoint bctOutpoint(bctTxid, 0); // BCT data is always in vout 0
+            if (pcoinsTip->HaveCoin(bctOutpoint)) {
+                potentialBcts.push_back(bctInfoWallet);
+                totalBees += bctInfoWallet.beeCount;
+            } else {
+                LogPrintf("BusyBees: Pre-check: BCT %s (status: %s) not in pcoinsTip (UTXOTip: %s). Skipping for this run.\\n",
+                          bctInfoWallet.txid, bctInfoWallet.beeStatus, currentPcoinsTipHash.ToString());
+            }
         }
     }
 
-    if (totalBees == 0) {
+    if (potentialBcts.empty() || totalBees == 0)
+    {
         LogPrint(BCLog::HIVE, "BusyBees: No mature bees found\n");
         return false;
     }
@@ -868,18 +883,18 @@ bool BusyBees(const Consensus::Params& consensusParams, int height) {
     else if (threadCount == 0)
         threadCount = 1;
 
-    int beesPerBin = ceil(totalBees / (float)threadCount);  // We want to check this many bees per thread
+    int beesPerBin = ceil(potentialBcts.size() / (float)threadCount);  // We want to check this many bees per thread
 
     // Bin the bees according to desired thead count
-    if (verbose) LogPrint(BCLog::HIVE, "BusyBees: Binning %i bees in %i bins (%i bees per bin)\n", totalBees, threadCount, beesPerBin);
-    std::vector<CBeeCreationTransactionInfo>::const_iterator bctIterator = bcts.begin();
+    if (verbose) LogPrint(BCLog::HIVE, "BusyBees: Binning %i bees in %i bins (%i bees per bin)\n", potentialBcts.size(), threadCount, beesPerBin);
+    std::vector<CBeeCreationTransactionInfo>::const_iterator bctIterator = potentialBcts.begin();
     CBeeCreationTransactionInfo bct = *bctIterator;
     std::vector<std::vector<CBeeRange>> beeBins;
     int beeOffset = 0;                                      // Track offset in current BCT
-    while(bctIterator != bcts.end()) {                      // Until we're out of BCTs
+    while(bctIterator != potentialBcts.end()) {                      // Until we're out of BCTs
         std::vector<CBeeRange> currentBin;                  // Create a new bin
         int beesInBin = 0;
-        while (bctIterator != bcts.end()) {                 // Keep filling it until full
+        while (bctIterator != potentialBcts.end()) {                 // Keep filling it until full
             int spaceLeft = beesPerBin - beesInBin;
             if (bct.beeCount - beeOffset <= spaceLeft) {    // If there's soom, add all the bees from this BCT...
                 CBeeRange range = {bct.txid, bct.honeyAddress, bct.communityContrib, beeOffset, bct.beeCount - beeOffset};
@@ -890,7 +905,7 @@ bool BusyBees(const Consensus::Params& consensusParams, int height) {
 
                 do {                                        // ... and iterate to next BCT
                     bctIterator++;
-                    if (bctIterator == bcts.end())
+                    if (bctIterator == potentialBcts.end())
                         break;
                     bct = *bctIterator;
                 } while (bct.beeStatus != "mature");
@@ -965,7 +980,7 @@ bool BusyBees(const Consensus::Params& consensusParams, int height) {
 
     // Check if a solution was found
     if (!solutionFound.load()) {
-        LogPrintf("BusyBees: No bee meets hash target (%i bees checked with %i threads in %ims)\n", totalBees, threadCount, checkTime);
+        LogPrintf("BusyBees: No bee meets hash target (%i bees checked with %i threads in %ims)\n", potentialBcts.size(), threadCount, checkTime);
         return false;
     }
     LogPrintf("BusyBees: Bee meets hash target (check aborted after %ims). Solution with bee #%i from BCT %s. Honey address is %s.\\n", checkTime, solvingBee, solvingRange.txid, solvingRange.honeyAddress);
