@@ -32,6 +32,7 @@
 #include <ui_interface.h>
 #include <util.h>
 
+#include <QScreen>
 #include <iostream>
 
 #include <QAction>
