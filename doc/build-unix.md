@@ -26,6 +26,8 @@ make install # optional
 
 This will build cascoin-qt as well if the dependencies are met.
 
+**Note on dependencies**: For a smoother build experience, especially for ensuring correct versions of critical libraries like Qt 6.5.0, Boost 1.65.1, and Berkeley DB 4.8, it is highly recommended to use the `depends` system described in [README.md](../depends/README.md). Building with the `depends` system can simplify the process significantly by fetching and compiling most dependencies automatically. If you choose this method, many of the manual installation steps below might not be necessary.
+
 Dependencies
 ---------------------
 
@@ -67,17 +69,17 @@ Build requirements:
 
     sudo apt-get install build-essential libtool autotools-dev automake pkg-config libssl-dev libevent-dev bsdmainutils python3
 
-Options when installing required Boost library files:
+Options when installing required Boost library files (Boost 1.65.1 or later is required):
 
-1. On at least Ubuntu 14.04+ and Debian 7+ there are generic names for the
-individual boost development packages, so the following can be used to only
-install necessary parts of boost:
+1. If your distribution provides Boost 1.65.1 or newer via specific packages (e.g., `libboost-system1.65-dev`), install those.
+   Often, a generic command like the following might install a suitable version, but verify it meets the 1.65.1 requirement:
 
         sudo apt-get install libboost-system-dev libboost-filesystem-dev libboost-chrono-dev libboost-program-options-dev libboost-test-dev libboost-thread-dev
 
-2. If that doesn't work, you can install all boost development packages with:
+2. If specific versioned packages are not available or too old, you can install all boost development packages, but this might install a version different from the required one:
 
         sudo apt-get install libboost-all-dev
+    **It is generally recommended to build Boost 1.65.1 via the `depends` system if your distribution does not provide it.**
 
 BerkeleyDB is required for the wallet.
 
@@ -107,18 +109,15 @@ ZMQ dependencies (provides ZMQ API 4.x):
 Dependencies for the GUI: Ubuntu & Debian
 -----------------------------------------
 
-If you want to build Cascoin-Qt, make sure that the required packages for Qt development
-are installed. Either Qt 5 or Qt 4 are necessary to build the GUI.
-If both Qt 4 and Qt 5 are installed, Qt 5 will be used. Pass `--with-gui=qt4` to configure to choose Qt4.
+If you want to build Cascoin-Qt, make sure that the required packages for Qt6 development
+are installed. Qt 6.2 or later is required (the `depends` system builds 6.5.0).
 To build without GUI pass `--without-gui`.
 
-To build with Qt 5 (recommended) you need the following:
+To build with Qt 6 (recommended) you need the following packages (names may vary slightly by distribution version):
 
-    sudo apt-get install libqt5gui5 libqt5core5a libqt5dbus5 qttools5-dev qttools5-dev-tools libprotobuf-dev protobuf-compiler
+    sudo apt-get install qt6-base-dev qt6-tools-dev libqt6svg6-dev protobuf-compiler libprotobuf-dev
 
-Alternatively, to build with Qt 4 you need the following:
-
-    sudo apt-get install libqt4-dev libprotobuf-dev protobuf-compiler
+**Note**: Package names for Qt6 can vary. `qt6-base-dev` might be `qtbase6-dev`. `libqt6svg6-dev` might be `qt6-svg-dev`. If you encounter issues, using the `depends` system to build Qt 6.5.0 is the most reliable method.
 
 libqrencode (optional) can be installed with:
 
@@ -133,13 +132,16 @@ Build requirements:
 
     sudo dnf install gcc-c++ libtool make autoconf automake openssl-devel libevent-devel boost-devel libdb4-devel libdb4-cxx-devel python3
 
+(Ensure `boost-devel` provides Boost 1.65.1 or use the `depends` system for Boost.)
+
 Optional:
 
     sudo dnf install miniupnpc-devel
 
-To build with Qt 5 (recommended) you need the following:
+To build with Qt 6 (recommended) you need the following (names may vary):
 
-    sudo dnf install qt5-qttools-devel qt5-qtbase-devel protobuf-devel
+    sudo dnf install qt6-qtbase-devel qt6-qttools-devel qt6-qtsvg-devel protobuf-devel
+(If specific Qt6 packages are not found, using the `depends` system for Qt 6.5.0 is recommended.)
 
 libqrencode (optional) can be installed with:
 
@@ -259,18 +261,20 @@ Setup and Build Example: Arch Linux
 This example lists the steps necessary to setup and build a command line only, non-wallet distribution of the latest changes on Arch Linux:
 
     pacman -S git base-devel boost libevent python
+
+(Ensure `boost` package provides Boost 1.65.1 or use the `depends` system. For GUI, install `qt6-base`, `qt6-svg`, etc.)
+
     git clone https://github.com/cascoin-project/cascoin.git
     cd cascoin/
     ./autogen.sh
     ./configure --disable-wallet --without-gui --without-miniupnpc
     make check
 
-Note:
-Enabling wallet support requires either compiling against a Berkeley DB newer than 4.8 (package `db`) using `--with-incompatible-bdb`,
-or building and depending on a local version of Berkeley DB 4.8. The readily available Arch Linux packages are currently built using
-`--with-incompatible-bdb` according to the [PKGBUILD](https://projects.archlinux.org/svntogit/community.git/tree/bitcoin/trunk/PKGBUILD).
-As mentioned above, when maintaining portability of the wallet between the standard Cascoin Core distributions and independently built
-node software is desired, Berkeley DB 4.8 must be used.
+Note on Berkeley DB for Arch Linux:
+Enabling wallet support requires Berkeley DB 4.8. Arch Linux repositories might offer newer versions (e.g., package `db`).
+Using a version other than 4.8 might require `--with-incompatible-bdb` and lead to wallet portability issues.
+For compatibility, building Berkeley DB 4.8 using the `depends` system or from source (using `contrib/install_db4.sh`) is recommended.
+The standard Cascoin Core distributions use Berkeley DB 4.8.
 
 
 ARM Cross-compilation

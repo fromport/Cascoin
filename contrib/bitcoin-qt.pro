@@ -21,4 +21,8 @@ RESOURCES += \
     ../src/qt/bitcoin.qrc
 
 QT += \
-    printsupport
+    core \
+    gui \
+    network \
+    printsupport \
+    widgets

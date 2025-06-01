@@ -408,7 +408,9 @@ case $host in
 
          openssl_prefix=`$BREW --prefix openssl 2>/dev/null`
          bdb_prefix=`$BREW --prefix berkeley-db4 2>/dev/null`
-         qt5_prefix=`$BREW --prefix qt5 2>/dev/null`
+         qt6_prefix=`$BREW --prefix qt@6 2>/dev/null` # Check for qt@6 first
+         qt5_prefix= # Clear qt5_prefix initially
+
          if test x$openssl_prefix != x; then
            PKG_CONFIG_PATH="$openssl_prefix/lib/pkgconfig:$PKG_CONFIG_PATH"
            export PKG_CONFIG_PATH
@@ -417,9 +419,21 @@ case $host in
            CPPFLAGS="$CPPFLAGS -I$bdb_prefix/include"
            LIBS="$LIBS -L$bdb_prefix/lib"
          fi
-         if test x$qt5_prefix != x; then
-           PKG_CONFIG_PATH="$qt5_prefix/lib/pkgconfig:$PKG_CONFIG_PATH"
+
+         if test x$qt6_prefix != x; then
+           AC_MSG_NOTICE([Found Qt 6 via Homebrew at $qt6_prefix])
+           PKG_CONFIG_PATH="$qt6_prefix/lib/pkgconfig:$PKG_CONFIG_PATH"
            export PKG_CONFIG_PATH
+         else
+           AC_MSG_NOTICE([Qt 6 not found via Homebrew (qt@6), trying qt5...])
+           qt5_prefix=`$BREW --prefix qt5 2>/dev/null`
+           if test x$qt5_prefix != x; then
+             AC_MSG_NOTICE([Found Qt 5 via Homebrew at $qt5_prefix])
+             PKG_CONFIG_PATH="$qt5_prefix/lib/pkgconfig:$PKG_CONFIG_PATH"
+             export PKG_CONFIG_PATH
+           else
+             AC_MSG_NOTICE([Qt 5 not found via Homebrew (qt5) either.])
+           fi
          fi
        fi
      else
@@ -758,7 +772,7 @@ fi
 BITCOIN_QT_INIT
 
 dnl sets $bitcoin_enable_qt, $bitcoin_enable_qt_test, $bitcoin_enable_qt_dbus
-BITCOIN_QT_CONFIGURE([$use_pkgconfig], [qt5])
+BITCOIN_QT_CONFIGURE([$use_pkgconfig], [qt6]) # Changed default to qt6 for auto detection
 
 if test x$build_bitcoin_utils$build_bitcoind$bitcoin_enable_qt$use_tests$use_bench = xnonononono; then
     use_boost=no
@@ -769,7 +783,7 @@ fi
 if test x$use_boost = xyes; then
 
 dnl Minimum required Boost version
-define(MINIMUM_REQUIRED_BOOST, 1.47.0)
+define(MINIMUM_REQUIRED_BOOST, 1.65.1)
 
 dnl Check for boost libs
 AX_BOOST_BASE([MINIMUM_REQUIRED_BOOST])

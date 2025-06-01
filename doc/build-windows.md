@@ -61,6 +61,13 @@ The steps below can be performed on Ubuntu (including in a VM) or WSL. The depen
 will also work on other Linux distributions, however the commands for
 installing the toolchain will be different.
 
+**Note on versions built by the `depends` system**: When using the `depends` system as described below, it will build specific versions of the core dependencies:
+* Qt: 6.5.0
+* Boost: 1.65.1
+* Berkeley DB: 4.8.30
+
+Ensure your build environment and cross-compiler (MinGW-w64) are compatible with these versions, particularly C++17 support for Qt 6.5.0.
+
 First, install the general dependencies:
 
     sudo apt install build-essential libtool autotools-dev automake pkg-config bsdmainutils curl git
@@ -78,11 +85,14 @@ packages for each distribution and problems with the Xenial packages the steps f
 
 Common steps to install mingw32 cross compiler tool chain:
 
-    sudo apt install g++-mingw-w64-x86-64
+    sudo apt install g++-mingw-w64-x86-64 # Ensure this provides a C++17 capable g++
 
 Ubuntu Trusty 14.04:
 
-    No further steps required
+    # Note: Ubuntu Trusty (14.04) is quite old. Its default GCC (4.8) is not sufficient for C++17 required by Qt 6.5.
+    # Building on a newer distribution (e.g., Ubuntu 18.04 LTS or later) is strongly recommended for cross-compiling.
+    # If you must use Trusty, you would need to install a newer GCC toolchain for MinGW-w64 that supports C++17.
+    No further steps required (assuming a C++17 capable MinGW toolchain is configured)
 
 Ubuntu Xenial 16.04 and Windows Subsystem for Linux <sup>[1](#footnote1),[2](#footnote2)</sup>:
 
@@ -120,7 +130,7 @@ Once the source code is ready the build steps are below.
 
 ## Building for 32-bit Windows
 
-To build executables for Windows 32-bit, install the following dependencies:
+To build executables for Windows 32-bit, install the following dependencies (ensure they provide a C++17 capable g++):
 
     sudo apt install g++-mingw-w64-i686 mingw-w64-i686-dev
 

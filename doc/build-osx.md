@@ -16,7 +16,9 @@ Then install [Homebrew](https://brew.sh).
 Dependencies
 ----------------------
 
-    brew install automake berkeley-db4 libtool boost miniupnpc openssl pkg-config protobuf python3 qt libevent
+    brew install automake berkeley-db4 libtool boost@1.65.1 miniupnpc openssl pkg-config protobuf python3 qt@6 libevent
+
+Alternatively, for an easier build experience and to ensure all dependencies are the correct versions, you can use the `depends` system described in the generic [build-unix.md](build-unix.md) guide. This is especially recommended for Qt (which will be built as 6.5.0) and Boost. If you choose this path, you may not need to install all of the above packages manually via Homebrew.
 
 See [dependencies.md](dependencies.md) for a complete overview.
 
@@ -28,7 +30,11 @@ If you want to build with ZeroMQ support
     
     brew install zeromq
 
-NOTE: Building with Qt4 is still supported, however, could result in a broken UI. Building with Qt5 is recommended.
+**Note on Qt**: This project now uses Qt6. The recommended way to build the GUI is using the `depends` system, which will build Qt 6.5.0. If you prefer to use system Qt from Homebrew, ensure you have a compatible Qt6 version installed (e.g., `brew install qt@6` or `brew install qt6`).
+
+**Note on Boost**: Boost 1.65.1 is required. If `brew install boost@1.65.1` does not work, consider using the `depends` system or installing Boost 1.65.1 manually.
+
+**Note on Compiler**: A C++17 compatible compiler is required (usually Clang, provided by the latest Xcode command line tools).
 
 Berkeley DB
 -----------

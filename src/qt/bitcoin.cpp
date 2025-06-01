@@ -53,28 +53,24 @@
 
 #if defined(QT_STATICPLUGIN)
 #include <QtPlugin>
-#if QT_VERSION < 0x050000
-Q_IMPORT_PLUGIN(qcncodecs)
-Q_IMPORT_PLUGIN(qjpcodecs)
-Q_IMPORT_PLUGIN(qtwcodecs)
-Q_IMPORT_PLUGIN(qkrcodecs)
-Q_IMPORT_PLUGIN(qtaccessiblewidgets)
-#else
-#if QT_VERSION < 0x050400
-Q_IMPORT_PLUGIN(AccessibleFactory)
-#endif
-#if defined(QT_QPA_PLATFORM_XCB)
-Q_IMPORT_PLUGIN(QXcbIntegrationPlugin);
-#elif defined(QT_QPA_PLATFORM_WINDOWS)
-Q_IMPORT_PLUGIN(QWindowsIntegrationPlugin);
-#elif defined(QT_QPA_PLATFORM_COCOA)
-Q_IMPORT_PLUGIN(QCocoaIntegrationPlugin);
-#endif
-#endif
-#endif
-
-#if QT_VERSION < 0x050000
-#include <QTextCodec>
+// #if QT_VERSION < 0x050000 // Removed Qt4 static plugins
+// Q_IMPORT_PLUGIN(qcncodecs)
+// Q_IMPORT_PLUGIN(qjpcodecs)
+// Q_IMPORT_PLUGIN(qtwcodecs)
+// Q_IMPORT_PLUGIN(qkrcodecs)
+// Q_IMPORT_PLUGIN(qtaccessiblewidgets)
+// #else // Qt5+ static plugins
+// #if QT_VERSION < 0x050400
+// Q_IMPORT_PLUGIN(AccessibleFactory)
+// #endif
+// #if defined(QT_QPA_PLATFORM_XCB)
+// Q_IMPORT_PLUGIN(QXcbIntegrationPlugin);
+// #elif defined(QT_QPA_PLATFORM_WINDOWS)
+// Q_IMPORT_PLUGIN(QWindowsIntegrationPlugin);
+// #elif defined(QT_QPA_PLATFORM_COCOA)
+// Q_IMPORT_PLUGIN(QCocoaIntegrationPlugin);
+// #endif
+// #endif // End Qt5+ static plugins
 #endif
 
 // Declare meta types used for QMetaObject::invokeMethod
@@ -131,11 +127,11 @@ static void initTranslations(QTranslator &qtTranslatorBase, QTranslator &qtTrans
     // - Then load the more specific locale translator
 
     // Load e.g. qt_de.qm
-    if (qtTranslatorBase.load("qt_" + lang, QLibraryInfo::location(QLibraryInfo::TranslationsPath)))
+    if (qtTranslatorBase.load("qt_" + lang, QLibraryInfo::path(QLibraryInfo::TranslationsPath)))
         QApplication::installTranslator(&qtTranslatorBase);
 
     // Load e.g. qt_de_DE.qm
-    if (qtTranslator.load("qt_" + lang_territory, QLibraryInfo::location(QLibraryInfo::TranslationsPath)))
+    if (qtTranslator.load("qt_" + lang_territory, QLibraryInfo::path(QLibraryInfo::TranslationsPath)))
         QApplication::installTranslator(&qtTranslator);
 
     // Load e.g. bitcoin_de.qm (shortcut "de" needs to be defined in bitcoin.qrc)
@@ -148,16 +144,6 @@ static void initTranslations(QTranslator &qtTranslatorBase, QTranslator &qtTrans
 }
 
 /* qDebug() message handler --> debug.log */
-#if QT_VERSION < 0x050000
-void DebugMessageHandler(QtMsgType type, const char *msg)
-{
-    if (type == QtDebugMsg) {
-        LogPrint(BCLog::QT, "GUI: %s\n", msg);
-    } else {
-        LogPrintf("GUI: %s\n", msg);
-    }
-}
-#else
 void DebugMessageHandler(QtMsgType type, const QMessageLogContext& context, const QString &msg)
 {
     Q_UNUSED(context);
@@ -167,7 +153,6 @@ void DebugMessageHandler(QtMsgType type, const QMessageLogContext& context, cons
         LogPrintf("GUI: %s\n", msg.toStdString());
     }
 }
-#endif
 
 /** Class encapsulating Bitcoin Core startup and shutdown.
  * Allows running startup and shutdown in a different thread from the UI thread.
@@ -552,11 +537,7 @@ int main(int argc, char *argv[])
     // Do not refer to data directory yet, this can be overridden by Intro::pickDataDirectory
 
     /// 2. Basic Qt initialization (not dependent on parameters or configuration)
-#if QT_VERSION < 0x050000
-    // Internal string conversion is all UTF-8
-    QTextCodec::setCodecForTr(QTextCodec::codecForName("UTF-8"));
-    QTextCodec::setCodecForCStrings(QTextCodec::codecForTr());
-#endif
+    // Qt6 and Qt5 handle UTF-8 by default. No specific QTextCodec calls needed.
 
     Q_INIT_RESOURCE(bitcoin);
     Q_INIT_RESOURCE(bitcoin_locale);
@@ -566,9 +547,9 @@ int main(int argc, char *argv[])
     // Generate high-dpi pixmaps
     QApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
 #endif
-#if QT_VERSION >= 0x050600
-    QGuiApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
-#endif
+// #if QT_VERSION >= 0x050600 // AA_EnableHighDpiScaling is default in Qt6
+//     QGuiApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
+// #endif
 #ifdef Q_OS_MAC
     QApplication::setAttribute(Qt::AA_DontShowIconsInMenus);
 #endif
@@ -674,17 +655,17 @@ int main(int argc, char *argv[])
     /// 9. Main GUI initialization
     // Install global event filter that makes sure that long tooltips can be word-wrapped
     app.installEventFilter(new GUIUtil::ToolTipToRichTextFilter(TOOLTIP_WRAP_THRESHOLD, &app));
-#if QT_VERSION < 0x050000
-    // Install qDebug() message handler to route to debug.log
-    qInstallMsgHandler(DebugMessageHandler);
-#else
+// #if QT_VERSION < 0x050000 // Removed Qt4 message handler path
+//     // Install qDebug() message handler to route to debug.log
+//     qInstallMsgHandler(DebugMessageHandler);
+// #else // Qt5/Qt6 message handler path
 #if defined(Q_OS_WIN)
     // Install global event filter for processing Windows session related Windows messages (WM_QUERYENDSESSION and WM_ENDSESSION)
     qApp->installNativeEventFilter(new WinShutdownMonitor());
 #endif
     // Install qDebug() message handler to route to debug.log
     qInstallMessageHandler(DebugMessageHandler);
-#endif
+// #endif // End Qt5/Qt6 message handler path
     // Allow parameter interaction before we create the options model
     app.parameterSetup();
     // Load GUI settings from QSettings

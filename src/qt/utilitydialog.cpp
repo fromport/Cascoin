@@ -55,9 +55,17 @@ HelpMessageDialog::HelpMessageDialog(QWidget *parent, bool about) :
         QString licenseInfo = QString::fromStdString(LicenseInfo());
         QString licenseInfoHTML = licenseInfo;
         // Make URLs clickable
-        QRegExp uri("<(.*)>", Qt::CaseSensitive, QRegExp::RegExp2);
-        uri.setMinimal(true); // use non-greedy matching
-        licenseInfoHTML.replace(uri, "<a href=\"\\1\">\\1</a>");
+        QRegularExpression uri("<(.*?)>"); // Non-greedy match for anything inside <>
+        // Iterate over all matches to replace them, as QRegularExpression::replace does not support captures in replacement string directly.
+        QRegularExpressionMatchIterator i = uri.globalMatch(licenseInfoHTML);
+        int offset = 0;
+        while (i.hasNext()) {
+            QRegularExpressionMatch match = i.next();
+            QString capturedUrl = match.captured(1);
+            QString replacement = QString("<a href=\"%1\">%1</a>").arg(capturedUrl);
+            licenseInfoHTML.replace(match.capturedStart(0) + offset, match.capturedLength(0), replacement);
+            offset += replacement.length() - match.capturedLength(0);
+        }
         // Replace newlines with HTML breaks
         licenseInfoHTML.replace("\n", "<br>");
 

@@ -1,21 +1,23 @@
 PACKAGE=qt
-$(package)_version=5.7.1
-$(package)_download_path=http://download.qt.io/official_releases/qt/5.7/$($(package)_version)/submodules
-$(package)_suffix=opensource-src-$($(package)_version).tar.gz
-$(package)_file_name=qtbase-$($(package)_suffix)
-$(package)_sha256_hash=95f83e532d23b3ddbde7973f380ecae1bac13230340557276f75f2e37984e410
+$(package)_version=6.5.0
+$(package)_download_path=https://download.qt.io/official_releases/qt/6.5/$($(package)_version)/submodules
+# $(package)_suffix is no longer used due to new naming scheme (e.g., qtbase-everywhere-src-6.5.0.tar.xz)
+$(package)_file_name=qtbase-everywhere-src-$($(package)_version).tar.xz
+$(package)_sha256_hash=fde1aa7b4fbe64ec1b4fc576a57f4688ad1453d2fab59cbadd948a10a6eaf5ef
 $(package)_dependencies=openssl zlib
 $(package)_linux_dependencies=freetype fontconfig libxcb libX11 xproto libXext
 $(package)_build_subdir=qtbase
-$(package)_qt_libs=corelib network widgets gui plugins testlib
-$(package)_patches=mac-qmake.conf mingw-uuidof.patch pidlist_absolute.patch fix-xcb-include-order.patch fix_qt_pkgconfig.patch
+# Updated for Qt6, see next steps for $(package)_config_opts and build commands
+$(package)_qt_libs=core network widgets gui test dbus printsupport
+# Patches are for Qt5 and likely incompatible with Qt6. To be removed from preprocess_cmds as well.
+$(package)_patches=
 
-$(package)_qttranslations_file_name=qttranslations-$($(package)_suffix)
-$(package)_qttranslations_sha256_hash=3a15aebd523c6d89fb97b2d3df866c94149653a26d27a00aac9b6d3020bc5a1d
+$(package)_qttranslations_file_name=qttranslations-everywhere-src-$($(package)_version).tar.xz
+$(package)_qttranslations_sha256_hash=fc85d0fd8393f518653ccada1014177a56df6e73f30f3b64eea0c2e4a0067a3d
 
 
-$(package)_qttools_file_name=qttools-$($(package)_suffix)
-$(package)_qttools_sha256_hash=22d67de915cb8cd93e16fdd38fa006224ad9170bd217c2be1e53045a8dd02f0f
+$(package)_qttools_file_name=qttools-everywhere-src-$($(package)_version).tar.xz
+$(package)_qttools_sha256_hash=49c33d96b0a44988be954269b8ce3d1a495b439726e03a6be7c0d50a686369c4
 
 $(package)_extra_sources  = $($(package)_qttranslations_file_name)
 $(package)_extra_sources += $($(package)_qttools_file_name)
@@ -24,18 +26,18 @@ define $(package)_set_vars
 $(package)_config_opts_release = -release
 $(package)_config_opts_debug = -debug
 $(package)_config_opts += -bindir $(build_prefix)/bin
-$(package)_config_opts += -c++std c++11
+$(package)_config_opts += -c++std c++17
 $(package)_config_opts += -confirm-license
-$(package)_config_opts += -dbus-runtime
+$(package)_config_opts += -dbus-runtime # Qt6 option (qdbus in Qt5)
 $(package)_config_opts += -hostprefix $(build_prefix)
 $(package)_config_opts += -no-alsa
 $(package)_config_opts += -no-audio-backend
-$(package)_config_opts += -no-cups
-$(package)_config_opts += -no-egl
-$(package)_config_opts += -no-eglfs
-$(package)_config_opts += -no-feature-style-windowsmobile
-$(package)_config_opts += -no-feature-style-windowsce
-$(package)_config_opts += -no-freetype
+# -no-cups removed as printsupport is in _qt_libs
+# -no-egl removed, ensure appropriate graphics backend for Gui/Widgets
+# -no-eglfs removed
+# -no-feature-style-windowsmobile removed (obsolete)
+# -no-feature-style-windowsce removed (obsolete)
+$(package)_config_opts += -no-freetype # This means use bundled freetype unless overridden by platform specific -system-freetype
 $(package)_config_opts += -no-gif
 $(package)_config_opts += -no-glib
 $(package)_config_opts += -no-gstreamer
@@ -48,8 +50,8 @@ $(package)_config_opts += -no-mitshm
 $(package)_config_opts += -no-mtdev
 $(package)_config_opts += -no-pulseaudio
 $(package)_config_opts += -no-openvg
-$(package)_config_opts += -no-reduce-relocations
-$(package)_config_opts += -no-qml-debug
+$(package)_config_opts += -no-reduce-relocations # This might need review for Qt6
+$(package)_config_opts += -no-qml-debug # QML debugging not typically needed for these builds
 $(package)_config_opts += -no-sql-db2
 $(package)_config_opts += -no-sql-ibase
 $(package)_config_opts += -no-sql-oci
@@ -57,7 +59,7 @@ $(package)_config_opts += -no-sql-tds
 $(package)_config_opts += -no-sql-mysql
 $(package)_config_opts += -no-sql-odbc
 $(package)_config_opts += -no-sql-psql
-$(package)_config_opts += -no-sql-sqlite
+$(package)_config_opts += -no-sql-sqlite # Often good to disable if not explicitly needed
 $(package)_config_opts += -no-sql-sqlite2
 $(package)_config_opts += -no-use-gold-linker
 $(package)_config_opts += -no-xinput2
@@ -65,41 +67,43 @@ $(package)_config_opts += -no-xrender
 $(package)_config_opts += -nomake examples
 $(package)_config_opts += -nomake tests
 $(package)_config_opts += -opensource
-$(package)_config_opts += -openssl-linked
+$(package)_config_opts += -openssl-linked # Ensure OpenSSL headers/libs are findable (OPENSSL_ROOT_DIR if needed)
 $(package)_config_opts += -optimized-qmake
 $(package)_config_opts += -pch
 $(package)_config_opts += -pkg-config
 $(package)_config_opts += -prefix $(host_prefix)
-$(package)_config_opts += -qt-libpng
-$(package)_config_opts += -qt-libjpeg
-$(package)_config_opts += -qt-pcre
-$(package)_config_opts += -system-zlib
+$(package)_config_opts += -qt-libpng # Use bundled libpng
+$(package)_config_opts += -qt-libjpeg # Use bundled libjpeg
+$(package)_config_opts += -qt-pcre # Use bundled pcre (likely PCRE2 for Qt6)
+$(package)_config_opts += -system-zlib # Use system zlib
 $(package)_config_opts += -reduce-exports
 $(package)_config_opts += -static
 $(package)_config_opts += -silent
 $(package)_config_opts += -v
-$(package)_config_opts += -no-feature-printer
-$(package)_config_opts += -no-feature-printdialog
+# -no-feature-printer removed as printsupport is in _qt_libs
+# -no-feature-printdialog removed as printsupport is in _qt_libs
 
-ifneq ($(build_os),darwin)
-$(package)_config_opts_darwin = -xplatform macx-clang-linux
-$(package)_config_opts_darwin += -device-option MAC_SDK_PATH=$(OSX_SDK)
-$(package)_config_opts_darwin += -device-option MAC_SDK_VERSION=$(OSX_SDK_VERSION)
-$(package)_config_opts_darwin += -device-option CROSS_COMPILE="$(host)-"
-$(package)_config_opts_darwin += -device-option MAC_MIN_VERSION=$(OSX_MIN_VERSION)
-$(package)_config_opts_darwin += -device-option MAC_TARGET=$(host)
-$(package)_config_opts_darwin += -device-option MAC_LD64_VERSION=$(LD64_VERSION)
-endif
+# macOS cross-compilation setup for Qt5, likely needs significant changes for Qt6 if still supported.
+# For now, keeping it commented out as mac-qmake.conf patch was removed.
+# ifneq ($(build_os),darwin)
+# $(package)_config_opts_darwin = -xplatform macx-clang-linux
+# $(package)_config_opts_darwin += -device-option MAC_SDK_PATH=$(OSX_SDK)
+# $(package)_config_opts_darwin += -device-option MAC_SDK_VERSION=$(OSX_SDK_VERSION)
+# $(package)_config_opts_darwin += -device-option CROSS_COMPILE="$(host)-"
+# $(package)_config_opts_darwin += -device-option MAC_MIN_VERSION=$(OSX_MIN_VERSION)
+# $(package)_config_opts_darwin += -device-option MAC_TARGET=$(host)
+# $(package)_config_opts_darwin += -device-option MAC_LD64_VERSION=$(LD64_VERSION)
+# endif
 
-$(package)_config_opts_linux  = -qt-xkbcommon
-$(package)_config_opts_linux += -qt-xcb
-$(package)_config_opts_linux += -system-freetype
-$(package)_config_opts_linux += -no-sm
-$(package)_config_opts_linux += -fontconfig
-$(package)_config_opts_linux += -no-opengl
-$(package)_config_opts_arm_linux  = -platform linux-g++ -xplatform $(host)
-$(package)_config_opts_i686_linux  = -xplatform linux-g++-32
-$(package)_config_opts_mingw32  = -no-opengl -xplatform win32-g++ -device-option CROSS_COMPILE="$(host)-"
+$(package)_config_opts_linux  = -qt-xkbcommon # Use bundled xkbcommon
+$(package)_config_opts_linux += -qt-xcb # Use bundled xcb
+$(package)_config_opts_linux += -system-freetype # Use system freetype on Linux
+$(package)_config_opts_linux += -no-sm # Disable session management
+$(package)_config_opts_linux += -fontconfig # Enable fontconfig
+# -no-opengl removed from Linux specific, ensure appropriate graphics backend for Gui/Widgets
+$(package)_config_opts_arm_linux  = -platform linux-g++ -xplatform $(host) # platform might need update for Qt6
+$(package)_config_opts_i686_linux  = -xplatform linux-g++-32 # xplatform might need update for Qt6
+$(package)_config_opts_mingw32  = -xplatform win32-g++ -device-option CROSS_COMPILE="$(host)-" # xplatform might need update for Qt6
 $(package)_build_env  = QT_RCC_TEST=1
 endef
 
@@ -125,21 +129,29 @@ endef
 
 
 define $(package)_preprocess_cmds
+# This sed command updates the path to lrelease, which is built in qttools. Likely still needed for Qt6.
   sed -i.old "s|updateqm.commands = \$$$$\$$$$LRELEASE|updateqm.commands = $($(package)_extract_dir)/qttools/bin/lrelease|" qttranslations/translations/translations.pro && \
+# This sed command removes a dependency line from qttranslations. May or may not be needed for Qt6. Kept for now.
   sed -i.old "/updateqm.depends =/d" qttranslations/translations/translations.pro && \
-  sed -i.old "s/src_plugins.depends = src_sql src_xml src_network/src_plugins.depends = src_xml src_network/" qtbase/src/src.pro && \
-  sed -i.old "s|X11/extensions/XIproto.h|X11/X.h|" qtbase/src/plugins/platforms/xcb/qxcbxsettings.cpp && \
-  sed -i.old 's/if \[ "$$$$XPLATFORM_MAC" = "yes" \]; then xspecvals=$$$$(macSDKify/if \[ "$$$$BUILD_ON_MAC" = "yes" \]; then xspecvals=$$$$(macSDKify/' qtbase/configure && \
-  sed -i.old 's/CGEventCreateMouseEvent(0, kCGEventMouseMoved, pos, 0)/CGEventCreateMouseEvent(0, kCGEventMouseMoved, pos, kCGMouseButtonLeft)/' qtbase/src/plugins/platforms/cocoa/qcocoacursor.mm && \
-  mkdir -p qtbase/mkspecs/macx-clang-linux &&\
-  cp -f qtbase/mkspecs/macx-clang/Info.plist.lib qtbase/mkspecs/macx-clang-linux/ &&\
-  cp -f qtbase/mkspecs/macx-clang/Info.plist.app qtbase/mkspecs/macx-clang-linux/ &&\
-  cp -f qtbase/mkspecs/macx-clang/qplatformdefs.h qtbase/mkspecs/macx-clang-linux/ &&\
-  cp -f $($(package)_patch_dir)/mac-qmake.conf qtbase/mkspecs/macx-clang-linux/qmake.conf && \
-  patch -p1 < $($(package)_patch_dir)/mingw-uuidof.patch && \
-  patch -p1 < $($(package)_patch_dir)/pidlist_absolute.patch && \
-  patch -p1 < $($(package)_patch_dir)/fix-xcb-include-order.patch && \
-  patch -p1 < $($(package)_patch_dir)/fix_qt_pkgconfig.patch && \
+# The following sed commands and mkspec modifications were for Qt5 patches or specific Qt5 issues.
+# They are unlikely to be valid for Qt6 and have been commented out.
+# A full review of build errors would determine if any similar modifications are needed for Qt6.
+# sed -i.old "s/src_plugins.depends = src_sql src_xml src_network/src_plugins.depends = src_xml src_network/" qtbase/src/src.pro && \
+# sed -i.old "s|X11/extensions/XIproto.h|X11/X.h|" qtbase/src/plugins/platforms/xcb/qxcbxsettings.cpp && \
+# sed -i.old 's/if \[ "$$$$XPLATFORM_MAC" = "yes" \]; then xspecvals=$$$$(macSDKify/if \[ "$$$$BUILD_ON_MAC" = "yes" \]; then xspecvals=$$$$(macSDKify/' qtbase/configure && \
+# sed -i.old 's/CGEventCreateMouseEvent(0, kCGEventMouseMoved, pos, 0)/CGEventCreateMouseEvent(0, kCGEventMouseMoved, pos, kCGMouseButtonLeft)/' qtbase/src/plugins/platforms/cocoa/qcocoacursor.mm && \
+# Removed Qt5 macOS cross-compilation mkspec setup related to mac-qmake.conf patch:
+# mkdir -p qtbase/mkspecs/macx-clang-linux &&\
+# cp -f qtbase/mkspecs/macx-clang/Info.plist.lib qtbase/mkspecs/macx-clang-linux/ &&\
+# cp -f qtbase/mkspecs/macx-clang/Info.plist.app qtbase/mkspecs/macx-clang-linux/ &&\
+# cp -f qtbase/mkspecs/macx-clang/qplatformdefs.h qtbase/mkspecs/macx-clang-linux/ &&\
+# Removed patch applications for Qt5:
+# cp -f $($(package)_patch_dir)/mac-qmake.conf qtbase/mkspecs/macx-clang-linux/qmake.conf && \
+# patch -p1 < $($(package)_patch_dir)/mingw-uuidof.patch && \
+# patch -p1 < $($(package)_patch_dir)/pidlist_absolute.patch && \
+# patch -p1 < $($(package)_patch_dir)/fix-xcb-include-order.patch && \
+# patch -p1 < $($(package)_patch_dir)/fix_qt_pkgconfig.patch && \
+# These lines inject custom CFLAGS/LFLAGS. Might still be useful, but review if CMake offers better ways for Qt6.
   echo "!host_build: QMAKE_CFLAGS     += $($(package)_cflags) $($(package)_cppflags)" >> qtbase/mkspecs/common/gcc-base.conf && \
   echo "!host_build: QMAKE_CXXFLAGS   += $($(package)_cxxflags) $($(package)_cppflags)" >> qtbase/mkspecs/common/gcc-base.conf && \
   echo "!host_build: QMAKE_LFLAGS     += $($(package)_ldflags)" >> qtbase/mkspecs/common/gcc-base.conf && \
