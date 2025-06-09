@@ -865,10 +865,10 @@ bool BusyBees(const Consensus::Params& consensusParams, int height) {
     else if (threadCount == 0)
         threadCount = 1;
 
-    int beesPerBin = ceil(potentialBcts.size() / (float)threadCount);  // We want to check this many bees per thread
+    int beesPerBin = ceil(totalBees / (float)threadCount);  // We want to check this many bees per thread
 
     // Bin the bees according to desired thead count
-    if (verbose) LogPrint(BCLog::HIVE, "BusyBees: Binning %i bees in %i bins (%i bees per bin)\n", potentialBcts.size(), threadCount, beesPerBin);
+    if (verbose) LogPrint(BCLog::HIVE, "BusyBees: Binning %i bees in %i bins (%i bees per bin)\n", totalBees, threadCount, beesPerBin);
     std::vector<CBeeCreationTransactionInfo>::const_iterator bctIterator = potentialBcts.begin();
     CBeeCreationTransactionInfo bct = *bctIterator;
     std::vector<std::vector<CBeeRange>> beeBins;
@@ -962,7 +962,7 @@ bool BusyBees(const Consensus::Params& consensusParams, int height) {
 
     // Check if a solution was found
     if (!solutionFound.load()) {
-        LogPrintf("BusyBees: No bee meets hash target (%i bees checked with %i threads in %ims)\n", potentialBcts.size(), threadCount, checkTime);
+        LogPrintf("BusyBees: No bee meets hash target (%i bees checked with %i threads in %ims)\n", totalBees, threadCount, checkTime);
         return false;
     }
     LogPrintf("BusyBees: Bee meets hash target (check aborted after %ims). Solution with bee #%i from BCT %s. Honey address is %s.\\n", checkTime, solvingBee, solvingRange.txid, solvingRange.honeyAddress);
