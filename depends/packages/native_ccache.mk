@@ -9,7 +9,7 @@ $(package)_config_opts=
 endef
 
 define $(package)_config_cmds
-  $($(package)_autoconf)
+  ./configure --disable-dependency-tracking --prefix=$(build_prefix) $($(package)_config_opts)
 endef
 
 define $(package)_build_cmds
