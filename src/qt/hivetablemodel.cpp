@@ -187,7 +187,7 @@ QVariant HiveTableModel::headerData(int section, Qt::Orientation orientation, in
 void HiveTableModel::sort(int column, Qt::SortOrder order) {
     sortColumn = column;
     sortOrder = order;
-    qSort(list.begin(), list.end(), CBeeCreationTransactionInfoLessThan(column, order));
+    std::sort(list.begin(), list.end(), CBeeCreationTransactionInfoLessThan(column, order));
     Q_EMIT dataChanged(index(0, 0, QModelIndex()), index(list.size() - 1, NUMBER_OF_COLUMNS - 1, QModelIndex()));
 }
 

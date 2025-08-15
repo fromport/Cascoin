@@ -42,7 +42,10 @@
 #include <QClipboard>
 #include <QDateTime>
 #include <QDesktopServices>
+#include <QStandardPaths>
+#if QT_VERSION < 0x060000
 #include <QDesktopWidget>
+#endif
 #include <QDoubleValidator>
 #include <QFileDialog>
 #include <QFont>
@@ -78,12 +81,12 @@ namespace GUIUtil {
 
 QString dateTimeStr(const QDateTime &date)
 {
-    return date.date().toString(Qt::SystemLocaleShortDate) + QString(" ") + date.toString("hh:mm");
+    return QLocale().toString(date, QLocale::ShortFormat);
 }
 
 QString dateTimeStr(qint64 nTime)
 {
-    return dateTimeStr(QDateTime::fromTime_t((qint32)nTime));
+    return dateTimeStr(QDateTime::fromSecsSinceEpoch((qint32)nTime));
 }
 
 QFont fixedPitchFont()
@@ -315,11 +318,11 @@ QString getSaveFileName(QWidget *parent, const QString &caption, const QString &
     QString result = QDir::toNativeSeparators(QFileDialog::getSaveFileName(parent, caption, myDir, filter, &selectedFilter));
 
     /* Extract first suffix from filter pattern "Description (*.foo)" or "Description (*.foo *.bar ...) */
-    QRegExp filter_re(".* \\(\\*\\.(.*)[ \\)]");
+    QRegularExpression filter_re(".* \\((?:\\*\\.)?(.*)[ \\)]");
     QString selectedSuffix;
-    if(filter_re.exactMatch(selectedFilter))
+    if(filter_re.match(selectedFilter).hasMatch())
     {
-        selectedSuffix = filter_re.cap(1);
+        selectedSuffix = filter_re.match(selectedFilter).captured(1);
     }
 
     /* Add suffix if needed */
@@ -367,11 +370,11 @@ QString getOpenFileName(QWidget *parent, const QString &caption, const QString &
     if(selectedSuffixOut)
     {
         /* Extract first suffix from filter pattern "Description (*.foo)" or "Description (*.foo *.bar ...) */
-        QRegExp filter_re(".* \\(\\*\\.(.*)[ \\)]");
+        QRegularExpression filter_re(".* \\((?:\\*\\.)?(.*)[ \\)]");
         QString selectedSuffix;
-        if(filter_re.exactMatch(selectedFilter))
+        if(filter_re.match(selectedFilter).hasMatch())
         {
-            selectedSuffix = filter_re.cap(1);
+            selectedSuffix = filter_re.match(selectedFilter).captured(1);
         }
         *selectedSuffixOut = selectedSuffix;
     }
@@ -1002,7 +1005,7 @@ qreal calculateIdealFontSize(int width, const QString& text, QFont font, qreal m
     while(font_size >= minPointSize) {
         font.setPointSizeF(font_size);
         QFontMetrics fm(font);
-        if (fm.width(text) < width) {
+        if (fm.horizontalAdvance(text) < width) {
             break;
         }
         font_size -= 0.5;

@@ -28,6 +28,7 @@
 #include <ui_interface.h>
 #include <util.h>
 #include <utilmoneystr.h>
+#include <array>
 #include <utilstrencodings.h>
 #include <rialto.h> // Cascoin: Rialto
 

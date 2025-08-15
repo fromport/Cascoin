@@ -137,9 +137,9 @@ void PaymentServer::LoadRootCAs(X509_STORE* _store)
 
         certList = QSslCertificate::fromPath(certFile);
         // Use those certificates when fetching payment requests, too:
-        QSslSocket::setDefaultCaCertificates(certList);
+        // Qt6: setDefaultCaCertificates removed; set via configuration per-socket where needed.
     } else
-        certList = QSslSocket::systemCaCertificates();
+        certList = QSslConfiguration::defaultConfiguration().caCertificates();
 
     int nRootCerts = 0;
     const QDateTime currentTime = QDateTime::currentDateTime();
@@ -414,7 +414,7 @@ void PaymentServer::handleURIOrFile(const QString& s)
         if (uri.hasQueryItem("r")) // payment request URI
         {
             QByteArray temp;
-            temp.append(uri.queryItemValue("r"));
+            temp.append(uri.queryItemValue("r").toUtf8());
             QString decoded = QUrl::fromPercentEncoding(temp);
             QUrl fetchUrl(decoded, QUrl::StrictMode);
 

@@ -27,13 +27,17 @@
 #include <wallet/wallet.h>
 #endif
 
+#if QT_VERSION < 0x060000
 #include <QDesktopWidget>
+#else
+#include <QScreen>
+#endif
 #include <QKeyEvent>
 #include <QMenu>
 #include <QMessageBox>
 #include <QScrollBar>
 #include <QSettings>
-#include <QSignalMapper>
+// QSignalMapper is available in Qt5 but unnecessary; we can use lambdas instead
 #include <QTime>
 #include <QTimer>
 #include <QStringList>
@@ -457,7 +461,12 @@ RPCConsole::RPCConsole(const PlatformStyle *_platformStyle, QWidget *parent) :
     QSettings settings;
     if (!restoreGeometry(settings.value("RPCConsoleWindowGeometry").toByteArray())) {
         // Restore failed (perhaps missing setting), center the window
+        #if QT_VERSION >= 0x060000
+        const QRect available = screen() ? screen()->availableGeometry() : QGuiApplication::primaryScreen()->availableGeometry();
+        move(available.center() - frameGeometry().center());
+        #else
         move(QApplication::desktop()->availableGeometry().center() - frameGeometry().center());
+        #endif
     }
 
     ui->openDebugLogfileButton->setToolTip(ui->openDebugLogfileButton->toolTip().arg(tr(PACKAGE_NAME)));
@@ -524,7 +533,7 @@ bool RPCConsole::eventFilter(QObject* obj, QEvent *event)
         case Qt::Key_PageDown:
             if(obj == ui->lineEdit)
             {
-                QApplication::postEvent(ui->messagesWidget, new QKeyEvent(*keyevt));
+                QApplication::postEvent(ui->messagesWidget, new QKeyEvent(keyevt->type(), keyevt->key(), keyevt->modifiers(), keyevt->text(), keyevt->isAutoRepeat(), keyevt->count()));
                 return true;
             }
             break;
@@ -532,7 +541,7 @@ bool RPCConsole::eventFilter(QObject* obj, QEvent *event)
         case Qt::Key_Enter:
             // forward these events to lineEdit
             if(obj == autoCompleter->popup()) {
-                QApplication::postEvent(ui->lineEdit, new QKeyEvent(*keyevt));
+                QApplication::postEvent(ui->lineEdit, new QKeyEvent(keyevt->type(), keyevt->key(), keyevt->modifiers(), keyevt->text(), keyevt->isAutoRepeat(), keyevt->count()));
                 return true;
             }
             break;
@@ -545,7 +554,7 @@ bool RPCConsole::eventFilter(QObject* obj, QEvent *event)
                   ((mod & Qt::ShiftModifier) && key == Qt::Key_Insert)))
             {
                 ui->lineEdit->setFocus();
-                QApplication::postEvent(ui->lineEdit, new QKeyEvent(*keyevt));
+                QApplication::postEvent(ui->lineEdit, new QKeyEvent(keyevt->type(), keyevt->key(), keyevt->modifiers(), keyevt->text(), keyevt->isAutoRepeat(), keyevt->count()));
                 return true;
             }
         }
@@ -603,16 +612,10 @@ void RPCConsole::setClientModel(ClientModel *model)
         // Add a signal mapping to allow dynamic context menu arguments.
         // We need to use int (instead of int64_t), because signal mapper only supports
         // int or objects, which is okay because max bantime (1 year) is < int_max.
-        QSignalMapper* signalMapper = new QSignalMapper(this);
-        signalMapper->setMapping(banAction1h, 60*60);
-        signalMapper->setMapping(banAction24h, 60*60*24);
-        signalMapper->setMapping(banAction7d, 60*60*24*7);
-        signalMapper->setMapping(banAction365d, 60*60*24*365);
-        connect(banAction1h, SIGNAL(triggered()), signalMapper, SLOT(map()));
-        connect(banAction24h, SIGNAL(triggered()), signalMapper, SLOT(map()));
-        connect(banAction7d, SIGNAL(triggered()), signalMapper, SLOT(map()));
-        connect(banAction365d, SIGNAL(triggered()), signalMapper, SLOT(map()));
-        connect(signalMapper, SIGNAL(mapped(int)), this, SLOT(banSelectedNode(int)));
+        connect(banAction1h, &QAction::triggered, this, [this]() { banSelectedNode(60*60); });
+        connect(banAction24h, &QAction::triggered, this, [this]() { banSelectedNode(60*60*24); });
+        connect(banAction7d, &QAction::triggered, this, [this]() { banSelectedNode(60*60*24*7); });
+        connect(banAction365d, &QAction::triggered, this, [this]() { banSelectedNode(60*60*24*365); });
 
         // peer table context menu signals
         connect(ui->peerWidget, SIGNAL(customContextMenuRequested(const QPoint&)), this, SLOT(showPeersTableContextMenu(const QPoint&)));

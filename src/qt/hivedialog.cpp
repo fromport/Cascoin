@@ -397,7 +397,7 @@ void HiveDialog::updateGraph() {
     const Consensus::Params& consensusParams = Params().GetConsensus();
 
     ui->beePopGraph->graph()->data()->clear();
-    double now = QDateTime::currentDateTime().toTime_t();
+    double now = QDateTime::currentDateTime().toSecsSinceEpoch();
     int totalLifespan = consensusParams.beeGestationBlocks + consensusParams.beeLifespanBlocks;
     QVector<QCPGraphData> dataMature(totalLifespan);
     QVector<QCPGraphData> dataImmature(totalLifespan);
@@ -430,7 +430,7 @@ void HiveDialog::onMouseMove(QMouseEvent *event) {
     int beeCountImmature = (int)graphTracerImmature->position->value();
     int beeCountMature = (int)graphTracerMature->position->value();      
 
-    QDateTime xDateTime = QDateTime::fromTime_t(x);
+    QDateTime xDateTime = QDateTime::fromSecsSinceEpoch(x);
     int global100 = (int)((double)potentialRewards / beeCost);
     QColor traceColMature = beeCountMature >= global100 ? Qt::red : Qt::black;
     QColor traceColImmature = beeCountImmature >= global100 ? Qt::red : Qt::black;

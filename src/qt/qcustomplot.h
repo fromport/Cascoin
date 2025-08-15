@@ -54,6 +54,7 @@
 #include <QtCore/QSharedPointer>
 #include <QtCore/QTimer>
 #include <QtGui/QPainter>
+#include <QtGui/QPainterPath>
 #include <QtGui/QPaintEvent>
 #include <QtGui/QMouseEvent>
 #include <QtGui/QWheelEvent>
@@ -142,9 +143,13 @@ class QCPBars;
   
   It provides QMetaObject-based reflection of its enums and flags via \a QCP::staticMetaObject.
 */
-#ifndef Q_MOC_RUN
+#if QT_VERSION >= 0x060000
 namespace QCP {
+  Q_NAMESPACE
 #else
+#  ifndef Q_MOC_RUN
+namespace QCP {
+#  else
 class QCP { // when in moc-run, make it look like a class, so we get Q_GADGET, Q_ENUMS/Q_FLAGS features in namespace
   Q_GADGET
   Q_ENUMS(ExportPen)
@@ -161,6 +166,7 @@ class QCP { // when in moc-run, make it look like a class, so we get Q_GADGET, Q
   Q_ENUMS(SelectionRectMode)
   Q_ENUMS(SelectionType)
 public:
+#  endif
 #endif
 
 /*!
@@ -363,7 +369,9 @@ inline int getMarginValue(const QMargins &margins, QCP::MarginSide side)
 }
 
 
+#if QT_VERSION < 0x060000
 extern const QMetaObject staticMetaObject; // in moc-run we create a static meta object for QCP "fake" object. This line is the link to it via QCP::staticMetaObject in normal operation as namespace
+#endif
 
 } // end of namespace QCP
 Q_DECLARE_OPERATORS_FOR_FLAGS(QCP::AntialiasedElements)

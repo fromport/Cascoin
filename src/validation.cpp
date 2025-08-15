@@ -20,6 +20,8 @@
 #include <policy/fees.h>
 #include <policy/policy.h>
 #include <policy/rbf.h>
+#include <boost/bind/bind.hpp>
+using namespace boost::placeholders;
 #include <pow.h>
 #include <primitives/block.h>
 #include <primitives/transaction.h>

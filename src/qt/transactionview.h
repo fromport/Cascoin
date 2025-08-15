@@ -21,7 +21,7 @@ class QFrame;
 class QLineEdit;
 class QMenu;
 class QModelIndex;
-class QSignalMapper;
+#include <functional>
 class QTableView;
 QT_END_NAMESPACE
 
@@ -70,7 +70,7 @@ private:
     QLineEdit *amountWidget;
 
     QMenu *contextMenu;
-    QSignalMapper *mapperThirdPartyTxUrls;
+    QList<std::pair<QAction*, QString>> thirdPartyUrlActions;
 
     QFrame *dateRangeWidget;
     QDateTimeEdit *dateFrom;

@@ -1,6 +1,7 @@
 // Cascoin: Hexagon pie :)
 
 #include <qt/tinypie.h>
+#include <QPainterPath>
 
 TinyPie::TinyPie(QWidget *parent) : QWidget(parent) {
     normalisedVal = 0;

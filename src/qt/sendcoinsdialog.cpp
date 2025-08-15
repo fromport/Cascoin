@@ -699,7 +699,15 @@ void SendCoinsDialog::updateSmartFeeLabel()
         int lightness = ui->fallbackFeeWarningLabel->palette().color(QPalette::WindowText).lightness();
         QColor warning_colour(255 - (lightness / 5), 176 - (lightness / 3), 48 - (lightness / 14));
         ui->fallbackFeeWarningLabel->setStyleSheet("QLabel { color: " + warning_colour.name() + "; }");
-        ui->fallbackFeeWarningLabel->setIndent(QFontMetrics(ui->fallbackFeeWarningLabel->font()).width("x"));
+        {
+            QFontMetrics fm(ui->fallbackFeeWarningLabel->font());
+            #if QT_VERSION >= 0x050B00
+            int em = fm.horizontalAdvance("x");
+            #else
+            int em = fm.width("x");
+            #endif
+            ui->fallbackFeeWarningLabel->setIndent(em);
+        }
     }
     else
     {
