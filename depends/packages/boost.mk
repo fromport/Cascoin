@@ -20,7 +20,9 @@ $(package)_archiver_$(host_os)=$($(package)_ar)
 $(package)_toolset_darwin=darwin
 $(package)_archiver_darwin=$($(package)_libtool)
 $(package)_config_libraries=chrono,filesystem,program_options,system,thread,test
-$(package)_cxxflags=-std=c++17 -fvisibility=hidden
+$(package)_cxxflags=-std=c++11 -fvisibility=hidden
+$(package)_cxxflags_x86_64_mingw32=-std=c++11 -fno-pic -fno-PIE
+$(package)_cflags_x86_64_mingw32=-fno-pic -fno-PIE
 $(package)_cxxflags_linux=-fPIC
 endef
 
