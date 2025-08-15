@@ -59,7 +59,7 @@ HiveDialog::HiveDialog(const PlatformStyle *_platformStyle, QWidget *parent) :
 
     ui->beePopIndexPie->foregroundCol = Qt::red;
 
-    // Swap cols for hive weight pie
+    // Swap cols for labyrinth weight pie
     QColor temp = ui->hiveWeightPie->foregroundCol;
     ui->hiveWeightPie->foregroundCol = ui->hiveWeightPie->backgroundCol;
     ui->hiveWeightPie->backgroundCol = temp;
@@ -199,21 +199,21 @@ void HiveDialog::updateData(bool forceGlobalSummaryUpdate) {
             tooltip = "Cascoin is not connected";
             icon = ":/icons/hivestatus_disabled";
         } else if (!model->isHiveEnabled()) {
-            tooltip = "The Hive is not enabled on the network";
+            tooltip = "The Labyrinth is not enabled on the network";
             icon = ":/icons/hivestatus_disabled";
         } else {
             if (mature + immature == 0) {
-                tooltip = "No live bees currently in wallet";
+                tooltip = "No live mice currently in wallet";
                 icon = ":/icons/hivestatus_clear";
             } else if (mature == 0) {
-                tooltip = "Only immature bees currently in wallet";
+                tooltip = "Only immature mice currently in wallet";
                 icon = ":/icons/hivestatus_orange";
             } else {
                 if (model->getEncryptionStatus() == WalletModel::Locked) {
-                    tooltip = "WARNING: Bees mature but not mining because wallet is locked";
+                    tooltip = "WARNING: Mice mature but not mining because wallet is locked";
                     icon = ":/icons/hivestatus_red";
                 } else {
-                    tooltip = "Bees mature and mining";
+                    tooltip = "Mice mature and mining";
                     icon = ":/icons/hivestatus_green";
                 }
             }
@@ -366,7 +366,7 @@ void HiveDialog::initGraph() {
     dateTicker->setDateTimeFormat("ddd d MMM");
     ui->beePopGraph->xAxis->setTicker(dateTicker);
 
-    ui->beePopGraph->yAxis->setLabel("Bees");
+    ui->beePopGraph->yAxis->setLabel("Mice");
 
     giTicker = QSharedPointer<QCPAxisTickerGI>(new QCPAxisTickerGI);
     ui->beePopGraph->yAxis2->setTicker(giTicker);
@@ -438,7 +438,7 @@ void HiveDialog::onMouseMove(QMouseEvent *event) {
     graphTracerImmature->setPen(QPen(traceColImmature, 1, Qt::DashLine));    
     graphTracerMature->setPen(QPen(traceColMature, 1, Qt::DashLine));
 
-    graphMouseoverText->setText(xDateTime.toString("ddd d MMM") + " " + xDateTime.time().toString() + ":\n" + formatLargeNoLocale(beeCountMature) + " mature bees\n" + formatLargeNoLocale(beeCountImmature) + " immature bees");
+    graphMouseoverText->setText(xDateTime.toString("ddd d MMM") + " " + xDateTime.time().toString() + ":\n" + formatLargeNoLocale(beeCountMature) + " mature mice\n" + formatLargeNoLocale(beeCountImmature) + " immature mice");
     graphMouseoverText->setColor(traceColMature);
     graphMouseoverText->position->setCoords(QPointF(x, y));
     QPointF pixelPos = graphMouseoverText->position->pixelPosition();

@@ -385,11 +385,11 @@ QString TransactionTableModel::formatTxType(const TransactionRecord *wtx) const
 
     // Cascoin: Hive: Handle additional TransactionRecord types
     case TransactionRecord::HiveBeeCreation:
-        return tr("Hive bee creation");
+        return tr("Labyrinth mouse creation");
     case TransactionRecord::HiveCommunityFund:
-        return tr("Hive community fund");
+        return tr("Labyrinth community fund");
     case TransactionRecord::HiveHoney:
-        return tr("Hivemined");
+        return tr("Labyrinth-mined");
 
     default:
         return QString();
@@ -443,11 +443,11 @@ QString TransactionTableModel::formatTxToAddress(const TransactionRecord *wtx, b
 
     // Cascoin: Hive: Handle additional TransactionRecord types
     case TransactionRecord::HiveBeeCreation:
-        return "Hive bee creation";
+        return "Labyrinth mouse creation";
     case TransactionRecord::HiveHoney:
         return lookupAddress(wtx->address, tooltip);
     case TransactionRecord::HiveCommunityFund:
-        return "Hive community fund contribution";
+        return "Labyrinth community fund contribution";
 
     case TransactionRecord::SendToSelf:
     default:

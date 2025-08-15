@@ -37,7 +37,7 @@
         </font>
        </property>
        <property name="text">
-        <string>Create Bees</string>
+        <string>Create Mice</string>
        </property>
       </widget>
      </item>
@@ -88,7 +88,7 @@
         </font>
        </property>
        <property name="text">
-        <string>&lt;span style=&quot;color:#ff0000;&quot;&gt;Please &lt;a href=&quot;https://hive.cascoin.net/guide/&quot;&gt;&lt;span style=&quot;text-decoration: underline;&quot;&gt;learn about The Hive&lt;/span&gt;&lt;/a&gt; before creating bees&lt;/span&gt;</string>
+        <string>&lt;span style=&quot;color:#ff0000;&quot;&gt;Please &lt;a href=&quot;https://hive.cascoin.net/guide/&quot;&gt;&lt;span style=&quot;text-decoration: underline;&quot;&gt;learn about The Hive&lt;/span&gt;&lt;/a&gt; before creating mice&lt;/span&gt;</string>
        </property>
        <property name="openExternalLinks">
         <bool>true</bool>
@@ -130,7 +130,7 @@ background-color:white;}</string>
       <item row="0" column="0">
        <widget class="QLabel" name="currentBeeCostLabel_2">
         <property name="text">
-         <string>Current bee cost:</string>
+         <string>Current mouse cost:</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -180,7 +180,7 @@ background-color:white;}</string>
       <item row="2" column="0">
        <widget class="QLabel" name="beesToCreateLabel_2">
         <property name="text">
-         <string>Bees to create:</string>
+         <string>Mice to create:</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -278,10 +278,10 @@ background-color:white;}</string>
            </size>
           </property>
           <property name="toolTip">
-           <string>Create bees now. You will be shown a confirmation dialogue including final transaction fees.</string>
+           <string>Create mice now. You will be shown a confirmation dialogue including final transaction fees.</string>
           </property>
           <property name="text">
-           <string>Create bees</string>
+           <string>Create mice</string>
           </property>
           <property name="icon">
            <iconset>
@@ -304,14 +304,14 @@ background-color:white;}</string>
            </font>
           </property>
           <property name="toolTip">
-           <string>Click to unlock your wallet for Hive Mining and Rialto messaging. Note that this doesn't unlock the wallet for transactions; you must
-still fully unlock it to send funds.</string>
+           <string>Click to unlock your wallet for Labyrinth mining and Rialto messaging. Note that this doesn't unlock the wallet for transactions; you must
+ still fully unlock it to send funds.</string>
           </property>
           <property name="styleSheet">
            <string notr="true">color:red;</string>
           </property>
           <property name="text">
-           <string>WALLET IS LOCKED: Unlock for Rialto and Hive</string>
+           <string>WALLET IS LOCKED: Unlock for Rialto and Labyrinth</string>
           </property>
           <property name="icon">
            <iconset>
@@ -328,10 +328,10 @@ still fully unlock it to send funds.</string>
            </size>
           </property>
           <property name="toolTip">
-           <string>Open the Options dialogue to edit Hive mining settings.</string>
+           <string>Open the Options dialogue to edit Labyrinth mining settings.</string>
           </property>
           <property name="text">
-           <string>Hive mining options</string>
+           <string>Labyrinth mining options</string>
           </property>
           <property name="icon">
            <iconset>
@@ -414,7 +414,7 @@ still fully unlock it to send funds.</string>
         </font>
        </property>
        <property name="text">
-        <string>Global Network Hive</string>
+        <string>Global Network Labyrinth</string>
        </property>
       </widget>
      </item>
@@ -449,10 +449,10 @@ still fully unlock it to send funds.</string>
         <enum>Qt::StrongFocus</enum>
        </property>
        <property name="toolTip">
-        <string>If ticked, advanced global network hive stats will be displayed</string>
+        <string>If ticked, advanced global network labyrinth stats will be displayed</string>
        </property>
        <property name="text">
-        <string>Show bee population graph</string>
+        <string>Show mouse population graph</string>
        </property>
        <property name="checked">
         <bool>false</bool>
@@ -506,10 +506,10 @@ still fully unlock it to send funds.</string>
          <item>
           <widget class="QLabel" name="label_6">
            <property name="toolTip">
-            <string>The total number of immature bees across the whole network</string>
+            <string>The total number of immature mice across the whole network</string>
            </property>
            <property name="text">
-            <string>Immature bees: </string>
+            <string>Immature mice: </string>
            </property>
            <property name="alignment">
             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -519,7 +519,7 @@ still fully unlock it to send funds.</string>
          <item>
           <widget class="QLabel" name="globalImmatureLabel">
            <property name="toolTip">
-            <string>The total number of immature bees across the whole network</string>
+            <string>The total number of immature mice across the whole network</string>
            </property>
            <property name="text">
             <string>0</string>
@@ -545,10 +545,10 @@ still fully unlock it to send funds.</string>
          <item>
           <widget class="QLabel" name="label_12">
            <property name="toolTip">
-            <string>The total number of mature bees across the whole network</string>
+            <string>The total number of mature mice across the whole network</string>
            </property>
            <property name="text">
-            <string>Mature bees: </string>
+            <string>Mature mice: </string>
            </property>
            <property name="alignment">
             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -558,7 +558,7 @@ still fully unlock it to send funds.</string>
          <item>
           <widget class="QLabel" name="globalMatureLabel">
            <property name="toolTip">
-            <string>The total number of mature bees across the whole network</string>
+            <string>The total number of mature mice across the whole network</string>
            </property>
            <property name="text">
             <string>0</string>
@@ -584,10 +584,10 @@ still fully unlock it to send funds.</string>
          <item>
           <widget class="QLabel" name="label_11">
            <property name="toolTip">
-            <string>The total block rewards available on the network over the lifespan of a single bee</string>
+            <string>The total block rewards available on the network over the lifespan of a single mouse</string>
            </property>
            <property name="text">
-            <string>Honey pot: </string>
+            <string>Cheese stash: </string>
            </property>
            <property name="alignment">
             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -597,7 +597,7 @@ still fully unlock it to send funds.</string>
          <item>
           <widget class="QLabel" name="potentialRewardsLabel">
            <property name="toolTip">
-            <string>The total block rewards available on the network over the lifespan of a single bee</string>
+            <string>The total block rewards available on the network over the lifespan of a single mouse</string>
            </property>
            <property name="text">
             <string>0</string>
@@ -623,9 +623,9 @@ still fully unlock it to send funds.</string>
          <item>
           <widget class="QLabel" name="label_16">
            <property name="toolTip">
-            <string>The Global Index is a measure of network bee population. At a value of 100,
-the network is saturated with the maximum number of bees that are expected
-to make back their cost. At values below 100, it is expected at all bees will be profitable.</string>
+            <string>The Global Index is a measure of network mouse population. At a value of 100,
+ the network is saturated with the maximum number of mice that are expected
+ to make back their cost. At values below 100, it is expected at all mice will be profitable.</string>
            </property>
            <property name="text">
             <string>&lt;a href=&quot;https://hive.cascoin.net/gi/&quot;&gt;&lt;span style=&quot;text-decoration: underline;&quot;&gt;Global index&lt;/span&gt;&lt;/a&gt;: </string>
@@ -641,9 +641,9 @@ to make back their cost. At values below 100, it is expected at all bees will be
          <item>
           <widget class="QLabel" name="beePopIndexLabel">
            <property name="toolTip">
-            <string>The Global Index is a measure of network bee population. At a value of 100,
-the network is saturated with the maximum number of bees that are expected
-to make back their cost. At values below 100, it is expected at all bees will be profitable.</string>
+            <string>The Global Index is a measure of network mouse population. At a value of 100,
+ the network is saturated with the maximum number of mice that are expected
+ to make back their cost. At values below 100, it is expected at all mice will be profitable.</string>
            </property>
            <property name="text">
             <string>0</string>
@@ -681,9 +681,9 @@ to make back their cost. At values below 100, it is expected at all bees will be
             </size>
            </property>
            <property name="toolTip">
-            <string>The Global Index is a measure of network bee population. At a value of 100,
-the network is saturated with the maximum number of bees that are expected
-to make back their cost. At values below 100, it is expected at all bees will be profitable.</string>
+            <string>The Global Index is a measure of network mouse population. At a value of 100,
+ the network is saturated with the maximum number of mice that are expected
+ to make back their cost. At values below 100, it is expected at all mice will be profitable.</string>
            </property>
           </widget>
          </item>
@@ -703,7 +703,7 @@ to make back their cost. At values below 100, it is expected at all bees will be
          <item>
           <widget class="QLabel" name="label_13">
            <property name="toolTip">
-            <string>Global network hive stats are automatically refreshed every 10 blocks</string>
+            <string>Global network labyrinth stats are automatically refreshed every 10 blocks</string>
            </property>
            <property name="text">
             <string>(Stats refresh: </string>
@@ -726,7 +726,7 @@ to make back their cost. At values below 100, it is expected at all bees will be
          <item>
           <widget class="QLabel" name="label_15">
            <property name="toolTip">
-            <string>Global network hive stats are automatically refreshed every 10 blocks</string>
+            <string>Global network labyrinth stats are automatically refreshed every 10 blocks</string>
            </property>
            <property name="text">
             <string> blocks) </string>
@@ -745,7 +745,7 @@ to make back their cost. At values below 100, it is expected at all bees will be
             </size>
            </property>
            <property name="toolTip">
-            <string>Refresh global hive stats now</string>
+            <string>Refresh global labyrinth stats now</string>
            </property>
            <property name="text">
             <string>Refresh</string>
@@ -804,7 +804,7 @@ background-color:white;
          <string notr="true"/>
         </property>
         <property name="text">
-         <string>Network hive summary not yet generated.</string>
+         <string>Network labyrinth summary not yet generated.</string>
         </property>
        </widget>
       </item>
@@ -817,7 +817,7 @@ background-color:white;
          </size>
         </property>
         <property name="toolTip">
-         <string>Attempt to generate global network hive stats now</string>
+         <string>Attempt to generate global network labyrinth stats now</string>
         </property>
         <property name="text">
          <string>Generate Now</string>
@@ -888,7 +888,7 @@ background-color:white;
            </font>
           </property>
           <property name="text">
-           <string>Your Hive</string>
+           <string>Your Labyrinth</string>
           </property>
          </widget>
         </item>
@@ -923,10 +923,10 @@ background-color:white;
            <enum>Qt::StrongFocus</enum>
           </property>
           <property name="toolTip">
-           <string>If ticked, your hive display and summary will include bees that have expired as well as bees that are currently living.</string>
+           <string>If ticked, your labyrinth display and summary will include mice that have expired as well as mice that are currently living.</string>
           </property>
           <property name="text">
-           <string>Include expired bees</string>
+           <string>Include expired mice</string>
           </property>
           <property name="checked">
            <bool>false</bool>
@@ -959,12 +959,12 @@ background-color:white;
         <item>
          <widget class="QLabel" name="label_14">
           <property name="toolTip">
-           <string>Hive Weight = is your hive population / global hive population. 
-This represents how much of the global hive you control as well as
-your hive's chance of mining any given hivemineable block.</string>
+           <string>Labyrinth weight = your mouse population / global mouse population. 
+ This represents how much of the global labyrinth you control as well as
+ your chance of mining any given labyrinth-mineable block.</string>
           </property>
           <property name="text">
-           <string>Hive weight:</string>
+           <string>Labyrinth weight:</string>
           </property>
           <property name="alignment">
            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -974,9 +974,9 @@ your hive's chance of mining any given hivemineable block.</string>
         <item>
          <widget class="QLabel" name="localHiveWeightLabel">
           <property name="toolTip">
-           <string>Hive Weight = is your hive population / global hive population. 
-This represents how much of the global hive you control as well as
-your hive's chance of mining any given hivemineable block.</string>
+           <string>Labyrinth weight = your mouse population / global mouse population. 
+ This represents how much of the global labyrinth you control as well as
+ your chance of mining any given labyrinth-mineable block.</string>
           </property>
           <property name="text">
            <string>0</string>
@@ -998,9 +998,9 @@ your hive's chance of mining any given hivemineable block.</string>
            </size>
           </property>
           <property name="toolTip">
-           <string>Hive Weight = is your hive population / global hive population. 
-This represents how much of the global hive you control as well as
-your hive's chance of mining any given hivemineable block.</string>
+           <string>Labyrinth weight = your mouse population / global mouse population. 
+ This represents how much of the global labyrinth you control as well as
+ your chance of mining any given labyrinth-mineable block.</string>
           </property>
          </widget>
         </item>
@@ -1023,7 +1023,7 @@ your hive's chance of mining any given hivemineable block.</string>
         <item>
          <widget class="QLabel" name="label">
           <property name="toolTip">
-           <string>Current number of immature bees in your hive</string>
+           <string>Current number of immature mice in your labyrinth</string>
           </property>
           <property name="text">
            <string>Immature:</string>
@@ -1036,7 +1036,7 @@ your hive's chance of mining any given hivemineable block.</string>
         <item>
          <widget class="QLabel" name="immatureLabel">
           <property name="toolTip">
-           <string>Current number of immature bees in your hive</string>
+           <string>Current number of immature mice in your labyrinth</string>
           </property>
           <property name="text">
            <string>0</string>
@@ -1062,7 +1062,7 @@ your hive's chance of mining any given hivemineable block.</string>
         <item>
          <widget class="QLabel" name="label_3">
           <property name="toolTip">
-           <string>Current number of mature bees in your hive</string>
+           <string>Current number of mature mice in your labyrinth</string>
           </property>
           <property name="text">
            <string>Mature:</string>
@@ -1075,7 +1075,7 @@ your hive's chance of mining any given hivemineable block.</string>
         <item>
          <widget class="QLabel" name="matureLabel">
           <property name="toolTip">
-           <string>Current number of mature bees in your hive</string>
+           <string>Current number of mature mice in your labyrinth</string>
           </property>
           <property name="text">
            <string>0</string>
@@ -1101,7 +1101,7 @@ your hive's chance of mining any given hivemineable block.</string>
         <item>
          <widget class="QLabel" name="deadTitleLabel">
           <property name="toolTip">
-           <string>Current number of expired bees in your hive</string>
+           <string>Current number of expired mice in your labyrinth</string>
           </property>
           <property name="text">
            <string>Expired:</string>
@@ -1114,7 +1114,7 @@ your hive's chance of mining any given hivemineable block.</string>
         <item>
          <widget class="QLabel" name="deadLabel">
           <property name="toolTip">
-           <string>Current number of expired bees in your hive</string>
+           <string>Current number of expired mice in your labyrinth</string>
           </property>
           <property name="text">
            <string>0</string>
@@ -1140,7 +1140,7 @@ your hive's chance of mining any given hivemineable block.</string>
         <item>
          <widget class="QLabel" name="label_4">
           <property name="toolTip">
-           <string>The number of blocks hivemined by your bees</string>
+           <string>The number of blocks mined by your mice</string>
           </property>
           <property name="text">
            <string>Blocks found:</string>
@@ -1153,7 +1153,7 @@ your hive's chance of mining any given hivemineable block.</string>
         <item>
          <widget class="QLabel" name="blocksFoundLabel">
           <property name="toolTip">
-           <string>The number of blocks hivemined by your bees</string>
+           <string>The number of blocks mined by your mice</string>
           </property>
           <property name="text">
            <string>0</string>
@@ -1179,7 +1179,7 @@ your hive's chance of mining any given hivemineable block.</string>
         <item>
          <widget class="QLabel" name="label_10">
           <property name="toolTip">
-           <string>Total bee cost of your hive</string>
+           <string>Total mouse cost of your labyrinth</string>
           </property>
           <property name="text">
            <string>Cost:</string>
@@ -1192,7 +1192,7 @@ your hive's chance of mining any given hivemineable block.</string>
         <item>
          <widget class="QLabel" name="costLabel">
           <property name="toolTip">
-           <string>Total bee cost of your hive</string>
+           <string>Total mouse cost of your labyrinth</string>
           </property>
           <property name="text">
            <string>0</string>
@@ -1218,7 +1218,7 @@ your hive's chance of mining any given hivemineable block.</string>
         <item>
          <widget class="QLabel" name="label_5">
           <property name="toolTip">
-           <string>Total block rewards earned by your bees</string>
+           <string>Total block rewards earned by your mice</string>
           </property>
           <property name="text">
            <string>Rewards:</string>
@@ -1231,7 +1231,7 @@ your hive's chance of mining any given hivemineable block.</string>
         <item>
          <widget class="QLabel" name="rewardsPaidLabel">
           <property name="toolTip">
-           <string>Total block rewards earned by your bees</string>
+           <string>Total block rewards earned by your mice</string>
           </property>
           <property name="text">
            <string>0</string>
@@ -1257,7 +1257,7 @@ your hive's chance of mining any given hivemineable block.</string>
         <item>
          <widget class="QLabel" name="label_7">
           <property name="toolTip">
-           <string>Total profit made by your bees</string>
+           <string>Total profit made by your mice</string>
           </property>
           <property name="text">
            <string>Profit:</string>
@@ -1270,7 +1270,7 @@ your hive's chance of mining any given hivemineable block.</string>
         <item>
          <widget class="QLabel" name="profitLabel">
           <property name="toolTip">
-           <string>Total profit made by your bees</string>
+           <string>Total profit made by your mice</string>
           </property>
           <property name="text">
            <string>0</string>

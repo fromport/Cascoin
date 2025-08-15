@@ -22,7 +22,7 @@ HiveTableModel::HiveTableModel(const PlatformStyle *_platformStyle, CWallet *wal
     Q_UNUSED(wallet);
 
     // Set column headings
-    columns << tr("Created") << tr("Bee count") << tr("Bee status") << tr("Estimated time until status change") << tr("Bee cost") << tr("Rewards earned");
+    columns << tr("Created") << tr("Mouse count") << tr("Mouse status") << tr("Estimated time until status change") << tr("Mouse cost") << tr("Rewards earned");
 
     sortOrder = Qt::DescendingOrder;
     sortColumn = 0;

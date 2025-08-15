@@ -265,7 +265,7 @@ BitcoinGUI::BitcoinGUI(const PlatformStyle *_platformStyle, const NetworkStyle *
 
     connect(connectionsControl, SIGNAL(clicked(QPoint)), this, SLOT(toggleNetworkActive()));
 
-    // Cascoin: Hive: Clicking on hive status icon takes user to Hive tab
+    // Cascoin: Hive: Clicking on hive status icon takes user to Labyrinth tab
     connect(hiveStatusIcon, SIGNAL(clicked(QPoint)), this, SLOT(gotoHivePage()));
 
     modalOverlay = new ModalOverlay(this->centralWidget());
@@ -277,7 +277,7 @@ BitcoinGUI::BitcoinGUI(const PlatformStyle *_platformStyle, const NetworkStyle *
     }
 #endif
 
-    updateHiveStatusIcon(":/icons/hivestatus_disabled", "The Hive is not enabled on the network");
+    updateHiveStatusIcon(":/icons/hivestatus_disabled", "The Labyrinth is not enabled on the network");
 }
 
 BitcoinGUI::~BitcoinGUI()
@@ -338,8 +338,8 @@ void BitcoinGUI::createActions()
     tabGroup->addAction(historyAction);
 
     // Cascoin: Hive page
-    hiveAction = new QAction(platformStyle->SingleColorIcon(":/icons/bee"), tr("The &Hive"), this);
-    hiveAction->setStatusTip(tr("Hive Mining center"));
+    hiveAction = new QAction(platformStyle->SingleColorIcon(":/icons/bee"), tr("The &Labyrinth"), this);
+    hiveAction->setStatusTip(tr("Labyrinth mining center"));
     hiveAction->setToolTip(hiveAction->statusTip());
     hiveAction->setCheckable(true);
     hiveAction->setShortcut(QKeySequence(Qt::ALT | Qt::Key_1));

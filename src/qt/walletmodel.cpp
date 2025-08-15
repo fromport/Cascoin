@@ -690,14 +690,14 @@ bool WalletModel::createBees(int beeCount, bool communityContrib, QWidget *paren
     CAmount txFee = wtxNew.GetDebit(ISMINE_ALL) - wtxNew.tx->GetValueOut();
     CAmount amountWithoutFees = totalAmount - txFee;
 
-    QString questionString = tr("Are you sure you want to create bees?<br />");
+    QString questionString = tr("Are you sure you want to create mice?<br />");
 
     if (beePopIndex > 90)
-        questionString.append("<br /><span style='color:#aa0000;'><b>WARNING:</b> Global Index is high and bees may not be profitable. Please ensure you understand the consequences before proceeding.</span><br />");
+        questionString.append("<br /><span style='color:#aa0000;'><b>WARNING:</b> Global Index is high and mice may not be profitable. Please ensure you understand the consequences before proceeding.</span><br />");
 
     questionString.append("<br />");
     questionString.append("<b>" + BitcoinUnits::formatHtmlWithUnit(optionsModel->getDisplayUnit(), amountWithoutFees) + "</b>");
-    questionString.append(" to create " + QString::number(beeCount) + " bees");
+    questionString.append(" to create " + QString::number(beeCount) + " mice");
 
     questionString.append("<hr /><span style='color:#aa0000;'>");
     questionString.append(BitcoinUnits::formatHtmlWithUnit(optionsModel->getDisplayUnit(), txFee));
@@ -714,14 +714,14 @@ bool WalletModel::createBees(int beeCount, bool communityContrib, QWidget *paren
     }
     questionString.append(QString("<span style='font-size:10pt;font-weight:normal;'><br />(=%1)</span>").arg(alternativeUnits.join(" " + tr("or") + "<br />")));
 
-    SendConfirmationDialog confirmationDialog(tr("Confirm bee creation"), questionString);
+    SendConfirmationDialog confirmationDialog(tr("Confirm mouse creation"), questionString);
     confirmationDialog.exec();
     QMessageBox::StandardButton retval = (QMessageBox::StandardButton)confirmationDialog.result();
 
     if (retval != QMessageBox::Yes)
         return false;
 
-    reservekeyHoney.KeepKey();  // Keep the honey key (always needed; UI doesn't expose custom honey address)
+    reservekeyHoney.KeepKey();  // Keep the cheese key (always needed; UI doesn't expose custom honey address)
 
     CValidationState state;
     if (!wallet->CommitTransaction(wtxNew, reservekeyChange, g_connman.get(), state)) {
@@ -729,7 +729,7 @@ bool WalletModel::createBees(int beeCount, bool communityContrib, QWidget *paren
         return false;
     }
 
-    QMessageBox::information(parent, tr("Success"), "Bees created! Bees will appear in your hive as soon as the transaction appears in a block.");
+    QMessageBox::information(parent, tr("Success"), "Mice created! Mice will appear in your labyrinth as soon as the transaction appears in a block.");
     return true;
 }
 
