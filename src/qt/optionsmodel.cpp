@@ -24,7 +24,8 @@
 #include <wallet/walletdb.h>
 #endif
 
-#include <QNetworkProxy>
+#include <QtNetwork/QNetworkProxy>
+#include <QtCore/qglobal.h>
 #include <QSettings>
 #include <QStringList>
 
@@ -509,6 +510,7 @@ void OptionsModel::setDisplayUnit(const QVariant &value)
 
 bool OptionsModel::getProxySettings(QNetworkProxy& proxy) const
 {
+#if QT_CONFIG(networkproxy)
     // Directly query current base proxy, because
     // GUI settings can be overridden with -proxy.
     proxyType curProxy;
@@ -516,12 +518,13 @@ bool OptionsModel::getProxySettings(QNetworkProxy& proxy) const
         proxy.setType(QNetworkProxy::Socks5Proxy);
         proxy.setHostName(QString::fromStdString(curProxy.proxy.ToStringIP()));
         proxy.setPort(curProxy.proxy.GetPort());
-
         return true;
-    }
-    else
+    } else {
         proxy.setType(QNetworkProxy::NoProxy);
-
+    }
+#else
+    Q_UNUSED(proxy);
+#endif
     return false;
 }
 

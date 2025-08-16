@@ -20,6 +20,9 @@ $(package)_patches += qtbase_skip_tools.patch
 $(package)_patches += rcc_hardcode_timestamp.patch
 $(package)_patches += qttools_skip_dependencies.patch
 
+$(package)_config_opts_mingw+= -no-zstd
+$(package)_ldflags+=-lsecur32
+
 $(package)_qttranslations_file_name=$(qt_details_qttranslations_file_name)
 $(package)_qttranslations_sha256_hash=$(qt_details_qttranslations_sha256_hash)
 
@@ -190,6 +193,9 @@ ifneq ($(host),$(build))
 $(package)_cmake_opts += -DCMAKE_SYSTEM_NAME=$($(host_os)_cmake_system_name)
 $(package)_cmake_opts += -DCMAKE_SYSTEM_VERSION=$($(host_os)_cmake_system_version)
 $(package)_cmake_opts += -DCMAKE_SYSTEM_PROCESSOR=$(host_arch)
+# Ensure CMake uses the cross-compilers for target builds
+$(package)_cmake_opts += -DCMAKE_C_COMPILER=$(host_toolchain)gcc
+$(package)_cmake_opts += -DCMAKE_CXX_COMPILER=$(host_toolchain)g++
 # Native packages cannot be used during cross-compiling. However,
 # Qt still unconditionally tries to find them, which causes issues
 # in some cases, such as when cross-compiling from macOS to Windows.

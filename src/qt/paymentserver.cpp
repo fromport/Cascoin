@@ -30,13 +30,14 @@
 #include <QList>
 #include <QLocalServer>
 #include <QLocalSocket>
-#include <QNetworkAccessManager>
-#include <QNetworkProxy>
-#include <QNetworkReply>
-#include <QNetworkRequest>
-#include <QSslCertificate>
-#include <QSslError>
-#include <QSslSocket>
+#include <QtNetwork/QNetworkAccessManager>
+#include <QtNetwork/QNetworkProxy>
+#include <QtNetwork/QNetworkReply>
+#include <QtNetwork/QNetworkRequest>
+#include <QtNetwork/QSslCertificate>
+#include <QtNetwork/QSslError>
+#include <QtNetwork/QSslConfiguration>
+#include <QtNetwork/QSslSocket>
 #include <QStringList>
 #include <QTextDocument>
 
@@ -138,8 +139,13 @@ void PaymentServer::LoadRootCAs(X509_STORE* _store)
         certList = QSslCertificate::fromPath(certFile);
         // Use those certificates when fetching payment requests, too:
         // Qt6: setDefaultCaCertificates removed; set via configuration per-socket where needed.
-    } else
+    } else {
+#if QT_CONFIG(ssl)
         certList = QSslConfiguration::defaultConfiguration().caCertificates();
+#else
+        certList = QList<QSslCertificate>();
+#endif
+    }
 
     int nRootCerts = 0;
     const QDateTime currentTime = QDateTime::currentDateTime();
@@ -367,21 +373,25 @@ void PaymentServer::initNetManager()
     // netManager is used to fetch paymentrequests given in bitcoin: URIs
     netManager = new QNetworkAccessManager(this);
 
+#if QT_CONFIG(networkproxy)
     QNetworkProxy proxy;
-
     // Query active SOCKS5 proxy
     if (optionsModel->getProxySettings(proxy)) {
         netManager->setProxy(proxy);
-
         qDebug() << "PaymentServer::initNetManager: Using SOCKS5 proxy" << proxy.hostName() << ":" << proxy.port();
-    }
-    else
+    } else {
         qDebug() << "PaymentServer::initNetManager: No active proxy server found.";
+    }
+#else
+    qDebug() << "PaymentServer::initNetManager: Network proxy support not available in Qt build.";
+#endif
 
     connect(netManager, SIGNAL(finished(QNetworkReply*)),
             this, SLOT(netRequestFinished(QNetworkReply*)));
+#if QT_CONFIG(ssl)
     connect(netManager, SIGNAL(sslErrors(QNetworkReply*, const QList<QSslError> &)),
             this, SLOT(reportSslErrors(QNetworkReply*, const QList<QSslError> &)));
+#endif
 }
 
 void PaymentServer::uiReady()
@@ -734,13 +744,19 @@ void PaymentServer::netRequestFinished(QNetworkReply* reply)
 void PaymentServer::reportSslErrors(QNetworkReply* reply, const QList<QSslError> &errs)
 {
     Q_UNUSED(reply);
-
+#if QT_CONFIG(ssl)
     QString errString;
     for (const QSslError& err : errs) {
-        qWarning() << "PaymentServer::reportSslErrors: " << err;
-        errString += err.errorString() + "\n";
+#if QT_VERSION >= 0x060000
+        errString += QString("SSL error: %1\n").arg(QString::fromUtf8(QSslError(err).errorString().toUtf8()));
+#else
+        errString += QString("SSL error: %1\n").arg(err.errorString());
+#endif
     }
     Q_EMIT message(tr("Network request error"), errString, CClientUIInterface::MSG_ERROR);
+#else
+    Q_UNUSED(errs);
+#endif
 }
 
 void PaymentServer::setOptionsModel(OptionsModel *_optionsModel)

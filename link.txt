@@ -1,0 +1,1 @@
+make: *** Keine Regel, um „qt/cascoin-qt.exe“ zu erstellen.  Schluss.

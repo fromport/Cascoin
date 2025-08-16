@@ -8,3 +8,7 @@ mingw32_debug_CFLAGS=-O1
 mingw32_debug_CXXFLAGS=$(mingw32_debug_CFLAGS)
 
 mingw32_debug_CPPFLAGS=-D_GLIBCXX_DEBUG -D_GLIBCXX_DEBUG_PEDANTIC
+
+# CMake cross variables for Qt6 build
+mingw32_cmake_system_name=Windows
+mingw32_cmake_system_version=1
