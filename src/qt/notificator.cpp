@@ -13,6 +13,9 @@
 #include <QSystemTrayIcon>
 #include <QTemporaryFile>
 #include <QVariant>
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+#include <QCoreApplication>
+#endif
 #ifdef USE_DBUS
 #include <stdint.h>
 #include <QtDBus>
@@ -143,13 +146,22 @@ const QDBusArgument &operator>>(const QDBusArgument &a, FreedesktopImage &i)
 
 int FreedesktopImage::metaType()
 {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    static QMetaType type = qDBusRegisterMetaType<FreedesktopImage>();
+    return type.id();
+#else
     return qDBusRegisterMetaType<FreedesktopImage>();
+#endif
 }
 
 QVariant FreedesktopImage::toVariant(const QImage &img)
 {
     FreedesktopImage fimg(img);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    return QVariant::fromValue(fimg);
+#else
     return QVariant(FreedesktopImage::metaType(), &fimg);
+#endif
 }
 
 void Notificator::notifyDBus(Class cls, const QString &title, const QString &text, const QIcon &icon, int millisTimeout)
