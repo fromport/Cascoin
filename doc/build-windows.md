@@ -118,6 +118,25 @@ Once the source code is ready the build steps are below.
     CONFIG_SITE=$PWD/depends/x86_64-w64-mingw32/share/config.site ./configure --prefix=/
     make
 
+### Qt6 GUI configure example
+
+If you built Qt6 via `depends` and need to point configure to those headers, libraries, and host tools explicitly, use:
+
+    export PATH=/usr/lib/qt6/bin:$PATH
+    CPPFLAGS="-I$PWD/depends/x86_64-w64-mingw32/include" \
+    LDFLAGS="-L$PWD/depends/x86_64-w64-mingw32/lib" \
+    PKG_CONFIG_PATH="$PWD/depends/x86_64-w64-mingw32/lib/pkgconfig" \
+    ./configure \
+      --prefix=$PWD/depends/x86_64-w64-mingw32 \
+      --host=x86_64-w64-mingw32 \
+      --disable-tests \
+      --disable-bench \
+      --with-gui=qt6 \
+      --with-qt-incdir=$PWD/depends/x86_64-w64-mingw32/include \
+      --with-qt-libdir=$PWD/depends/x86_64-w64-mingw32/lib \
+      --with-qt-bindir=$PWD/depends/x86_64-w64-mingw32/native/libexec:/usr/lib/qt6/bin \
+      --with-incompatible-bdb
+
 ## Building for 32-bit Windows
 
 To build executables for Windows 32-bit, install the following dependencies:
