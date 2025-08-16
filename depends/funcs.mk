@@ -8,9 +8,6 @@ $(1)_ar=$($($(1)_type)_AR)
 $(1)_ranlib=$($($(1)_type)_RANLIB)
 $(1)_libtool=$($($(1)_type)_LIBTOOL)
 $(1)_nm=$($($(1)_type)_NM)
-$(1)_strip=$($($(1)_type)_STRIP)
-$(1)_objcopy=$($($(1)_type)_OBJCOPY)
-$(1)_windres=$($($(1)_type)_WINDRES)
 $(1)_cflags=$($($(1)_type)_CFLAGS) $($($(1)_type)_$(release_type)_CFLAGS)
 $(1)_cxxflags=$($($(1)_type)_CXXFLAGS) $($($(1)_type)_$(release_type)_CXXFLAGS)
 $(1)_ldflags=$($($(1)_type)_LDFLAGS) $($($(1)_type)_$(release_type)_LDFLAGS) -L$($($(1)_type)_prefix)/lib
@@ -38,7 +35,7 @@ define fetch_file
 endef
 
 define int_get_build_recipe_hash
-$(eval $(1)_all_file_checksums:=$(shell $(build_SHA256SUM) $(meta_depends) packages/$(1).mk $(addprefix $(PATCHES_PATH)/$(1)/,$($(1)_patches)) 2>/dev/null | cut -d" " -f1))
+$(eval $(1)_all_file_checksums:=$(shell $(build_SHA256SUM) $(meta_depends) packages/$(1).mk $(addprefix $(PATCHES_PATH)/$(1)/,$($(1)_patches)) | cut -d" " -f1))
 $(eval $(1)_recipe_hash:=$(shell echo -n "$($(1)_all_file_checksums)" | $(build_SHA256SUM) | cut -d" " -f1))
 endef
 
@@ -77,17 +74,21 @@ $(1)_staged=$$($(1)_staging_dir)/.stamp_staged
 $(1)_postprocessed=$$($(1)_staging_prefix_dir)/.stamp_postprocessed
 $(1)_download_path_fixed=$(subst :,\:,$$($(1)_download_path))
 
+
 #default commands
 $(1)_fetch_cmds ?= $(call fetch_file,$(1),$(subst \:,:,$$($(1)_download_path_fixed)),$$($(1)_download_file),$($(1)_file_name),$($(1)_sha256_hash))
-$(1)_extract_cmds ?= mkdir -p $$($(1)_extract_dir) && echo "$$($(1)_sha256_hash)  $$($(1)_source)" > $$($(1)_extract_dir)/.$$($(1)_file_name).hash &&  $(build_SHA256SUM) -c $$($(1)_extract_dir)/.$$($(1)_file_name).hash && python3 $(BASEDIR)/extract_helper.py $$($(1)_source) $$($(1)_extract_dir) 1
+$(1)_extract_cmds ?= mkdir -p $$($(1)_extract_dir) && echo "$$($(1)_sha256_hash)  $$($(1)_source)" > $$($(1)_extract_dir)/.$$($(1)_file_name).hash &&  $(build_SHA256SUM) -c $$($(1)_extract_dir)/.$$($(1)_file_name).hash && tar --strip-components=1 -xf $$($(1)_source)
 $(1)_preprocess_cmds ?=
 $(1)_build_cmds ?=
 $(1)_config_cmds ?=
 $(1)_stage_cmds ?=
 $(1)_set_vars ?=
 
+
 all_sources+=$$($(1)_fetched)
 endef
+#$(foreach dep_target,$($(1)_all_dependencies),$(eval $(1)_dependency_targets=$($(dep_target)_cached)))
+
 
 define int_config_attach_build_config
 $(eval $(call $(1)_set_vars,$(1)))
@@ -129,19 +130,8 @@ $(1)_config_env+=$($(1)_config_env_$(host_arch)_$(host_os)) $($(1)_config_env_$(
 $(1)_config_env+=PKG_CONFIG_LIBDIR=$($($(1)_type)_prefix)/lib/pkgconfig
 $(1)_config_env+=PKG_CONFIG_PATH=$($($(1)_type)_prefix)/share/pkgconfig
 $(1)_config_env+=PATH=$(build_prefix)/bin:$(PATH)
-$(1)_config_env+=CROSS_COMPILE=$(host_toolchain)
-$(1)_config_env+=CC=$($(1)_cc)
-$(1)_config_env+=CXX=$($(1)_cxx)
-$(1)_config_env+=AR=$($(1)_ar)
-$(1)_config_env+=RANLIB=$($(1)_ranlib)
-$(1)_config_env+=STRIP=$($(1)_strip)
-$(1)_config_env+=OBJCOPY=$($(1)_objcopy)
-$(1)_config_env+=WINDRES=$($(1)_windres)
-
 $(1)_build_env+=PATH=$(build_prefix)/bin:$(PATH)
-$(1)_build_env+=CROSS_COMPILE=$(host_toolchain)
 $(1)_stage_env+=PATH=$(build_prefix)/bin:$(PATH)
-
 $(1)_autoconf=./configure --host=$($($(1)_type)_host) --disable-dependency-tracking --prefix=$($($(1)_type)_prefix) $$($(1)_config_opts) CC="$$($(1)_cc)" CXX="$$($(1)_cxx)"
 
 ifneq ($($(1)_nm),)

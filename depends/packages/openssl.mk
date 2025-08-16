@@ -3,11 +3,9 @@ $(package)_version=3.4.1
 $(package)_download_path=https://www.openssl.org/source
 $(package)_file_name=$(package)-$($(package)_version).tar.gz
 $(package)_sha256_hash=002a2d6b30b58bf4bea46c43bdd96365aaf8daa6c428782aa4feee06da197df3
-# $(package)_patches=fix_installdata_pm.patch  # Not needed for OpenSSL 3.4.1+
 
 define $(package)_set_vars
-$(package)_config_env=AR="$($(package)_ar)" RANLIB="$($(package)_ranlib)" CC="$($(package)_cc)" CROSS_COMPILE="" CXX="$($(package)_cxx)" LD="$($(package)_ld)" NM="$($(package)_nm)" STRIP="$($(package)_strip)"
-$(package)_build_env=CROSS_COMPILE=""
+$(package)_config_env=AR="$(($(package)_ar))" RANLIB="$(($(package)_ranlib))" CC="$(($(package)_cc))" CROSS_COMPILE="$($($(package)_type)_host)-"
 $(package)_config_opts=--prefix=$(host_prefix) --openssldir=$(host_prefix)/etc/openssl
 $(package)_config_opts+=no-camellia
 $(package)_config_opts+=no-cast
@@ -45,32 +43,19 @@ $(package)_config_opts_aarch64_linux=linux-generic64
 $(package)_config_opts_mipsel_linux=linux-generic32
 $(package)_config_opts_mips_linux=linux-generic32
 $(package)_config_opts_powerpc_linux=linux-generic32
-$(package)_config_opts_riscv64_linux=linux-generic64
 $(package)_config_opts_x86_64_darwin=darwin64-x86_64-cc
 $(package)_config_opts_x86_64_mingw32=mingw64
 $(package)_config_opts_i686_mingw32=mingw
 endef
 
-# Preprocess step removed - patch no longer needed for OpenSSL 3.4.1+
-# define $(package)_preprocess_cmds
-#   patch -p1 -i $($(package)_patch_dir)/fix_installdata_pm.patch
-# endef
+define $(package)_preprocess_cmds
+endef
 
 define $(package)_config_cmds
   ./Configure $($(package)_config_opts)
 endef
 
 define $(package)_build_cmds
-  test -s builddata.pm || ( \
-    echo "# Fallback builddata.pm for Perl require/use" > builddata.pm && \
-    echo "package OpenSSL::safe::installdata;" >> builddata.pm && \
-    echo "1;" >> builddata.pm \
-  ) && \
-  test -s installdata.pm || ( \
-    echo "# Fallback installdata.pm for Perl require/use" > installdata.pm && \
-    echo "package OpenSSL::safe::installdata;" >> installdata.pm && \
-    echo "1;" >> installdata.pm \
-  ) && \
   $(MAKE) -j1 build_libs libcrypto.pc libssl.pc openssl.pc
 endef
 
