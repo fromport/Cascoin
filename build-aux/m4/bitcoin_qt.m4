@@ -113,7 +113,10 @@ AC_DEFUN([BITCOIN_QT_CONFIGURE],[
   TEMP_CXXFLAGS=$CXXFLAGS
   CPPFLAGS="$QT_INCLUDES $CPPFLAGS"
   CXXFLAGS="$PIC_FLAGS $CXXFLAGS"
-  if test "x$bitcoin_qt_got_major_vers" = x5; then
+  if test "x$bitcoin_qt_got_major_vers" = x6; then
+    dnl Qt6: do not enforce static plugin link checks here; platform plugin handling differs
+    :
+  elif test "x$bitcoin_qt_got_major_vers" = x5; then
     _BITCOIN_QT_IS_STATIC
     if test "x$bitcoin_cv_static_qt" = xyes; then
       _BITCOIN_QT_FIND_STATIC_PLUGINS
@@ -301,6 +304,27 @@ AC_DEFUN([_BITCOIN_QT_CHECK_QT5],[
     [bitcoin_cv_qt5=yes],
     [bitcoin_cv_qt5=no])
 ])])
+
+dnl Internal. Check if the included version of Qt is Qt6.
+dnl Requires: INCLUDES must be populated as necessary.
+dnl Output: bitcoin_cv_qt6=yes|no
+AC_DEFUN([_BITCOIN_QT_CHECK_QT6],[
+  AC_CACHE_CHECK(for Qt 6, bitcoin_cv_qt6,[
+  AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
+      #include <QtCore/qconfig.h>
+      #ifndef QT_VERSION
+      #  include <QtCore/qglobal.h>
+      #endif
+    ]],
+    [[
+      #if QT_VERSION < 0x060000
+      choke
+      #endif
+    ]])],
+    [bitcoin_cv_qt6=yes],
+    [bitcoin_cv_qt6=no])
+  ])
+])
 
 dnl Internal. Check if the linked version of Qt was built as static libs.
 dnl Requires: Qt5. This check cannot determine if Qt4 is static.
@@ -496,15 +520,28 @@ AC_DEFUN([_BITCOIN_QT_FIND_LIBS_WITHOUT_PKGCONFIG],[
   BITCOIN_QT_CHECK([AC_CHECK_HEADER([QLocalSocket],, BITCOIN_QT_FAIL(QtNetwork headers missing))])
 
   BITCOIN_QT_CHECK([
-    if test "x$bitcoin_qt_want_version" = xauto; then
-      _BITCOIN_QT_CHECK_QT5
-    fi
-    if test "x$bitcoin_cv_qt5" = xyes || test "x$bitcoin_qt_want_version" = xqt5; then
+    if test "x$bitcoin_qt_want_version" = xqt6; then
+      QT_LIB_PREFIX=Qt6
+      bitcoin_qt_got_major_vers=6
+    elif test "x$bitcoin_qt_want_version" = xqt5; then
       QT_LIB_PREFIX=Qt5
       bitcoin_qt_got_major_vers=5
     else
-      QT_LIB_PREFIX=Qt
-      bitcoin_qt_got_major_vers=4
+      dnl auto-detect: prefer Qt6, then Qt5, else fall back to Qt4
+      _BITCOIN_QT_CHECK_QT6
+      if test "x$bitcoin_cv_qt6" = xyes; then
+        QT_LIB_PREFIX=Qt6
+        bitcoin_qt_got_major_vers=6
+      else
+        _BITCOIN_QT_CHECK_QT5
+        if test "x$bitcoin_cv_qt5" = xyes; then
+          QT_LIB_PREFIX=Qt5
+          bitcoin_qt_got_major_vers=5
+        else
+          QT_LIB_PREFIX=Qt
+          bitcoin_qt_got_major_vers=4
+        fi
+      fi
     fi
   ])
 
