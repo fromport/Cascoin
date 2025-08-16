@@ -1,75 +1,204 @@
-### Usage
+# Enhanced Dependencies Build System
 
-To build dependencies for the current arch+OS:
+This directory contains a completely rewritten build system for cross-compiling Cascoin dependencies. The system has been modernized to work with current toolchains and dependency versions.
 
-    make
+## Features
 
-To build for another arch/OS:
+- **Modern Dependencies**: Updated to current stable versions (Qt 6.8 LTS, OpenSSL 3.4, Boost 1.86, etc.)
+- **Enhanced Cross-Compilation**: Improved support for Windows, macOS, and Linux targets
+- **Robust Build Process**: Better error handling and verification
+- **Parallel Builds**: Optimized for multi-core systems
+- **Comprehensive Logging**: Detailed build logs and progress tracking
 
-    make HOST=host-platform-triplet
+## Requirements
 
-For example:
+### Linux (Host System)
 
-    make HOST=x86_64-w64-mingw32 -j4
+```bash
+# Essential tools
+sudo apt-get update
+sudo apt-get install build-essential libtool autotools-dev automake pkg-config bsdmainutils curl git python3 python3-pip
 
-A prefix will be generated that's suitable for plugging into Cascoin's
-configure. In the above example, a dir named x86_64-w64-mingw32 will be
-created. To use it for Cascoin:
+# For Windows cross-compilation
+sudo apt-get install g++-mingw-w64-x86-64 mingw-w64-tools
 
-    ./configure --prefix=`pwd`/depends/x86_64-w64-mingw32
+# Configure MinGW alternatives (select 'posix' option)
+sudo update-alternatives --config x86_64-w64-mingw32-g++
+```
 
-Common `host-platform-triplets` for cross compilation are:
+### macOS (Host System)
 
-- `i686-w64-mingw32` for Win32
-- `x86_64-w64-mingw32` for Win64
-- `x86_64-apple-darwin11` for MacOSX
-- `arm-linux-gnueabihf` for Linux ARM 32 bit
-- `aarch64-linux-gnu` for Linux ARM 64 bit
+```bash
+# Install Xcode command line tools
+xcode-select --install
 
-No other options are needed, the paths are automatically configured.
+# Install dependencies via Homebrew
+brew install curl python3 autoconf automake libtool pkg-config
+```
 
-Install the required dependencies: Ubuntu & Debian
---------------------------------------------------
+## Quick Start
 
-For macOS cross compilation:
+### Windows Cross-Compilation
 
-    sudo apt-get install curl librsvg2-bin libtiff-tools bsdmainutils cmake imagemagick libcap-dev libz-dev libbz2-dev python-setuptools
+```bash
+# Standard Windows 64-bit build
+./build-windows.sh
 
-For Win32/Win64 cross compilation:
+# Windows 32-bit build
+./build-windows.sh -t i686-w64-mingw32
 
-- see [build-windows.md](../doc/build-windows.md#cross-compilation-for-ubuntu-and-windows-subsystem-for-linux)
+# Clean build with custom job count
+./build-windows.sh --clean -j 8
 
-For linux (including i386, ARM) cross compilation:
+# Build without Qt (command-line only)
+./build-windows.sh --no-qt
+```
 
-    sudo apt-get install curl g++-aarch64-linux-gnu g++-4.8-aarch64-linux-gnu gcc-4.8-aarch64-linux-gnu binutils-aarch64-linux-gnu g++-arm-linux-gnueabihf g++-4.8-arm-linux-gnueabihf gcc-4.8-arm-linux-gnueabihf binutils-arm-linux-gnueabihf g++-4.8-multilib gcc-4.8-multilib binutils-gold bsdmainutils
+### Manual Build Process
 
+```bash
+# For Windows 64-bit
+make HOST=x86_64-w64-mingw32 -j$(nproc)
 
-Dependency Options:
-The following can be set when running make: make FOO=bar
+# For Windows 32-bit
+make HOST=i686-w64-mingw32 -j$(nproc)
 
-    SOURCES_PATH: downloaded sources will be placed here
-    BASE_CACHE: built packages will be placed here
-    SDK_PATH: Path where sdk's can be found (used by OSX)
-    FALLBACK_DOWNLOAD_PATH: If a source file can't be fetched, try here before giving up
-    NO_QT: Don't download/build/cache qt and its dependencies
-    NO_WALLET: Don't download/build/cache libs needed to enable the wallet
-    NO_UPNP: Don't download/build/cache packages needed for enabling upnp
-    DEBUG: disable some optimizations and enable more runtime checking
-    HOST_ID_SALT: Optional salt to use when generating host package ids
-    BUILD_ID_SALT: Optional salt to use when generating build package ids
+# For Linux
+make HOST=x86_64-unknown-linux-gnu -j$(nproc)
 
-If some packages are not built, for example `make NO_WALLET=1`, the appropriate
-options will be passed to cascoin's configure. In this case, `--disable-wallet`.
+# For macOS (from Linux)
+make HOST=x86_64-apple-darwin11 -j$(nproc)
+```
 
-Additional targets:
+## Build Options
 
-    download: run 'make download' to fetch all sources without building them
-    download-osx: run 'make download-osx' to fetch all sources needed for osx builds
-    download-win: run 'make download-win' to fetch all sources needed for win builds
-    download-linux: run 'make download-linux' to fetch all sources needed for linux builds
+### Environment Variables
 
-### Other documentation
+- `HOST`: Target platform (e.g., `x86_64-w64-mingw32`)
+- `NO_QT`: Set to `1` to build without Qt
+- `NO_WALLET`: Set to `1` to build without wallet support
+- `NO_UPNP`: Set to `1` to build without UPnP support
+- `DEBUG`: Set to `1` for debug builds
+- `JOBS`: Number of parallel build jobs (default: `nproc`)
 
-- [description.md](description.md): General description of the depends system
-- [packages.md](packages.md): Steps for adding packages
+### Supported Targets
 
+- **Windows**: `x86_64-w64-mingw32`, `i686-w64-mingw32`
+- **Linux**: `x86_64-unknown-linux-gnu`, `i686-pc-linux-gnu`
+- **macOS**: `x86_64-apple-darwin11`
+- **ARM**: `arm-linux-gnueabihf`, `aarch64-linux-gnu`
+
+## Package Versions
+
+The build system includes the following updated packages:
+
+- **Qt**: 6.8.1 LTS (with enhanced cross-compilation support)
+- **OpenSSL**: 3.4.1 (latest stable)
+- **Boost**: 1.86.0 (latest stable)
+- **ZeroMQ**: 4.3.6 (latest stable)
+- **libevent**: 2.1.12-stable
+- **Berkeley DB**: 4.8.30 (for wallet support)
+
+## Cross-Compilation Improvements
+
+### Windows (MinGW-w64)
+
+- Support for modern MinGW-w64 toolchains
+- Improved handling of Windows-specific libraries
+- Enhanced compatibility with WSL and native Linux
+- Better static linking configuration
+
+### Qt 6 Integration
+
+- Updated configuration for Qt 6.8 LTS
+- Cross-compilation patches for Windows builds
+- Optimized feature selection for cryptocurrency applications
+- Enhanced CMake integration
+
+### Build Reliability
+
+- Robust download and extraction handling
+- Comprehensive checksum verification
+- Better dependency resolution
+- Improved caching mechanisms
+
+## Directory Structure
+
+```
+depends/
+├── build-windows.sh        # Enhanced Windows build script
+├── Makefile               # Main build system
+├── funcs.mk              # Build functions and logic
+├── packages/             # Package definitions
+│   ├── packages.mk       # Package list
+│   ├── qt.mk            # Qt 6.8 configuration
+│   ├── openssl.mk       # OpenSSL configuration
+│   ├── boost.mk         # Boost configuration
+│   └── ...
+├── hosts/                # Host-specific configurations
+│   ├── default.mk        # Default host settings
+│   ├── mingw32.mk        # Windows MinGW settings
+│   └── ...
+├── builders/             # Builder configurations
+├── patches/              # Source code patches
+│   ├── qt/              # Qt-specific patches
+│   └── ...
+└── README.md            # This file
+```
+
+## Usage with Main Project
+
+After building dependencies, configure the main project:
+
+```bash
+# Configure with the built dependencies
+CONFIG_SITE=$PWD/depends/x86_64-w64-mingw32/share/config.site ./configure --prefix=/
+
+# Build the main project
+make -j$(nproc)
+```
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Missing cross-compiler**: Install MinGW-w64 and configure alternatives
+2. **Download failures**: Check network connectivity and proxy settings
+3. **Build failures**: Check `build.log` for detailed error messages
+4. **WSL path issues**: Ensure project is in WSL filesystem, not Windows mount
+
+### Debug Mode
+
+Enable verbose output and debug information:
+
+```bash
+make HOST=x86_64-w64-mingw32 DEBUG=1 V=1
+```
+
+### Clean Build
+
+Remove all build artifacts:
+
+```bash
+make clean-all
+```
+
+## Performance Tips
+
+1. **Use parallel builds**: Set `JOBS` to your CPU core count
+2. **Enable caching**: Built packages are cached automatically
+3. **Use SSD storage**: Faster I/O improves build times
+4. **Adequate RAM**: Ensure at least 4GB available during build
+
+## Contributing
+
+When adding new packages or updating existing ones:
+
+1. Update package definitions in `packages/`
+2. Add necessary patches in `patches/`
+3. Test cross-compilation for all supported targets
+4. Update documentation
+
+## License
+
+This build system is part of the Cascoin project and follows the same license terms.
