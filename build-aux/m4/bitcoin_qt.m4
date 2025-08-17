@@ -114,8 +114,11 @@ AC_DEFUN([BITCOIN_QT_CONFIGURE],[
   CPPFLAGS="$QT_INCLUDES $CPPFLAGS"
   CXXFLAGS="$PIC_FLAGS $CXXFLAGS"
   if test "x$bitcoin_qt_got_major_vers" = x6; then
-    dnl Qt6: do not enforce static plugin link checks here; platform plugin handling differs
-    :
+    dnl Qt6: detect static Qt and define QT_STATICPLUGIN so Q_IMPORT_PLUGIN works
+    _BITCOIN_QT_IS_STATIC
+    if test "x$bitcoin_cv_static_qt" = xyes; then
+      AC_DEFINE(QT_STATICPLUGIN, 1, [Define this symbol if qt plugins are static])
+    fi
   elif test "x$bitcoin_qt_got_major_vers" = x5; then
     _BITCOIN_QT_IS_STATIC
     if test "x$bitcoin_cv_static_qt" = xyes; then
