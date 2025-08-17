@@ -506,10 +506,10 @@ background-color:white; color:black;}</string>
          <item>
           <widget class="QLabel" name="label_6">
            <property name="toolTip">
-            <string>The total number of immature mice across the whole network</string>
+            <string>The total number of resting mice across the whole network</string>
            </property>
            <property name="text">
-            <string>Immature mice: </string>
+            <string>Resting mice: </string>
            </property>
            <property name="alignment">
             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -519,7 +519,7 @@ background-color:white; color:black;}</string>
          <item>
           <widget class="QLabel" name="globalImmatureLabel">
            <property name="toolTip">
-            <string>The total number of immature mice across the whole network</string>
+            <string>The total number of resting mice across the whole network</string>
            </property>
            <property name="text">
             <string>0</string>
@@ -545,10 +545,10 @@ background-color:white; color:black;}</string>
          <item>
           <widget class="QLabel" name="label_12">
            <property name="toolTip">
-            <string>The total number of mature mice across the whole network</string>
+            <string>The total number of adventure mice across the whole network</string>
            </property>
            <property name="text">
-            <string>Mature mice: </string>
+            <string>Adventure mice: </string>
            </property>
            <property name="alignment">
             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -558,7 +558,7 @@ background-color:white; color:black;}</string>
          <item>
           <widget class="QLabel" name="globalMatureLabel">
            <property name="toolTip">
-            <string>The total number of mature mice across the whole network</string>
+            <string>The total number of adventure mice across the whole network</string>
            </property>
            <property name="text">
             <string>0</string>
@@ -1023,10 +1023,10 @@ background-color:white; color:black;
         <item>
          <widget class="QLabel" name="label">
           <property name="toolTip">
-           <string>Current number of immature mice in your labyrinth</string>
+           <string>Current number of resting mice in your labyrinth</string>
           </property>
           <property name="text">
-           <string>Immature:</string>
+           <string>Resting:</string>
           </property>
           <property name="alignment">
            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -1036,7 +1036,7 @@ background-color:white; color:black;
         <item>
          <widget class="QLabel" name="immatureLabel">
           <property name="toolTip">
-           <string>Current number of immature mice in your labyrinth</string>
+           <string>Current number of resting mice in your labyrinth</string>
           </property>
           <property name="text">
            <string>0</string>
@@ -1062,10 +1062,10 @@ background-color:white; color:black;
         <item>
          <widget class="QLabel" name="label_3">
           <property name="toolTip">
-           <string>Current number of mature mice in your labyrinth</string>
+           <string>Current number of adventure mice in your labyrinth</string>
           </property>
           <property name="text">
-           <string>Mature:</string>
+           <string>Adventure:</string>
           </property>
           <property name="alignment">
            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -1075,7 +1075,7 @@ background-color:white; color:black;
         <item>
          <widget class="QLabel" name="matureLabel">
           <property name="toolTip">
-           <string>Current number of mature mice in your labyrinth</string>
+           <string>Current number of adventure mice in your labyrinth</string>
           </property>
           <property name="text">
            <string>0</string>

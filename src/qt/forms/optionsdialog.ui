@@ -643,7 +643,7 @@
      </widget>
      <widget class="QWidget" name="tabHive">
       <attribute name="title">
-       <string>&amp;Hive</string>
+       <string>&amp;Labyrinth</string>
       </attribute>
       <layout class="QVBoxLayout" name="verticalLayout_3">
        <item>
@@ -651,7 +651,7 @@
          <item>
           <widget class="QLabel" name="label">
            <property name="text">
-            <string>Hive check interval</string>
+            <string>Labyrinth check interval</string>
            </property>
           </widget>
          </item>
@@ -692,7 +692,7 @@
          <item>
           <widget class="QLabel" name="label_3">
            <property name="text">
-            <string>Hive check threads</string>
+            <string>Labyrinth check threads</string>
            </property>
           </widget>
          </item>
@@ -730,7 +730,7 @@
          <item>
           <widget class="QCheckBox" name="hiveCheckEarlyOut">
            <property name="text">
-            <string>Hive Early Abort enabled</string>
+            <string>Labyrinth Early Abort enabled</string>
            </property>
           </widget>
          </item>
@@ -754,7 +754,7 @@
          <item>
           <widget class="QCheckBox" name="hiveContribCF">
            <property name="text">
-            <string>Send 15% of bee fee to Community Fund (10% before Hive 1.2 activation)</string>
+            <string>Send 15% of mouse fee to Community Fund (10% before Labyrinth 1.2 activation)</string>
            </property>
           </widget>
          </item>
@@ -776,7 +776,7 @@
        <item>
         <widget class="QLabel" name="label_5">
          <property name="text">
-          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Contributing to the community fund does not affect the bee price or the number of bees received.&lt;/p&gt;&lt;p&gt;We recommend leaving the default settings for Hive Check Interval and Hive Early Abort, unless you observe performance degradation on your machine.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Contributing to the community fund does not affect the mouse price or the number of mice received.&lt;/p&gt;&lt;p&gt;We recommend leaving the default settings for Labyrinth Check Interval and Labyrinth Early Abort, unless you observe performance degradation on your machine.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
          </property>
          <property name="wordWrap">
           <bool>true</bool>

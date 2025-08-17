@@ -435,7 +435,7 @@ background-position:bottom right;}</string>
                </font>
               </property>
               <property name="text">
-               <string>Your Current Hive</string>
+               <string>Your Current Labyrinth</string>
               </property>
              </widget>
             </item>
@@ -556,7 +556,7 @@ background-position:bottom right;}</string>
             <item row="0" column="0">
              <widget class="QLabel" name="costLabel_2">
               <property name="text">
-               <string>Bee cost:</string>
+               <string>Mouse cost:</string>
               </property>
              </widget>
             </item>
@@ -706,7 +706,7 @@ background-position:bottom right;}</string>
               <item>
                <widget class="QLabel" name="label_15">
                 <property name="text">
-                 <string> blocks mined)</string>
+                 <string> blocks labyrinth-mined)</string>
                 </property>
                 <property name="alignment">
                  <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -748,14 +748,14 @@ background-position:bottom right;}</string>
           </font>
          </property>
          <property name="toolTip">
-          <string>Click to unlock your wallet for Hive Mining and Rialto messaging. Note that this doesn't unlock the wallet for transactions; you must
-still fully unlock it to send funds.</string>
+          <string>Click to unlock your wallet for Labyrinth mining and Rialto messaging. Note that this doesn't unlock the wallet for transactions; you must
+ still fully unlock it to send funds.</string>
          </property>
          <property name="styleSheet">
           <string notr="true">color:red;</string>
          </property>
          <property name="text">
-          <string>WALLET IS LOCKED: Unlock for Rialto and Hive</string>
+          <string>WALLET IS LOCKED: Unlock for Rialto and Labyrinth</string>
          </property>
          <property name="icon">
           <iconset resource="../bitcoin.qrc">

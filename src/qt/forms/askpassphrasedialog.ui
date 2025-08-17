@@ -130,7 +130,7 @@
         </font>
        </property>
        <property name="text">
-        <string>Note: Wallet will be unlocked only for Hive Mining and Rialto messaging, not to send funds.</string>
+        <string>Note: Wallet will be unlocked only for Labyrinth mining and Rialto messaging, not to send funds.</string>
        </property>
        <property name="wordWrap">
         <bool>true</bool>

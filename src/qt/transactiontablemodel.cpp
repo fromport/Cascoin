@@ -389,7 +389,7 @@ QString TransactionTableModel::formatTxType(const TransactionRecord *wtx) const
     case TransactionRecord::HiveCommunityFund:
         return tr("Labyrinth community fund");
     case TransactionRecord::HiveHoney:
-        return tr("Labyrinth-mined");
+        return tr("Found in the Labyrinth");
 
     default:
         return QString();

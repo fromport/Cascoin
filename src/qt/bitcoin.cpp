@@ -231,6 +231,7 @@ public Q_SLOTS:
     /// Handle runaway exceptions. Shows a message box with the problem and quits the program.
     void handleRunawayException(const QString &message);
     void forceQuitIfShutdownStuck();
+    void hardExit();
 
 Q_SIGNALS:
     void requestedInitialize();
@@ -488,7 +489,10 @@ void BitcoinApplication::requestShutdown()
     startThread();
     window->hide();
     window->setClientModel(0);
-    pollShutdownTimer->stop();
+    // Keep polling for ShutdownRequested() so we can quit promptly
+    if (pollShutdownTimer) {
+        pollShutdownTimer->start(200);
+    }
 
 #ifdef ENABLE_WALLET
     window->removeAllWallets();
@@ -504,7 +508,7 @@ void BitcoinApplication::requestShutdown()
     Q_EMIT requestedShutdown();
 
     // Failsafe: force quit if shutdown doesn't signal completion in time
-    QTimer::singleShot(30000, this, SLOT(forceQuitIfShutdownStuck()));
+    QTimer::singleShot(10000, this, SLOT(forceQuitIfShutdownStuck()));
 }
 
 void BitcoinApplication::initializeResult(bool success)
@@ -576,8 +580,17 @@ void BitcoinApplication::shutdownResult()
 
 void BitcoinApplication::forceQuitIfShutdownStuck()
 {
-    // If shutdownWindow still exists, we assume shutdown might be stuck; attempt to quit anyway
+    // If shutdown appears stuck, ensure the core thread is asked to stop and try again
+    Q_EMIT stopThread();
+    Q_EMIT requestedShutdown();
     quit();
+    // As a last resort, force process exit after a short grace period
+    QTimer::singleShot(3000, this, SLOT(hardExit()));
+}
+
+void BitcoinApplication::hardExit()
+{
+    ::exit(EXIT_SUCCESS);
 }
 
 void BitcoinApplication::handleRunawayException(const QString &message)

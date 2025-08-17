@@ -245,6 +245,7 @@ void SplashScreen::unsubscribeFromCoreSignals()
 void SplashScreen::showMessage(const QString &message, int alignment, const QColor &color)
 {
     curMessage = message;
+    // Keep alignment provided by caller; we'll elide in paintEvent to avoid overflow
     curAlignment = alignment;
     curColor = color;
     update();
@@ -254,9 +255,19 @@ void SplashScreen::paintEvent(QPaintEvent *event)
 {
     QPainter painter(this);
     painter.drawPixmap(0, 0, pixmap);
-    QRect r = rect().adjusted(5, 5, -5, -5);
+    QRect r = rect().adjusted(8, 8, -8, -8);
     painter.setPen(curColor);
-    painter.drawText(r, curAlignment, curMessage);
+    // Elide long lines to ensure they fit horizontally; keep at most last 3 lines
+    QStringList lines = curMessage.split('\n');
+    if (lines.size() > 3) {
+        lines = lines.mid(lines.size() - 3);
+    }
+    QFontMetrics fm(painter.font());
+    for (int i = 0; i < lines.size(); ++i) {
+        lines[i] = fm.elidedText(lines[i], Qt::ElideRight, r.width());
+    }
+    const QString toDraw = lines.join('\n');
+    painter.drawText(r, curAlignment, toDraw);
 }
 
 void SplashScreen::closeEvent(QCloseEvent *event)
