@@ -88,7 +88,7 @@
         </font>
        </property>
        <property name="text">
-        <string>&lt;span style=&quot;color:#ff0000;&quot;&gt;Please &lt;a href=&quot;https://hive.cascoin.net/guide/&quot;&gt;&lt;span style=&quot;text-decoration: underline;&quot;&gt;learn about The Hive&lt;/span&gt;&lt;/a&gt; before creating mice&lt;/span&gt;</string>
+        <string>&lt;span style=&quot;color:#ff0000;&quot;&gt;Please &lt;a href=&quot;https://hive.cascoin.net/guide/&quot;&gt;&lt;span style=&quot;text-decoration: underline;&quot;&gt;learn about The Labyrinth&lt;/span&gt;&lt;/a&gt; before creating mice&lt;/span&gt;</string>
        </property>
        <property name="openExternalLinks">
         <bool>true</bool>
@@ -115,7 +115,7 @@
       <string notr="true">#createBeesForm{background:url(:/icons/hive_background_flash);
 background-repeat:no-repeat;
 background-position:bottom right;
-background-color:white;}</string>
+background-color:white; color:black;}</string>
      </property>
      <property name="frameShape">
       <enum>QFrame::StyledPanel</enum>
@@ -464,7 +464,7 @@ background-color:white;}</string>
    <item>
     <widget class="QFrame" name="globalHiveSummary">
      <property name="styleSheet">
-      <string notr="true">#globalHiveSummary {background-color:white;}</string>
+      <string notr="true">#globalHiveSummary {background-color:white; color:black;}</string>
      </property>
      <property name="frameShape">
       <enum>QFrame::StyledPanel</enum>
@@ -782,7 +782,7 @@ background-color:white;}</string>
     <widget class="QFrame" name="globalHiveSummaryError">
      <property name="styleSheet">
       <string notr="true">#globalHiveSummaryError {
-background-color:white;
+background-color:white; color:black;
 }</string>
      </property>
      <property name="frameShape">

@@ -90,6 +90,13 @@ PlatformStyle::PlatformStyle(const QString &_name, bool _imagesOnButtons, bool _
         else
             colorbase = colorHighlightFg;
         singleColor = colorbase;
+        // Ensure sufficient lightness for readability across themes
+        if (singleColor.lightness() < 120) {
+            QColor hsl = singleColor.toHsl();
+            // Raise lightness while preserving hue/saturation
+            hsl.setHsl(hsl.hue(), hsl.saturation(), 160, hsl.alpha());
+            singleColor = hsl.toRgb();
+        }
     }
     // Determine text color
     textColor = QColor(QApplication::palette().color(QPalette::WindowText));

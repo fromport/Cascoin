@@ -2846,7 +2846,7 @@ bool CWallet::CreateBeeTransaction(int beeCount, CWalletTx& wtxNew, CReserveKey&
     assert(pindexPrev != nullptr);
 
     if (!IsHiveEnabled(pindexPrev, consensusParams)) {
-        strFailReason = "Error: The Hive has not yet been activated on the network";
+        strFailReason = "Error: The Labyrinth has not yet been activated on the network";
         return false;
     }
 	

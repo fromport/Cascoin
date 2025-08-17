@@ -794,7 +794,7 @@ void BitcoinGUI::updateNetworkState()
     connectionsControl->setPixmap(platformStyle->SingleColorIcon(icon).pixmap(STATUSBAR_ICONSIZE,STATUSBAR_ICONSIZE));
 }
 
-// Cascoin: Hive: Update the hive status icon
+// Cascoin: Hive: Update The Labyrinth status icon
 void BitcoinGUI::updateHiveStatusIcon(QString icon, QString tooltip) {
     QPixmap pixmap;
     pixmap.load(icon);

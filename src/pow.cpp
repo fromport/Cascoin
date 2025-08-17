@@ -438,10 +438,10 @@ unsigned int GetNextHive12WorkRequired(const CBlockIndex* pindexLast, const Cons
         pindexLast = pindexLast->pprev;
     }
 
-    // Handle bootstrapping of the Hive system with insufficient history
+    // Handle bootstrapping of The Labyrinth system with insufficient history
     if (hiveBlockCount < 24) {
         // Always return the easiest difficulty during blockchain startup
-        // This helps bootstrap the Hive mining system
+        // This helps bootstrap The Labyrinth mining system
         LogPrintf("GetNextHive12WorkRequired: Insufficient hive blocks - using easiest target for bootstrapping.\n");
         return bnPowLimit.GetCompact();
     }
@@ -626,7 +626,7 @@ bool GetNetworkHiveInfo(int& immatureBees, int& immatureBCTs, int& matureBees, i
     return true;
 }
 
-// Cascoin: Hive: Check the hive proof for given block
+// Cascoin: Hive: Check The Labyrinth proof for given block
 bool CheckHiveProof(const CBlock* pblock, const Consensus::Params& consensusParams) {
     bool verbose = LogAcceptCategory(BCLog::HIVE);
 

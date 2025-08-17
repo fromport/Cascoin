@@ -150,7 +150,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     // Cascoin: Hive: Make sure Hive is enabled if a Hive block is requested
     if (hiveProofScript && !IsHiveEnabled(pindexPrev, chainparams.GetConsensus()))
         throw std::runtime_error(
-            "Error: The Hive is not yet enabled on the network"
+            "Error: The Labyrinth is not yet enabled on the network"
         );
 
     nHeight = pindexPrev->nHeight + 1;
@@ -776,7 +776,7 @@ bool BusyBees(const Consensus::Params& consensusParams, int height) {
 
     // Sanity checks
     if (!IsHiveEnabled(pindexPrev, consensusParams)) {
-        LogPrint(BCLog::HIVE, "BusyBees: Skipping hive check: The Hive is not enabled on the network\n");
+        LogPrint(BCLog::HIVE, "BusyBees: Skipping hive check: The Labyrinth is not enabled on the network\n");
         return false;
     }
     if(!g_connman) {
@@ -967,7 +967,7 @@ bool BusyBees(const Consensus::Params& consensusParams, int height) {
     }
     LogPrintf("BusyBees: Bee meets hash target (check aborted after %ims). Solution with bee #%i from BCT %s. Honey address is %s.\\n", checkTime, solvingBee, solvingRange.txid, solvingRange.honeyAddress);
 
-    // Assemble the Hive proof script
+    // Assemble The Labyrinth proof script
     std::vector<unsigned char> messageProofVec;
     std::vector<unsigned char> txidVec(solvingRange.txid.begin(), solvingRange.txid.end());
     CScript hiveProofScript;

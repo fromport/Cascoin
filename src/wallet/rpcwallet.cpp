@@ -563,7 +563,7 @@ UniValue getbeecost(const JSONRPCRequest& request)
     assert(pindexPrev != nullptr);
     if (!IsHiveEnabled(pindexPrev, consensusParams))
         throw std::runtime_error(
-            "Error: The Hive is not yet enabled on the network"
+            "Error: The Labyrinth is not yet enabled on the network"
         );
 
     CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
@@ -573,7 +573,7 @@ UniValue getbeecost(const JSONRPCRequest& request)
     int height = !request.params[0].isNull() ? request.params[0].get_int() : chainActive.Height();
     if(!IsHiveEnabled(chainActive[height], consensusParams))
         throw std::runtime_error(
-            "Error: The Hive is not enabled at the requested height"
+            "Error: The Labyrinth is not enabled at the requested height"
         );
 
     CAmount beeCost = GetBeeCost(height, consensusParams);
@@ -1245,7 +1245,7 @@ UniValue getnetworkhiveinfo(const JSONRPCRequest& request)
     assert(pindexPrev != nullptr);
 
     if (!IsHiveEnabled(pindexPrev, consensusParams))
-        throw std::runtime_error("Error: The Hive is not yet enabled on the network");
+        throw std::runtime_error("Error: The Labyrinth is not yet enabled on the network");
 
     bool includeGraph = false;
     if (!request.params[0].isNull()) {
@@ -1456,7 +1456,7 @@ UniValue gethiveinfo(const JSONRPCRequest& request)
     assert(pindexPrev != nullptr);
     if (!IsHiveEnabled(pindexPrev, consensusParams))
         throw std::runtime_error(
-            "Error: The Hive is not yet enabled on the network"
+            "Error: The Labyrinth is not yet enabled on the network"
         );
 
     bool includeDead = false;
@@ -3426,7 +3426,7 @@ UniValue walletpassphrase_hive_rialto(const JSONRPCRequest& request)
         throw std::runtime_error(
             "walletpassphrase_hive_rialto \"passphrase\"\n"
             "\nStores the wallet decryption key in memory indefinitely for hive mining and Rialto use only.\n"
-            "This is needed to enable the hive mining thread to run, and to decrypt Rialto messages.\n"
+            "This is needed to enable The Labyrinth mining thread to run, and to decrypt Rialto messages.\n"
             "\n"
             "Performing other transactions related to private keys, such as sending " + CURRENCY_UNIT + ", is not enabled\n"
             "and will require you to run walletpassphrase separately.\n"

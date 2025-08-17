@@ -502,9 +502,9 @@ UniValue gethivedifficulty(const JSONRPCRequest& request)
     if (request.fHelp || request.params.size() != 0)
         throw std::runtime_error(
             "gethivedifficulty\n"
-            "\nReturns the Hive difficulty as a multiple of the minimum difficulty.\n"
+            "\nReturns The Labyrinth difficulty as a multiple of the minimum difficulty.\n"
             "\nResult:\n"
-            "n.nnn       (numeric) the Hive difficulty as a multiple of the minimum difficulty.\n"
+            "n.nnn       (numeric) The Labyrinth difficulty as a multiple of the minimum difficulty.\n"
             "\nExamples:\n"
             + HelpExampleCli("gethivedifficulty", "")
             + HelpExampleRpc("gethivedifficulty", "")
@@ -514,7 +514,7 @@ UniValue gethivedifficulty(const JSONRPCRequest& request)
     assert(pindexPrev != nullptr);
     if (!IsHiveEnabled(pindexPrev, Params().GetConsensus()))
         throw std::runtime_error(
-            "Error: The Hive is not yet enabled on the network"
+            "Error: The Labyrinth is not yet enabled on the network"
         );
 
 
@@ -846,7 +846,7 @@ UniValue getblockheader(const JSONRPCRequest& request)
             "  \"bits\" : \"1d00ffff\", (string) The bits\n"
             "  \"difficulty\" : x.xxx,  (numeric) The pow difficulty for sha256d\n"
             "  \"minotaurxdifficulty\" : x.xxx,  (numeric) The pow difficulty for minotaurx (once activated)\n" // Cascoin: MinotaurX+Hive1.2
-            "  \"hivedifficulty\" : x.xxx,  (numeric) The hive difficulty\n"    // Cascoin: Hive 1.1: Include hive diff
+            "  \"hivedifficulty\" : x.xxx,  (numeric) The Labyrinth difficulty\n"    // Cascoin: Hive 1.1: Include hive diff
             "  \"chainwork\" : \"0000...1f3\"     (string) Expected number of hashes required to produce the current chain (in hex)\n"
             "  \"previousblockhash\" : \"hash\",  (string) The hash of the previous block\n"
             "  \"nextblockhash\" : \"hash\",      (string) The hash of the next block\n"
@@ -919,7 +919,7 @@ UniValue getblock(const JSONRPCRequest& request)
             "  \"bits\" : \"1d00ffff\", (string) The bits\n"
             "  \"difficulty\" : x.xxx,          (numeric) The pow difficulty for sha256d\n"
             "  \"minotaurxdifficulty\" : x.xxx, (numeric) The pow difficulty for minotaurx (once activated)\n" // Cascoin: MinotaurX+Hive1.2
-            "  \"hivedifficulty\" : x.xxx,      (numeric) The hive difficulty\n"    // Cascoin: Hive 1.1: Include hive diff
+            "  \"hivedifficulty\" : x.xxx,      (numeric) The Labyrinth difficulty\n"    // Cascoin: Hive 1.1: Include hive diff
             "  \"chainwork\" : \"xxxx\",  (string) Expected number of hashes required to produce the chain up to this block (in hex)\n"
             "  \"previousblockhash\" : \"hash\",  (string) The hash of the previous block\n"
             "  \"nextblockhash\" : \"hash\"       (string) The hash of the next block\n"

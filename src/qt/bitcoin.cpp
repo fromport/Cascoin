@@ -46,6 +46,7 @@
 #include <QLocale>
 #include <QMessageBox>
 #include <QSettings>
+#include <QPalette>
 #include <QThread>
 #include <QTimer>
 #include <QTranslator>
@@ -229,6 +230,7 @@ public Q_SLOTS:
     void shutdownResult();
     /// Handle runaway exceptions. Shows a message box with the problem and quits the program.
     void handleRunawayException(const QString &message);
+    void forceQuitIfShutdownStuck();
 
 Q_SIGNALS:
     void requestedInitialize();
@@ -341,6 +343,52 @@ BitcoinApplication::BitcoinApplication(int &argc, char **argv):
     if (!platformStyle) // Fall back to "other" if specified name not found
         platformStyle = PlatformStyle::instantiate("other");
     assert(platformStyle);
+
+    // Cheese-yellow theme with strong contrast for readability
+    QPalette appPalette = QApplication::palette();
+    appPalette.setColor(QPalette::Window, QColor("#FFFBE6"));          // very light cheese background
+    appPalette.setColor(QPalette::Base, QColor("#FFFDF0"));            // inputs/backgrounds
+    appPalette.setColor(QPalette::AlternateBase, QColor("#FFF7CC"));   // alternating rows
+    appPalette.setColor(QPalette::Highlight, QColor("#FFE680"));       // selection highlight
+    appPalette.setColor(QPalette::HighlightedText, Qt::black);
+    appPalette.setColor(QPalette::Button, QColor("#FFF1A6"));
+    appPalette.setColor(QPalette::ButtonText, Qt::black);
+    appPalette.setColor(QPalette::WindowText, Qt::black);
+    appPalette.setColor(QPalette::Text, Qt::black);
+    QApplication::setPalette(appPalette);
+
+    // Apply a light, high-contrast stylesheet for common widgets
+    const QString appStyle =
+        // Menu bar and menus
+        "QMenuBar { background: #FFF7CC; color: #000000; }\n"
+        "QMenuBar::item:selected { background: #FFE680; color: #000000; }\n"
+        "QMenu { background: #FFFBE6; color: #000000; }\n"
+        "QMenu::item:selected { background: #FFE680; color: #000000; }\n"
+        // Toolbars
+        "QToolBar { background: #FFF7CC; border: 1px solid #E6C85C; }\n"
+        "QToolBar QToolButton { color: #000000; }\n"
+        // Status bar
+        "QStatusBar { color: #000000; }\n"
+        // Tabs
+        "QTabWidget::pane { border: 1px solid #E6C85C; background: #FFFBE6; }\n"
+        "QTabBar::tab { background: #FFF1A6; color: #000000; padding: 4px 10px; border: 1px solid #E6C85C; }\n"
+        "QTabBar::tab:selected { background: #FFFBE6; }\n"
+        "QTabBar::tab:!selected:hover { background: #FFE680; }\n"
+        // Buttons
+        "QPushButton { background-color: #FFF1A6; color: #000000; border: 1px solid #E6C85C; border-radius: 4px; padding: 4px 8px; }\n"
+        "QPushButton:hover { background-color: #FFE680; }\n"
+        "QPushButton:pressed { background-color: #FFD24D; }\n"
+        "QPushButton:disabled { color: #666666; background-color: #FFF7CC; border-color: #E6D98F; }\n"
+        // Combo boxes and dropdowns
+        "QComboBox { background: #FFFBE6; color: #000000; border: 1px solid #E6C85C; border-radius: 3px; padding: 2px 24px 2px 6px; }\n"
+        "QComboBox QAbstractItemView { background: #FFFBE6; color: #000000; selection-background-color: #FFE680; selection-color: #000000; }\n"
+        // Tables and headers
+        "QHeaderView::section { background-color: #FFF1A6; color: #000000; padding: 3px 6px; border: 1px solid #E6C85C; }\n"
+        "QTableView { background: #FFFBE6; color: #000000; gridline-color: #E6C85C; alternate-background-color: #FFF7CC; }\n"
+        "QTableView::item:selected { background: #FFE680; color: #000000; }\n"
+        // Line edits and text edits
+        "QLineEdit, QTextEdit, QPlainTextEdit, QSpinBox, QDoubleSpinBox { background: #FFFDF0; color: #000000; border: 1px solid #E6C85C; border-radius: 3px; }\n";
+    this->setStyleSheet(appStyle);
 }
 
 BitcoinApplication::~BitcoinApplication()
@@ -454,6 +502,9 @@ void BitcoinApplication::requestShutdown()
 
     // Request shutdown from core thread
     Q_EMIT requestedShutdown();
+
+    // Failsafe: force quit if shutdown doesn't signal completion in time
+    QTimer::singleShot(30000, this, SLOT(forceQuitIfShutdownStuck()));
 }
 
 void BitcoinApplication::initializeResult(bool success)
@@ -518,7 +569,15 @@ void BitcoinApplication::initializeResult(bool success)
 
 void BitcoinApplication::shutdownResult()
 {
+    // Ensure the core thread is asked to stop before quitting the event loop
+    Q_EMIT stopThread();
     quit(); // Exit second main loop invocation after shutdown finished
+}
+
+void BitcoinApplication::forceQuitIfShutdownStuck()
+{
+    // If shutdownWindow still exists, we assume shutdown might be stuck; attempt to quit anyway
+    quit();
 }
 
 void BitcoinApplication::handleRunawayException(const QString &message)

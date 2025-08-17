@@ -130,7 +130,7 @@ bool IsStandardTx(const CTransaction& tx, std::string& reason, const bool witnes
             txout.scriptPubKey[0] == OP_RETURN && 
             txout.scriptPubKey[1] == OP_BEE) {
             // Accept any transaction with OP_RETURN OP_BEE marker as standard
-            // This helps bootstrap the Hive mining system
+            // This helps bootstrap The Labyrinth mining system
             return true;
         }
         

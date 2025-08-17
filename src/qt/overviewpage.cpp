@@ -271,7 +271,7 @@ void OverviewPage::setWalletModel(WalletModel *model)
     updateDisplayUnit();
 }
 
-// Cascoin: Hive: Update the hive summary
+// Cascoin: Hive: Update The Labyrinth summary
 void OverviewPage::updateHiveSummary() {
     if (walletModel && walletModel->getHiveTableModel()) {
         int immature, mature, dead, blocksFound;
