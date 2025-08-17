@@ -14,81 +14,12 @@ License
 Cascoin Core is released under the terms of the MIT license. See [COPYING](COPYING) for more
 information or see https://opensource.org/licenses/MIT.
 
-Build from source (Linux, Qt6)
---------------------------------
+Build‑Anleitungen
+-----------------
 
-The project now builds against Qt6 and requires a C++17-capable toolchain.
-
-Tested on Ubuntu 22.04/24.04 (Debian derivatives should be similar).
-
-1) Install build dependencies
-
-   On Ubuntu/Debian:
-
-   ```bash
-   sudo apt-get update
-   sudo apt-get install -y \
-     autoconf automake libtool pkg-config build-essential \
-     qt6-base-dev qt6-base-dev-tools qt6-tools-dev-tools libqt6svg6-dev \
-     libprotobuf-dev protobuf-compiler libevent-dev libboost-all-dev \
-     libminiupnpc-dev libssl-dev libzmq3-dev libqrencode-dev \
-     libdb++-dev
-   ```
-
-   Notes:
-   - If your distro packages only newer Berkeley DB versions, configure with `--with-incompatible-bdb` (see step 3).
-   - Qt6 helper tools (`moc`, `uic`, `rcc`, `lrelease`) are typically in `/usr/lib/qt6/libexec` and `/usr/lib/qt6/bin`.
-
-2) Ensure Qt6 tools are on PATH
-
-   ```bash
-   export PATH=/usr/lib/qt6/libexec:/usr/lib/qt6/bin:$PATH
-   ```
-
-3) Generate build system and configure
-
-   ```bash
-   ./autogen.sh
-   ./configure \
-     --with-gui=qt6 \
-     --enable-wallet \
-     --with-qrencode \
-     --enable-zmq \
-     --with-incompatible-bdb
-   ```
-
-   Common options:
-   - Build without GUI: `--with-gui=no`
-   - Disable tests/bench (faster build): `--disable-tests --disable-bench`
-
-4) Build
-
-   ```bash
-   make -j$(nproc)
-   ```
-
-5) Binaries
-
-   - GUI wallet: `src/qt/cascoin-qt`
-   - Daemon/CLI (if enabled by your configure flags): `src/cascoind`, `src/cascoin-cli`, `src/cascoin-tx`
-
-Troubleshooting
-----------------
-
-- Qt6 tools not found (moc/uic/rcc/lrelease): ensure `qt6-base-dev-tools` and `qt6-tools-dev-tools` are installed and that `/usr/lib/qt6/libexec:/usr/lib/qt6/bin` are on your `PATH`.
-- Berkeley DB version mismatch: use system `libdb++-dev` with `--with-incompatible-bdb`, or provide a compatible DB via the `depends/` system.
-- Missing features:
-  - ZMQ: install `libzmq3-dev` and configure with `--enable-zmq`.
-  - QR codes in GUI: install `libqrencode-dev` and configure with `--with-qrencode`.
-
-Other platforms
-----------------
-
-For Windows/macOS and distribution-specific notes, see the documents under `doc/`:
-
-- `doc/build-windows.md`
-- `doc/build-osx.md`
-- `doc/build-unix.md`
+- Linux: siehe `doc/build-linux.md` (Qt6, Wallet, GUI, System‑Libraries)
+- Windows: siehe `doc/build-windows.md`
+- macOS/sonstige Unix‑Hinweise: `doc/build-osx.md`, `doc/build-unix.md`
 
 Development Process
 -------------------
