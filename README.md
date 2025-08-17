@@ -19,7 +19,8 @@ Build‑Anleitungen
 
 - Linux: siehe `doc/build-linux.md` (Qt6, Wallet, GUI, System‑Libraries)
 - Windows: siehe `doc/build-windows.md`
-- macOS/sonstige Unix‑Hinweise: `doc/build-osx.md`, `doc/build-unix.md`
+- macOS (Qt6 + Wallet, BDB5): `doc/build-osx.md`
+- Weitere Unix‑Hinweise: `doc/build-unix.md`
 
 Development Process
 -------------------

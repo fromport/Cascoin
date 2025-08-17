@@ -1,5 +1,5 @@
-Mac OS X Build Instructions and Notes
-====================================
+macOS Build Instructions (Qt6 + Wallet)
+=======================================
 The commands in this guide should be executed in a Terminal application.
 The built-in one is located in `/Applications/Utilities/Terminal.app`.
 
@@ -16,57 +16,86 @@ Then install [Homebrew](https://brew.sh).
 Dependencies
 ----------------------
 
-    brew install automake berkeley-db4 libtool boost miniupnpc openssl pkg-config protobuf python3 qt libevent
+Install Homebrew, then:
 
-See [dependencies.md](dependencies.md) for a complete overview.
+```
+brew update
+brew install autoconf automake libtool boost miniupnpc openssl@3 pkg-config protobuf python qt libevent zeromq qrencode
+```
 
-If you want to build the disk image with `make deploy` (.dmg / optional), you need RSVG
+Optional (for `make deploy` .dmg):
 
-    brew install librsvg
+```
+brew install librsvg
+```
 
-If you want to build with ZeroMQ support
-    
-    brew install zeromq
-
-NOTE: Building with Qt4 is still supported, however, could result in a broken UI. Building with Qt5 is recommended.
+Notes:
+- We use Qt6 for the GUI. Qt host tools (moc/uic/rcc) are resolved via pkg-config.
+- We use Berkeley DB 5 (Homebrew `berkeley-db@5`) with `--with-incompatible-bdb`.
+  Do not mix DB4 headers with DB5 libraries (can cause wallet creation failures).
 
 Berkeley DB
 -----------
-It is recommended to use Berkeley DB 4.8. If you have to build it yourself,
-you can use [the installation script included in contrib/](/contrib/install_db4.sh)
-like so
+We prefer Homebrew `berkeley-db@5`. If not installed, build will fall back to a
+local BDB 5.3.28 (see `contrib/build-macos-qt6.sh`).
 
-```shell
-./contrib/install_db4.sh .
+Troubleshooting: If you see an early wallet crash like
+
+```
+GenerateNewHDMasterKey: AddKeyPubKey failed
 ```
 
-from the root of the repository.
+or `BDB0055 illegal flag specified` in `db.log`, you likely mixed DB4 and DB5.
+Fix by unlinking DB4 and rebuilding:
 
-**Note**: You only need Berkeley DB if the wallet is enabled (see the section *Disable-Wallet mode* below).
+```
+brew unlink berkeley-db@4 || true
+make clean
+```
 
 Build Cascoin Core
-------------------------
+------------------
 
 1. Clone the cascoin source code and cd into `cascoin`
 
         git clone https://github.com/cascoin-project/cascoin
         cd cascoin
 
-2.  Build cascoin-core:
+2. Build cascoin-core (Qt6 GUI + wallet):
 
-    Configure and build the headless cascoin binaries as well as the GUI (if Qt is found).
+   You can disable the GUI build by passing `--without-gui` to configure.
 
-    You can disable the GUI build by passing `--without-gui` to configure.
+```
+./autogen.sh
 
-        ./autogen.sh
-        ./configure
-        make
+# Resolve Qt6 host tools path (moc/uic/rcc)
+QT_HOST_BINS="$(pkg-config --variable=host_bins Qt6Core)"
+
+# Prefer Homebrew BDB5
+BDB_PREFIX="$(brew --prefix berkeley-db@5 2>/dev/null || true)"
+
+CPPFLAGS="${CPPFLAGS:-} ${BDB_PREFIX:+-I$BDB_PREFIX/include}"
+LDFLAGS="${LDFLAGS:-} ${BDB_PREFIX:+-L$BDB_PREFIX/lib}"
+
+./configure \
+  --with-gui=qt6 \
+  --enable-wallet \
+  --with-qrencode \
+  --enable-zmq \
+  --with-incompatible-bdb \
+  --with-qt-bindir="$QT_HOST_BINS" \
+  MOC="$QT_HOST_BINS/moc" \
+  UIC="$QT_HOST_BINS/uic" \
+  RCC="$QT_HOST_BINS/rcc"
+
+make -j"$(sysctl -n hw.ncpu)"
+```
 
 3.  It is recommended to build and run the unit tests:
 
         make check
 
-4.  You can also create a .dmg that contains the .app bundle (optional):
+4. You can also create a .dmg that contains the .app bundle (optional):
 
         make deploy
 
@@ -83,7 +112,10 @@ Build Cascoin Core
 Running
 -------
 
-Cascoin Core is now available at `./src/cascoind`
+Cascoin Core binaries (after a successful build):
+
+- Daemon: `./src/cascoind`
+- GUI app: `./src/qt/cascoin-qt`
 
 Before running, it's recommended you create an RPC configuration file.
 
@@ -124,6 +156,6 @@ Uncheck everything except Qt Creator during the installation process.
 Notes
 -----
 
-* Tested on OS X 10.8 through 10.13 on 64-bit Intel processors only.
-
-* Building with downloaded Qt binaries is not officially supported. See the notes in [#7714](https://github.com/bitcoin/bitcoin/issues/7714)
+* Tested on Apple Silicon (arm64) with Homebrew.
+* Ensure only one Berkeley DB major version is used (prefer DB5).
+* Qt6 host tools are resolved via pkg-config; make sure `qt` formula is installed.

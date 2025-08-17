@@ -38,6 +38,7 @@
 #include <boost/thread.hpp>
 
 #include <script/ismine.h>  // Cascoin: Hive
+#include <random>
 
 std::vector<CWalletRef> vpwallets;
 /** Transaction fee set by the user */
@@ -2430,7 +2431,11 @@ bool CWallet::SelectCoinsMinConf(const CAmount& nTargetValue, const int nConfMin
     std::vector<CInputCoin> vValue;
     CAmount nTotalLower = 0;
 
-    random_shuffle(vCoins.begin(), vCoins.end(), GetRandInt);
+    {
+        std::random_device rd;
+        std::mt19937_64 rng(rd());
+        std::shuffle(vCoins.begin(), vCoins.end(), rng);
+    }
 
     for (const COutput &output : vCoins)
     {
