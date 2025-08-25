@@ -27,6 +27,7 @@ jobs:
             libsqlite3-dev \
             qt6-base-dev qt6-base-dev-tools qt6-tools-dev qt6-tools-dev-tools qt6-svg-dev \
             libqt6core5compat6-dev \
+            binutils \
             libdb-dev libdb++-dev || true
           # Try specific BDB package name if the generic one isn't available
           sudo apt-get install -y libdb5.3++-dev || true
@@ -38,6 +39,12 @@ jobs:
       - name: Configure (Qt6 GUI, wallet, incompatible BDB)
         shell: bash
         run: |
+          CFLAGS="-g" CXXFLAGS="-g" \
+          MOC=/usr/lib/qt6/libexec/moc \
+          UIC=/usr/lib/qt6/libexec/uic \
+          RCC=/usr/lib/qt6/libexec/rcc \
+          LRELEASE=/usr/lib/qt6/bin/lrelease \
+          LUPDATE=/usr/lib/qt6/bin/lupdate \
           ./configure \
             --with-gui=qt6 \
             --enable-wallet \
@@ -46,6 +53,26 @@ jobs:
       - name: Build
         shell: bash
         run: make -j"$(nproc)"
+
+      - name: Strip binaries (non-fatal) and keep debug symbols
+        shell: bash
+        run: |
+          shopt -s nullglob
+          bins=(src/qt/*-qt src/*coind src/*coin-cli)
+          for b in "${bins[@]}"; do
+            if [[ -x "$b" ]]; then
+              echo "Processing $b"
+              if command -v objcopy >/dev/null 2>&1; then
+                objcopy --only-keep-debug "$b" "$b".debug || true
+              fi
+              if command -v strip >/dev/null 2>&1; then
+                strip --strip-unneeded "$b" || true
+              fi
+              if command -v objcopy >/dev/null 2>&1; then
+                objcopy --add-gnu-debuglink="$b".debug "$b" || true
+              fi
+            fi
+          done
 
       - name: List built binaries
         shell: bash
@@ -64,5 +91,15 @@ jobs:
             src/*coind
             src/*coin-cli
           if-no-files-found: warn
+
+      - name: Upload debug symbols
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cascoin-linux-debug
+          path: |
+            src/qt/*.debug
+            src/*.debug
+          if-no-files-found: ignore
 
 
