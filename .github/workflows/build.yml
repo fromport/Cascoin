@@ -20,7 +20,7 @@ jobs:
           sudo apt-get install -y \
             autoconf automake libtool build-essential pkg-config curl ca-certificates \
             libevent-dev libboost-system-dev libboost-filesystem-dev libboost-chrono-dev \
-            libboost-test-dev libboost-thread-dev \
+            libboost-test-dev libboost-thread-dev libboost-program-options-dev libboost-dev \
             libssl-dev libzmq3-dev libminiupnpc-dev \
             libprotobuf-dev protobuf-compiler \
             libqrencode-dev \
@@ -29,6 +29,8 @@ jobs:
             libqt6core5compat6-dev \
             binutils \
             libdb-dev libdb++-dev || true
+          # Fallback: install all Boost dev libs if specific ones are insufficient on this runner
+          sudo apt-get install -y libboost-all-dev || true
           # Try specific BDB package name if the generic one isn't available
           sudo apt-get install -y libdb5.3++-dev || true
 
@@ -47,6 +49,8 @@ jobs:
           LUPDATE=/usr/lib/qt6/bin/lupdate \
           ./configure \
             --with-gui=qt6 \
+            --with-boost=/usr \
+            --with-boost-libdir=/usr/lib/x86_64-linux-gnu \
             --enable-wallet \
             --with-incompatible-bdb
 
