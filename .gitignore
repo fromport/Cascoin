@@ -62,6 +62,7 @@ src/qt/bitcoin-qt.includes
 *.o
 *.o-*
 *.patch
+!depends/patches/**/*.patch
 *.a
 *.pb.cc
 *.pb.h

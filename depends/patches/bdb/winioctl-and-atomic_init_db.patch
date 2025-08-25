@@ -1,0 +1,95 @@
+--- a/src/dbinc/win_db.h
++++ b/src/dbinc/win_db.h
+@@ -74,7 +74,8 @@
+ #include <sys/stat.h>
+ #include <sys/types.h>
+ 
+-#include <winioctl.h>
++/* include winioctl.h manually instead of via windows.h */
++/* #include <winioctl.h> */
+ 
+ /*
+  * To build Tcl support, you must have a compatible Tcl installation.
+--- a/src/dbinc/atomic.h
++++ b/src/dbinc/atomic.h
+@@ -110,7 +110,7 @@ typedef struct {
+  * http://gcc.gnu.org/onlinedocs/gcc-4.1.0/gcc/Atomic-Builtins.html
+  * Which configure could use to check for __sync_bool_compare_and_swap
+  */
+-#define	__atomic_compare_exchange(p, o, n)	\
++#define	__atomic_compare_exchange_db(p, o, n)	\
+ 	__sync_bool_compare_and_swap(p, o, n)
+ /*
+  * A memory barrier, which is nothing for x86/x64.
+@@ -124,12 +124,12 @@ typedef struct {
+ 
+ #define	atomic_read(p)		((p)->value)
+ #define	atomic_init(p, val)	((p)->value = (val))
+-#define	atomic_inc(env, p)	((void)__sync_fetch_and_add(&(p)->value, 1))
+-#define	atomic_dec(env, p)	((void)__sync_fetch_and_add(&(p)->value, -1))
++#define	atomic_inc_db(env, p)	((void)__sync_fetch_and_add(&(p)->value, 1))
++#define	atomic_dec_db(env, p)	((void)__sync_fetch_and_add(&(p)->value, -1))
+ #define	atomic_compare_exchange(env, p, oldval, newval)		\
+-	__atomic_compare_exchange(&(p)->value, oldval, newval)
++	__atomic_compare_exchange_db(&(p)->value, oldval, newval)
+ static inline int atomic_add(ENV *env, db_atomic_t *p, int incr) {
+-	return __sync_fetch_and_add(&(p)->value, incr);
++	return __sync_add_and_fetch(&(p)->value, incr);
+ }
+ 
+ /*
+--- a/src/mp/mp_region.c
++++ b/src/mp/mp_region.c
+@@ -245,7 +245,7 @@ __memp_init(env, dbmp, reginfo_off, htab_buckets, max_nreg)
+ 		mtx_region = R_ADDR(dbmp->reginfo, hp->mtx_region);
+ 		for (i = 0; i < htab_buckets; i++) {
+ 			if ((ret = __mutex_alloc(env, MTX_MPOOL_HASH,
+-			    DB_MUTEX_SHARED, &hp->hash_mutexes[i])) != 0)
++			    DB_MUTEX_PROCESS_ONLY, &hp->hash_mutexes[i])) != 0)
+ 				return (ret);
+ 		}
+ 		/*
+--- a/src/mp/mp_mvcc.c
++++ b/src/mp/mp_mvcc.c
+@@ -276,7 +276,7 @@ __memp_bh_settxn(dbmp, mfp, bhp, td)
+ #ifdef DIAGNOSTIC
+ 	if (BH_REFCOUNT(bhp) == 0) {
+ 		__db_errx(env, "Setting transaction on unpinned buffer");
+-		return (EINVAL);
++		return (__os_set_errno(EINVAL));
+ 	}
+ #endif
+ 
+--- a/src/mp/mp_fget.c
++++ b/src/mp/mp_fget.c
+@@ -649,7 +649,7 @@ __memp_init_bhp(env, mfp, bhp, pgno, versionp)
+ 	atomic_init(&bhp->ref, 1);
+ 	if (versionp != NULL)
+ 		memcpy(bhp->buf, versionp, mfp->stat.st_pagesize);
+-	atomic_init(&bhp->ref_sync, 0);
++	atomic_init_db(&bhp->ref_sync, 0);
+ 
+ 	if (mfp->ftype == 0)
+ 		mfp->ftype = 1;
+--- a/src/mutex/mut_method.c
++++ b/src/mutex/mut_method.c
+@@ -474,7 +474,7 @@ atomic_compare_exchange(env, v, oldval, newval)
+ 	COMPQUIET(oldval, 0);
+ 	COMPQUIET(newval, 0);
+ 
+-	return (__atomic_compare_exchange(v, oldval, newval));
++	return (__atomic_compare_exchange_db(v, oldval, newval));
+ }
+ 
+ /*
+--- a/src/mutex/mut_tas.c
++++ b/src/mutex/mut_tas.c
+@@ -47,7 +47,7 @@ __db_tas_mutex_init(env, mutex, flags)
+ 	COMPQUIET(flags, 0);
+ 
+ 	tsl = (tsl_t *)MUTEXP_SET(mutex);
+-	return (atomic_init(tsl, 0) ? 0 : __os_get_syserr());
++	return (atomic_init_db(tsl, 0) ? 0 : __os_get_syserr());
+ }
+ 
+ /*
