@@ -181,11 +181,26 @@ jobs:
         shell: bash
         run: |
           export CONFIG_SITE="$PWD/depends/${HOST}/share/config.site"
+          native_qt_bin=$(find "$PWD/depends" -type d -path "*/native/bin" | head -n1)
+          export PATH="$native_qt_bin:$PATH"
+          echo "Using native Qt tools from: $native_qt_bin"
           CFLAGS="-g" CXXFLAGS="-g" \
+          CPPFLAGS="-I$PWD/depends/${HOST}/include" \
+          LDFLAGS="-L$PWD/depends/${HOST}/lib" \
+          PKG_CONFIG_PATH="$PWD/depends/${HOST}/lib/pkgconfig" \
+          MOC=$(command -v moc || true) \
+          UIC=$(command -v uic || true) \
+          RCC=$(command -v rcc || true) \
+          LRELEASE=$(command -v lrelease || true) \
+          LUPDATE=$(command -v lupdate || true) \
           ./configure \
             --host=${HOST} \
             --prefix="$PWD/depends/${HOST}" \
             --with-gui=qt6 \
+            --with-qt-incdir="$PWD/depends/${HOST}/include" \
+            --with-qt-libdir="$PWD/depends/${HOST}/lib" \
+            --disable-tests \
+            --disable-bench \
             --enable-wallet \
             --with-incompatible-bdb
 
