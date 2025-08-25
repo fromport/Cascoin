@@ -205,6 +205,8 @@ jobs:
           UIC="$PWD/depends/${HOST}/native/libexec/uic" \
           RCC="$PWD/depends/${HOST}/native/libexec/rcc" \
           QMAKE="$PWD/depends/${HOST}/native/bin/qmake" \
+          LRELEASE="true" \
+          LUPDATE="true" \
           ./configure \
             --prefix="$PWD/depends/${HOST}" \
             --host=${HOST} \
