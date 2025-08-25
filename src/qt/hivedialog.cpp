@@ -325,7 +325,7 @@ void HiveDialog::on_releaseSwarmButton_clicked() {
 void HiveDialog::on_createBeesButton_clicked() {
     if (model) {
         if (totalCost > model->getBalance()) {
-            QMessageBox::critical(this, tr("Error"), tr("Insufficient balance to create bees."));
+            QMessageBox::critical(this, tr("Error"), tr("Insufficient balance to create mice."));
             return;
         }
 		WalletModel::UnlockContext ctx(model->requestUnlock());
@@ -438,7 +438,7 @@ void HiveDialog::onMouseMove(QMouseEvent *event) {
     graphTracerImmature->setPen(QPen(traceColImmature, 1, Qt::DashLine));    
     graphTracerMature->setPen(QPen(traceColMature, 1, Qt::DashLine));
 
-    graphMouseoverText->setText(xDateTime.toString("ddd d MMM") + " " + xDateTime.time().toString() + ":\n" + formatLargeNoLocale(beeCountMature) + " mature mice\n" + formatLargeNoLocale(beeCountImmature) + " immature mice");
+    graphMouseoverText->setText(xDateTime.toString("ddd d MMM") + " " + xDateTime.time().toString() + ":\n" + formatLargeNoLocale(beeCountMature) + " adventure mice\n" + formatLargeNoLocale(beeCountImmature) + " resting mice");
     graphMouseoverText->setColor(traceColMature);
     graphMouseoverText->position->setCoords(QPointF(x, y));
     QPointF pixelPos = graphMouseoverText->position->pixelPosition();

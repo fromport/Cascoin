@@ -590,21 +590,21 @@ UniValue createbees(const JSONRPCRequest& request)
 
     if (request.fHelp || request.params.size() < 1 || request.params.size() > 4)
         throw std::runtime_error(
-            "createbees bee_count ( community_contrib, \"honey_address\", \"change_address\" )\n"
-            "\nCreate one or more bees in a single transaction, sign it, and broadcast it to the network.\n"
+            "createmice bee_count ( community_contrib, \"honey_address\", \"change_address\" )\n"
+            "\nCreate one or more mice in a single transaction, sign it, and broadcast it to the network.\n"
             + HelpRequiringPassphrase(pwallet) +
             "\nArguments:\n"
-            "1. bee_count              (numeric, required) The number of bees to create.\n"
-            "2. community_contrib      (boolean, optional, default=true) If true, a small percentage of bee creation cost will be paid to a community fund.\n"
-            "3. \"honey_address\"        (string, optional) The " + CURRENCY_UNIT + " address to receive rewards for blocks mined by bee(s) created in this transaction.\n"
+            "1. bee_count              (numeric, required) The number of mice to create.\n"
+            "2. community_contrib      (boolean, optional, default=true) If true, a small percentage of mouse creation cost will be paid to a community fund.\n"
+            "3. \"honey_address\"        (string, optional) The " + CURRENCY_UNIT + " address to receive rewards for blocks mined by mice created in this transaction.\n"
 			"4. \"change_address\"       (string, optional, default pool address) The " + CURRENCY_UNIT + " address to receive the change.\n"
             "\nResult:\n"
             "\"txid\"                    (string) The transaction id.\n"
             "\nExamples:\n"
-            + HelpExampleCli("createbees", "1")
-            + HelpExampleCli("createbees", "5 true \"Cfkv9pniUJ2UoWvaukgD5Ksqx5EsVLzsCk\"")
-            + HelpExampleRpc("createbees", "12")
-            + HelpExampleRpc("createbees", "34 false \"Cfkv9pniUJ2UoWvaukgD5Ksqx5EsVLzsCk\"")
+            + HelpExampleCli("createmice", "1")
+            + HelpExampleCli("createmice", "5 true \"Cfkv9pniUJ2UoWvaukgD5Ksqx5EsVLzsCk\"")
+            + HelpExampleRpc("createmice", "12")
+            + HelpExampleRpc("createmice", "34 false \"Cfkv9pniUJ2UoWvaukgD5Ksqx5EsVLzsCk\"")
         );
 
     RPCTypeCheckArgument(request.params[0], UniValue::VNUM);
@@ -1222,18 +1222,18 @@ UniValue getnetworkhiveinfo(const JSONRPCRequest& request)
     if (request.fHelp || request.params.size() > 1)
         throw std::runtime_error(
             "getnetworkhiveinfo ( include_graph )\n"
-            "\nLists the mature and immature bee populations across the entire network. Optionally returns values to plot the future bee population.\n"
+            "\nLists the Adventure and Resting mice populations across the entire network. Optionally returns values to plot the future mouse population.\n"
             "\nArguments:\n"
-            "1. include_graph                  (boolean, optional, default=false) Include bee population graph\n"
+            "1. include_graph                  (boolean, optional, default=false) Include mouse population graph\n"
             "\nResult:\n"
             "{\n"
-            "  immature_bee_count,             (numeric) The number of immature bees\n"
-            "  immature_bct_count,             (numeric) The number of immature Bee Creation Transactions\n"
-            "  mature_bee_count,               (numeric) The number of mature bees\n"
-            "  mature_bct_count,               (numeric) The number of mature Bee Creation Transactions\n"
-            "  honey_pot,                      (numeric) Total potential network rewards available during bee lifespan (in " + CURRENCY_UNIT + ")\n"
-            "  mature_bee_pop_graph: [ ... ],  (numeric array) Graph points for mature bee population over upcoming bee gestation span + bee lifespan blocks\n"
-            "  immature_bee_pop_graph: [ ... ] (numeric array) Graph points for immature bee population over upcoming bee gestation span\n"
+            "  immature_bee_count,             (numeric) The number of Resting mice\n"
+            "  immature_bct_count,             (numeric) The number of Resting Mouse Creation Transactions\n"
+            "  mature_bee_count,               (numeric) The number of Adventure mice\n"
+            "  mature_bct_count,               (numeric) The number of Adventure Mouse Creation Transactions\n"
+            "  honey_pot,                      (numeric) Total potential network rewards available during mouse lifespan (in " + CURRENCY_UNIT + ")\n"
+            "  mature_bee_pop_graph: [ ... ],  (numeric array) Graph points for Adventure mice population over upcoming gestation span + lifespan blocks\n"
+            "  immature_bee_pop_graph: [ ... ] (numeric array) Graph points for Resting mice population over upcoming gestation span\n"
             "}\n"
             "\nExamples:\n"
             + HelpExampleCli("getnetworkhiveinfo", "")
@@ -1340,23 +1340,23 @@ UniValue getbctinfo(const JSONRPCRequest& request)
     if (request.fHelp || request.params.size() < 1 || request.params.size() > 2)
         throw std::runtime_error(
             "getbctinfo ( \"bct_txid\", min_honey_confirms )\n"
-            "\nLists the status of a single bee creation transaction from your current hive.\n"
+            "\nLists the status of a single mouse creation transaction from your current labyrinth.\n"
             "\nArguments:\n"
-            "1. bct_txid               (string) Transaction ID of a bee creation transaction made by this wallet\n"
-            "2. min_honey_confirms     (numeric, optional, default=1) Only include honey rewards with at least this many confirmations\n"
+            "1. bct_txid               (string) Transaction ID of a mouse creation transaction made by this wallet\n"
+            "2. min_honey_confirms     (numeric, optional, default=1) Only include cheese rewards with at least this many confirmations\n"
             "\nResult:\n"
             "{\n"
-            "    \"txid\",               (string) Transaction ID of the bee creation transaction\n"
+            "    \"txid\",               (string) Transaction ID of the mouse creation transaction\n"
             "    time,                 (numeric) Timestamp of block containing the bee creation transaction (only present once tx is in a block)\n"
-            "    bee_count,            (numeric) The number of bees created\n"
+            "    bee_count,            (numeric) The number of mice created\n"
             "    community_contrib,    (boolean) If true, indicates that a portion of the bee creation fee was paid to the community fund\n"
-            "    \"bee_status\",         (string) immature | mature | dead. Only mature bees are capable of mining\n"
-            "    \"honey_address\",      (string) The address which will receive block rewards for blocks minted by the bees\n"
-            "    bee_fee_paid,         (numeric) Total bee creation fee (in " + CURRENCY_UNIT + ")\n"
-            "    rewards_paid,         (numeric) The amount of block rewards earned by the bees (in " + CURRENCY_UNIT + ")\n"
-            "    profit,               (numeric) The profit earned by the bees (in " + CURRENCY_UNIT + ")\n"
-            "    blocks_found,         (numeric) The number of blocks minted by the bees\n"
-            "    blocks_left           (numeric) The number of blocks of bee lifespan remaining\n"
+            "    \"bee_status\",         (string) resting | adventure | dead. Only adventure mice are capable of mining\n"
+            "    \"honey_address\",      (string) The address which will receive block rewards for blocks minted by the mice\n"
+            "    bee_fee_paid,         (numeric) Total mouse creation fee (in " + CURRENCY_UNIT + ")\n"
+            "    rewards_paid,         (numeric) The amount of block rewards earned by the mice (in " + CURRENCY_UNIT + ")\n"
+            "    profit,               (numeric) The profit earned by the mice (in " + CURRENCY_UNIT + ")\n"
+            "    blocks_found,         (numeric) The number of blocks minted by the mice\n"
+            "    blocks_left           (numeric) The number of blocks of mouse lifespan remaining\n"
             "}\n"
             "\nExamples:\n"
             + HelpExampleCli("getbctinfo", "1f14fc54cfce1ec53f5a8d36d8aef7ae8485e4cd693b6f404c5d2504017ecd59")
@@ -1413,16 +1413,16 @@ UniValue gethiveinfo(const JSONRPCRequest& request)
     if (request.fHelp || request.params.size() > 2)
         throw std::runtime_error(
             "gethiveinfo ( include_dead, min_honey_confirms )\n"
-            "\nLists the status of your current hive, broken down by bee creation transaction.\n"
+            "\nLists the status of your current labyrinth, broken down by mouse creation transaction.\n"
             "\nArguments:\n"
-            "1. include_dead           (boolean, optional, default=false) Include bees whose lifespans have expired\n"
-            "2. min_honey_confirms     (numeric, optional, default=1) Only include honey rewards with at least this many confirmations\n"
+            "1. include_dead           (boolean, optional, default=false) Include mice whose lifespans have expired\n"
+            "2. min_honey_confirms     (numeric, optional, default=1) Only include cheese rewards with at least this many confirmations\n"
             "\nResult:\n"
             "{\n"
             "    summary: {\n"
-            "        bee_count,                (numeric) Total bee count in hive\n"
-            "        mature_bees,              (numeric) Total mature bees\n"
-            "        immature_bees,            (numeric) Total immature bees\n"
+            "        bee_count,                (numeric) Total mouse count in labyrinth\n"
+            "        mature_bees,              (numeric) Total Adventure mice\n"
+            "        immature_bees,            (numeric) Total Resting mice\n"
             "        blocks_found,             (numeric) Total blocks found\n"
             "        bee_fee_paid,             (numeric) Total bee creation fees (in " + CURRENCY_UNIT + ")\n"
             "        rewards_paid,             (numeric) Total rewards paid (in " + CURRENCY_UNIT + ")\n"
@@ -1431,17 +1431,17 @@ UniValue gethiveinfo(const JSONRPCRequest& request)
             "    },\n"
             "    bees: [\n"
             "        {\n"
-            "            \"txid\",               (string) Transaction ID of the bee creation transaction\n"
+            "            \"txid\",               (string) Transaction ID of the mouse creation transaction\n"
             "            time,                 (numeric) Timestamp of block containing the bee creation transaction (only present once tx is in a block)\n"
-            "            bee_count,            (numeric) The number of bees created\n"
-            "            community_contrib,    (boolean) If true, indicates that a portion of the bee creation fee was paid to the community fund\n"
-            "            \"bee_status\",         (string) immature | mature | dead. Only mature bees are capable of mining\n"
-            "            \"honey_address\",      (string) The address which will receive block rewards for blocks minted by the bees\n"
-            "            bee_fee_paid,         (numeric) Total bee creation fee (in " + CURRENCY_UNIT + ")\n"
-            "            rewards_paid,         (numeric) The amount of block rewards earned by the bees (in " + CURRENCY_UNIT + ")\n"
-            "            profit,               (numeric) The profit earned by the bees (in " + CURRENCY_UNIT + ")\n"
-            "            blocks_found,         (numeric) The number of blocks minted by the bees\n"
-            "            blocks_left           (numeric) The number of blocks of bee lifespan remaining\n"
+            "            bee_count,            (numeric) The number of mice created\n"
+            "            community_contrib,    (boolean) If true, indicates that a portion of the mouse creation fee was paid to the community fund\n"
+            "            \"bee_status\",         (string) resting | adventure | dead. Only adventure mice are capable of mining\n"
+            "            \"honey_address\",      (string) The address which will receive block rewards for blocks minted by the mice\n"
+            "            bee_fee_paid,         (numeric) Total mouse creation fee (in " + CURRENCY_UNIT + ")\n"
+            "            rewards_paid,         (numeric) The amount of block rewards earned by the mice (in " + CURRENCY_UNIT + ")\n"
+            "            profit,               (numeric) The profit earned by the mice (in " + CURRENCY_UNIT + ")\n"
+            "            blocks_found,         (numeric) The number of blocks minted by the mice\n"
+            "            blocks_left           (numeric) The number of blocks of mouse lifespan remaining\n"
             "        },...\n"
             "    ]\n"
             "}\n"
@@ -4661,7 +4661,7 @@ static const CRPCCommand commands[] =
 { //  category              name                        actor (function)           argNames
     //  --------------------- ------------------------    -----------------------  ----------
     { "wallet",             "getbeecost",               &getbeecost,               {"height"} },                                            // Cascoin: Hive: Get bee cost for given height (defaults to tipheight)
-    { "wallet",             "createbees",               &createbees,               {"bee_count","community_contrib","honey_address"} },     // Cascoin: Hive: Create bee(s)
+    { "wallet",             "createmice",               &createbees,               {"bee_count","community_contrib","honey_address"} },     // Cascoin: Hive: Create bee(s)
     { "wallet",             "gethiveinfo",              &gethiveinfo,              {"include_dead","min_honey_confirms"} },                 // Cascoin: Hive: Get current hive info
     { "wallet",             "getnetworkhiveinfo",       &getnetworkhiveinfo,       {"include_graph"} },                                     // Cascoin: Hive: Get current bee populations across whole network
     { "wallet",             "getbeecreationtxid",       &getbeecreationtxid,       {"honey_txid"} },                                        // Cascoin: Hive: Return BCT tx id for a honey transaction in this wallet

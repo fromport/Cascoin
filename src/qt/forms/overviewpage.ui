@@ -268,7 +268,7 @@ background-position:bottom right;}</string>
             <item row="3" column="0">
              <widget class="QLabel" name="labelImmatureText">
               <property name="text">
-               <string>Immature:</string>
+               <string>Resting mice:</string>
               </property>
              </widget>
             </item>
@@ -587,7 +587,7 @@ background-position:bottom right;}</string>
               <item>
                <widget class="QLabel" name="label_14">
                 <property name="text">
-                 <string> immature, </string>
+                 <string> resting mice, </string>
                 </property>
                 <property name="alignment">
                  <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -609,7 +609,7 @@ background-position:bottom right;}</string>
                  </font>
                 </property>
                 <property name="text">
-                 <string> mature</string>
+                 <string> adventure mice</string>
                 </property>
                </widget>
               </item>

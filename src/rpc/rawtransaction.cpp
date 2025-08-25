@@ -450,7 +450,7 @@ UniValue createrawbct(const JSONRPCRequest& request)
     if (request.fHelp || request.params.size() < 2 || request.params.size() > 4)
         throw std::runtime_error(
             "createrawbct [{\"txid\":\"id\",\"vout\":n},...] {\"address\":amount,\"data\":\"hex\",...} ( locktime ) ( replaceable )\n"
-            "\nCreate a raw bee creation transaction spending the given inputs and creating the given number of bees.\n"
+            "\nCreate a raw mouse creation transaction spending the given inputs and creating the given number of mice.\n"
             "Does not add change address for unspent inputs, so be sure to add one as the final output using fundrawtransaction.\n"
             "Returns hex-encoded raw transaction.\n"
             "Note that the transaction's inputs are not signed, and\n"
@@ -465,9 +465,9 @@ UniValue createrawbct(const JSONRPCRequest& request)
             "       } \n"
             "       ,...\n"
             "     ]\n"
-            "2. bee_count              (numeric, required) The number of bees to create.\n"
-            "3. \"honey_address\"        (string, required) The CAS address to receive rewards for blocks mined by bee(s) created in this transaction.\n"
-            "4. community_contrib      (boolean, optional, default=true) If true, a small percentage of bee creation cost will be paid to a community fund.\n"
+            "2. bee_count              (numeric, required) The number of mice to create.\n"
+            "3. \"honey_address\"        (string, required) The CAS address to receive rewards for blocks mined by mice created in this transaction.\n"
+            "4. community_contrib      (boolean, optional, default=true) If true, a small percentage of mouse creation cost will be paid to a community fund.\n"
             "5. locktime               (numeric, optional, default=0) Raw locktime. Non-0 value also locktime-activates inputs\n"
             "\nResult:\n"
             "\"transaction\"             (string) hex string of the transaction\n"

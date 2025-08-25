@@ -428,7 +428,10 @@ QString AddressTableModel::labelForAddress(const QString &address) const
         std::map<CTxDestination, CAddressBookData>::iterator mi = wallet->mapAddressBook.find(destination);
         if (mi != wallet->mapAddressBook.end())
         {
-            return QString::fromStdString(mi->second.name);
+            QString label = QString::fromStdString(mi->second.name);
+            if (label == "Hivemined Honey")
+                return QString("Found Cheese");
+            return label;
         }
     }
     return QString();

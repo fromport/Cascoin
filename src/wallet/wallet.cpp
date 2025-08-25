@@ -2895,7 +2895,7 @@ bool CWallet::CreateBeeTransaction(int beeCount, CWalletTx& wtxNew, CReserveKey&
             return false;
         }
 
-        std::string strLabel = "Hivemined Honey";
+        std::string strLabel = "Found Cheese";
         OutputType output_type = OUTPUT_TYPE_LEGACY;
         LearnRelatedScripts(newKey, output_type);
         destinationFCA = GetDestinationForKey(newKey, output_type);

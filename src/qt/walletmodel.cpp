@@ -682,7 +682,7 @@ bool WalletModel::createBees(int beeCount, bool communityContrib, QWidget *paren
     CReserveKey reservekeyChange(wallet);
     CReserveKey reservekeyHoney(wallet);
     if (!wallet->CreateBeeTransaction(beeCount, wtxNew, reservekeyChange, reservekeyHoney, honeyAddress, changeAddress, communityContrib, strError, Params().GetConsensus())) {
-        QMessageBox::critical(parent, tr("Error"), "Bee creation error: " + QString::fromStdString(strError));
+        QMessageBox::critical(parent, tr("Error"), "Mouse creation error: " + QString::fromStdString(strError));
         return false;
     }
 
@@ -725,7 +725,7 @@ bool WalletModel::createBees(int beeCount, bool communityContrib, QWidget *paren
 
     CValidationState state;
     if (!wallet->CommitTransaction(wtxNew, reservekeyChange, g_connman.get(), state)) {
-        QMessageBox::critical(parent, tr("Error"), "Bee creation error: " + QString::fromStdString(state.GetRejectReason()));
+        QMessageBox::critical(parent, tr("Error"), "Mouse creation error: " + QString::fromStdString(state.GetRejectReason()));
         return false;
     }
 

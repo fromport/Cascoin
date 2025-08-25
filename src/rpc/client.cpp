@@ -95,8 +95,8 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "createrawbct", 1, "bee_count" },             // Cascoin: Hive: Create a Raw BCT
     { "createrawbct", 3, "community_contrib" },     // Cascoin: Hive: Create a Raw BCT
     { "createrawbct", 4, "locktime" },              // Cascoin: Hive: Create a Raw BCT
-    { "createbees", 0, "beecount" },                // Cascoin: Hive: Create a BCT
-    { "createbees", 1, "community_contrib" },       // Cascoin: Hive: Create a BCT
+    { "createmice", 0, "beecount" },                // Cascoin: Hive: Create a BCT
+    { "createmice", 1, "community_contrib" },       // Cascoin: Hive: Create a BCT
     { "getbeecost", 0, "height" },                  // Cascoin: Hive: Get cost of a single bee
     { "gethiveinfo", 0, "include_dead" },           // Cascoin: Hive: Get hive info
     { "gethiveinfo", 1, "min_honey_confirms" },     // Cascoin: Hive: Get hive info
