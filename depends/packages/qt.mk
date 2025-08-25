@@ -160,6 +160,7 @@ $(package)_config_opts_mingw32 += -no-pkg-config
 # CMake build options.
 $(package)_config_env := CC="$$($(package)_cc)"
 $(package)_config_env += CXX="$$($(package)_cxx)"
+$(package)_config_env += CCACHE=$(build_prefix)/native/bin/ccache
 $(package)_config_env_darwin := OBJC="$$($(package)_cc)"
 $(package)_config_env_darwin += OBJCXX="$$($(package)_cxx)"
 
@@ -171,8 +172,8 @@ $(package)_cmake_opts += --log-level=STATUS
 endif
 
 $(package)_cmake_opts += -DQT_USE_DEFAULT_CMAKE_OPTIMIZATION_FLAGS=ON
-$(package)_cmake_opts += -DCMAKE_C_COMPILER_LAUNCHER=$(build_prefix)/bin/ccache
-$(package)_cmake_opts += -DCMAKE_CXX_COMPILER_LAUNCHER=$(build_prefix)/bin/ccache
+$(package)_cmake_opts += -DCMAKE_C_COMPILER_LAUNCHER=$(build_prefix)/native/bin/ccache
+$(package)_cmake_opts += -DCMAKE_CXX_COMPILER_LAUNCHER=$(build_prefix)/native/bin/ccache
 $(package)_cmake_opts += -DCMAKE_C_FLAGS="$$($(package)_cppflags) $$($$($(package)_type)_CFLAGS) -ffile-prefix-map=$$($(package)_extract_dir)=/usr"
 $(package)_cmake_opts += -DCMAKE_C_FLAGS_RELEASE="$$($$($(package)_type)_release_CFLAGS)"
 $(package)_cmake_opts += -DCMAKE_C_FLAGS_DEBUG="$$($$($(package)_type)_debug_CFLAGS)"
