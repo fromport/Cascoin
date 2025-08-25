@@ -171,6 +171,8 @@ jobs:
         shell: bash
         run: |
           make -C depends HOST=${HOST} -j"$(nproc)"
+          # show whether native ccache was staged
+          ls -lah depends/*/native/bin || true
           ls -lah depends/${HOST}
 
       - name: Autogen
