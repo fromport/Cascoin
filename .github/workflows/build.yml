@@ -146,7 +146,8 @@ jobs:
             g++-mingw-w64-x86-64 mingw-w64 binutils-mingw-w64 \
             zip unzip cmake gperf \
             python3 bsdextrautils faketime libfaketime \
-            rsync git
+            rsync git \
+            qt6-base-dev qt6-base-dev-tools qt6-tools-dev qt6-tools-dev-tools
 
       - name: Prepare depends cache directories
         shell: bash
@@ -195,27 +196,19 @@ jobs:
         shell: bash
         run: |
           export CONFIG_SITE="$PWD/depends/${HOST}/share/config.site"
-          native_qt_bin=$(find "$PWD/depends" -type d -path "*/native/bin" | head -n1)
-          export PATH="$native_qt_bin:$PATH"
-          echo "Using native Qt tools from: $native_qt_bin"
+          export PATH=/usr/lib/qt6/bin:$PATH
           CFLAGS="-g" CXXFLAGS="-g" \
           CPPFLAGS="-I$PWD/depends/${HOST}/include" \
           LDFLAGS="-L$PWD/depends/${HOST}/lib" \
           PKG_CONFIG_PATH="$PWD/depends/${HOST}/lib/pkgconfig" \
-          MOC=$(command -v moc || true) \
-          UIC=$(command -v uic || true) \
-          RCC=$(command -v rcc || true) \
-          LRELEASE=$(command -v lrelease || true) \
-          LUPDATE=$(command -v lupdate || true) \
           ./configure \
-            --host=${HOST} \
             --prefix="$PWD/depends/${HOST}" \
+            --host=${HOST} \
+            --disable-tests \
+            --disable-bench \
             --with-gui=qt6 \
             --with-qt-incdir="$PWD/depends/${HOST}/include" \
             --with-qt-libdir="$PWD/depends/${HOST}/lib" \
-            --disable-tests \
-            --disable-bench \
-            --enable-wallet \
             --with-incompatible-bdb
 
       - name: Build (Windows ${HOST})
