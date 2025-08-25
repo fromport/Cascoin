@@ -34,6 +34,10 @@ jobs:
           # Try specific BDB package name if the generic one isn't available
           sudo apt-get install -y libdb5.3++-dev || true
 
+      - name: Ensure ccache directory exists
+        shell: bash
+        run: mkdir -p ~/.ccache
+
       - name: Cache ccache
         uses: actions/cache@v4
         with:
@@ -143,6 +147,11 @@ jobs:
             zip unzip cmake gperf \
             python3 bsdextrautils faketime libfaketime \
             rsync git
+
+      - name: Prepare depends cache directories
+        shell: bash
+        run: |
+          mkdir -p depends/built depends/work depends/sources depends/sdk-sources depends/${HOST} depends/stamps
 
       - name: Cache depends (sources, built artifacts, prefix)
         uses: actions/cache@v4
