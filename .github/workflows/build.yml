@@ -167,16 +167,17 @@ jobs:
           restore-keys: |
             depends-${{ runner.os }}-${{ env.HOST }}-
 
-      - name: Prebuild native ccache and ensure path for depends
-        shell: bash
-        run: |
-          make -C depends HOST=${HOST} native_ccache -j"$(nproc)" || true
-          cc_path=$(find depends -type f -path "*/native/bin/ccache" | head -n1 || true)
-          mkdir -p "depends/${HOST}/native/bin"
-          if [[ -n "$cc_path" ]]; then
-            ln -sf "$PWD/$cc_path" "depends/${HOST}/native/bin/ccache"
-          fi
-          ls -lah "depends/${HOST}/native/bin" || true
+      # Disabled ccache for Qt depends build to avoid path complexity
+      # - name: Prebuild native ccache and ensure path for depends
+      #   shell: bash
+      #   run: |
+      #     make -C depends HOST=${HOST} native_ccache -j"$(nproc)" || true
+      #     cc_path=$(find depends -type f -path "*/native/bin/ccache" | head -n1 || true)
+      #     mkdir -p "depends/${HOST}/native/bin"
+      #     if [[ -n "$cc_path" ]]; then
+      #       ln -sf "$PWD/$cc_path" "depends/${HOST}/native/bin/ccache"
+      #     fi
+      #     ls -lah "depends/${HOST}/native/bin" || true
 
       - name: Build depends (${{ env.HOST }})
         shell: bash
