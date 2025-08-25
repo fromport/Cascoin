@@ -1,0 +1,68 @@
+name: Build Cascoin (Qt6 GUI + Wallet)
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies (apt)
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            autoconf automake libtool build-essential pkg-config curl ca-certificates \
+            libevent-dev libboost-system-dev libboost-filesystem-dev libboost-chrono-dev \
+            libboost-test-dev libboost-thread-dev \
+            libssl-dev libzmq3-dev libminiupnpc-dev \
+            libprotobuf-dev protobuf-compiler \
+            libqrencode-dev \
+            libsqlite3-dev \
+            qt6-base-dev qt6-base-dev-tools qt6-tools-dev qt6-tools-dev-tools qt6-svg-dev \
+            libqt6core5compat6-dev \
+            libdb-dev libdb++-dev || true
+          # Try specific BDB package name if the generic one isn't available
+          sudo apt-get install -y libdb5.3++-dev || true
+
+      - name: Autogen
+        shell: bash
+        run: ./autogen.sh
+
+      - name: Configure (Qt6 GUI, wallet, incompatible BDB)
+        shell: bash
+        run: |
+          ./configure \
+            --with-gui=qt6 \
+            --enable-wallet \
+            --with-incompatible-bdb
+
+      - name: Build
+        shell: bash
+        run: make -j"$(nproc)"
+
+      - name: List built binaries
+        shell: bash
+        run: |
+          ls -lah src || true
+          ls -lah src/qt || true
+          file src/qt/*-qt || true
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cascoin-linux-build
+          path: |
+            src/qt/*-qt
+            src/*coind
+            src/*coin-cli
+          if-no-files-found: warn
+
+
