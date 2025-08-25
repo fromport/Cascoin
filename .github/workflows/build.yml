@@ -27,12 +27,26 @@ jobs:
             libsqlite3-dev \
             qt6-base-dev qt6-base-dev-tools qt6-tools-dev qt6-tools-dev-tools qt6-svg-dev \
             libqt6core5compat6-dev \
-            binutils \
+            binutils ccache \
             libdb-dev libdb++-dev || true
           # Fallback: install all Boost dev libs if specific ones are insufficient on this runner
           sudo apt-get install -y libboost-all-dev || true
           # Try specific BDB package name if the generic one isn't available
           sudo apt-get install -y libdb5.3++-dev || true
+
+      - name: Cache ccache
+        uses: actions/cache@v4
+        with:
+          path: ~/.ccache
+          key: ccache-${{ runner.os }}-gcc-${{ hashFiles('configure.ac', 'src/**/*.cpp', 'src/**/*.h') }}
+          restore-keys: |
+            ccache-${{ runner.os }}-gcc-
+
+      - name: Configure ccache
+        shell: bash
+        run: |
+          ccache --zero-stats || true
+          ccache --max-size=2G || true
 
       - name: Autogen
         shell: bash
@@ -41,7 +55,7 @@ jobs:
       - name: Configure (Qt6 GUI, wallet, incompatible BDB)
         shell: bash
         run: |
-          CFLAGS="-g" CXXFLAGS="-g" \
+          CFLAGS="-g" CXXFLAGS="-g" CC="ccache gcc" CXX="ccache g++" \
           MOC=/usr/lib/qt6/libexec/moc \
           UIC=/usr/lib/qt6/libexec/uic \
           RCC=/usr/lib/qt6/libexec/rcc \
@@ -56,7 +70,10 @@ jobs:
 
       - name: Build
         shell: bash
-        run: make -j"$(nproc)"
+        run: |
+          export CC="ccache gcc"
+          export CXX="ccache g++"
+          make -j"$(nproc)"
 
       - name: Strip binaries (non-fatal) and keep debug symbols
         shell: bash
