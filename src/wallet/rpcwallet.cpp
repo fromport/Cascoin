@@ -1493,6 +1493,95 @@ UniValue micenftinfo(const JSONRPCRequest& request) {
     return result;
 }
 
+UniValue miceavailable(const JSONRPCRequest& request)
+{
+    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
+        return NullUniValue;
+    }
+
+    if (request.fHelp || request.params.size() > 1)
+        throw std::runtime_error(
+            "miceavailable ( includeimmature )\n"
+            "\nLists all available mice from BCTs that can be tokenized.\n"
+            "\nArguments:\n"
+            "1. \"includeimmature\"        (boolean, optional, default=false) Include immature mice\n"
+            "\nResult:\n"
+            "[\n"
+            "  {\n"
+            "    \"bct_txid\": \"xxx\",           (string) BCT transaction ID\n"
+            "    \"bct_time\": n,                 (numeric) BCT creation timestamp\n"
+            "    \"honey_address\": \"xxx\",      (string) Honey payout address\n" 
+            "    \"total_mice\": n,               (numeric) Total mice in this BCT\n"
+            "    \"status\": \"mature\",          (string) BCT status (mature/immature/expired)\n"
+            "    \"blocks_left\": n,              (numeric) Blocks until expiry\n"
+            "    \"available_mice\": [            (array) Individual mice available for tokenization\n"
+            "      {\n"
+            "        \"mouse_index\": n,          (numeric) Mouse index within BCT\n"
+            "        \"mouse_id\": \"xxx\",       (string) Unique mouse identifier\n"
+            "        \"already_tokenized\": false (boolean) Whether already tokenized\n"
+            "      }\n"
+            "    ]\n"
+            "  }\n"
+            "]\n"
+            "\nExamples:\n"
+            + HelpExampleCli("miceavailable", "")
+            + HelpExampleCli("miceavailable", "true")
+            + HelpExampleRpc("miceavailable", "false")
+        );
+
+    LOCK2(cs_main, pwallet->cs_wallet);
+
+    // Get parameter
+    bool includeImmature = false;
+    if (!request.params[0].isNull()) {
+        includeImmature = request.params[0].get_bool();
+    }
+
+    // Get all BCTs from wallet
+    const Consensus::Params& consensusParams = Params().GetConsensus();
+    std::vector<CBeeCreationTransactionInfo> vBCTs = pwallet->GetBCTs(false, false, consensusParams);
+
+    UniValue result(UniValue::VARR);
+
+    for (const CBeeCreationTransactionInfo& bct : vBCTs) {
+        // Skip immature if not requested
+        if (!includeImmature && bct.beeStatus != "mature") {
+            continue;
+        }
+
+        UniValue bctObj(UniValue::VOBJ);
+        bctObj.pushKV("bct_txid", bct.txid);
+        bctObj.pushKV("bct_time", bct.time);
+        bctObj.pushKV("honey_address", bct.honeyAddress);
+        bctObj.pushKV("total_mice", bct.beeCount);
+        bctObj.pushKV("status", bct.beeStatus);
+        bctObj.pushKV("blocks_left", bct.blocksLeft);
+
+        UniValue availableMice(UniValue::VARR);
+        
+        // List each individual mouse in this BCT
+        for (int mouseIndex = 0; mouseIndex < bct.beeCount; mouseIndex++) {
+            UniValue mouseObj(UniValue::VOBJ);
+            mouseObj.pushKV("mouse_index", mouseIndex);
+            
+            // Generate unique mouse identifier (BCT_TXID:INDEX)
+            std::string mouseId = bct.txid + ":" + std::to_string(mouseIndex);
+            mouseObj.pushKV("mouse_id", mouseId);
+            
+            // TODO: Check if already tokenized (placeholder for now)
+            mouseObj.pushKV("already_tokenized", false);
+            
+            availableMice.push_back(mouseObj);
+        }
+        
+        bctObj.pushKV("available_mice", availableMice);
+        result.push_back(bctObj);
+    }
+
+    return result;
+}
+
 // Cascoin: Hive: Get network hive info
 UniValue getnetworkhiveinfo(const JSONRPCRequest& request)
 {
@@ -4955,6 +5044,7 @@ static const CRPCCommand commands[] =
     { "wallet",             "rialtoisnickblocked",      &rialtoisnickblocked,      {"nickname"} },                                          // Cascoin: Rialto: Check if given nick is blocked
     { "wallet",             "rialtogetblockednicks",    &rialtogetblockednicks,    {} },                                                    // Cascoin: Rialto: Get all blocked nicks
     { "wallet",             "rialtogetincomingmessages",&rialtogetincomingmessages,{} },                                                    // Cascoin: Rialto: Get incoming messages
+    { "wallet",             "miceavailable",            &miceavailable,            {"includeimmature"} },                                   // Cascoin: Mice NFT System: List available mice for tokenization
     { "wallet",             "micenftokenize",           &micenftokenize,           {"bct_txid","mouse_index","owner_address"} },            // Cascoin: Mice NFT System: Tokenize individual mice
     { "wallet",             "micenftransfer",           &micenftransfer,           {"mice_nft_id","to_address"} },                          // Cascoin: Mice NFT System: Transfer mice NFT
     { "wallet",             "micenftlist",              &micenftlist,              {"include_expired"} },                                   // Cascoin: Mice NFT System: List owned mice NFTs

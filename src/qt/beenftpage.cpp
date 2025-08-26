@@ -38,6 +38,7 @@ void BeeNFTPage::setModel(WalletModel *_walletModel)
         
         updateBeeNFTCombo();
         refreshBeeNFTs();
+        loadAvailableMice();
     }
 }
 
@@ -84,22 +85,18 @@ void BeeNFTPage::setupUI()
     tokenizeTab = new QWidget();
     QVBoxLayout *tokenizeLayout = new QVBoxLayout(tokenizeTab);
     
-    QGroupBox *tokenizeGroup = new QGroupBox(tr("Tokenize Mouse from BCT"));
+    QGroupBox *tokenizeGroup = new QGroupBox(tr("Tokenize Mouse"));
     QGridLayout *tokenizeGridLayout = new QGridLayout(tokenizeGroup);
     
-    // BCT Transaction ID
-    tokenizeGridLayout->addWidget(new QLabel(tr("BCT Transaction ID:")), 0, 0);
-    bctTxidEdit = new QLineEdit();
-    bctTxidEdit->setPlaceholderText(tr("Enter BCT transaction hash"));
-    tokenizeGridLayout->addWidget(bctTxidEdit, 0, 1, 1, 2);
+    // Available Mice Selection
+    tokenizeGridLayout->addWidget(new QLabel(tr("Select Mouse:")), 0, 0);
+    mouseSelectionCombo = new QComboBox();
+    mouseSelectionCombo->setMinimumWidth(400);
+    tokenizeGridLayout->addWidget(mouseSelectionCombo, 0, 1, 1, 2);
     
-    // Mouse Index
-    tokenizeGridLayout->addWidget(new QLabel(tr("Mouse Index:")), 1, 0);
-    beeIndexSpin = new QSpinBox();
-    beeIndexSpin->setMinimum(0);
-    beeIndexSpin->setMaximum(999);
-    beeIndexSpin->setToolTip(tr("Index of the mouse to tokenize (0-based)"));
-    tokenizeGridLayout->addWidget(beeIndexSpin, 1, 1);
+    // Refresh button for mouse list
+    refreshMiceButton = new QPushButton(tr("Refresh Available Mice"));
+    tokenizeGridLayout->addWidget(refreshMiceButton, 0, 3);
     
     // Owner Address
     tokenizeGridLayout->addWidget(new QLabel(tr("Owner Address:")), 2, 0);
@@ -158,6 +155,7 @@ void BeeNFTPage::setupUI()
     // Connect signals
     connect(refreshButton, SIGNAL(clicked()), this, SLOT(refreshBeeNFTs()));
     connect(detailsButton, SIGNAL(clicked()), this, SLOT(showBeeNFTDetails()));
+    connect(refreshMiceButton, SIGNAL(clicked()), this, SLOT(loadAvailableMice()));
     connect(tokenizeButton, SIGNAL(clicked()), this, SLOT(tokenizeBee()));
     connect(transferButton, SIGNAL(clicked()), this, SLOT(transferBeeNFT()));
     connect(generateAddressButton, SIGNAL(clicked()), this, SLOT(generateNewAddress()));
@@ -169,6 +167,44 @@ void BeeNFTPage::setupUI()
     
     connect(beeNFTView->selectionModel(), SIGNAL(selectionChanged(QItemSelection,QItemSelection)),
             this, SLOT(onBeeNFTSelectionChanged()));
+    
+    // Load available mice on startup
+    if (walletModel) {
+        loadAvailableMice();
+    }
+}
+
+void BeeNFTPage::loadAvailableMice()
+{
+    if (!walletModel) {
+        return;
+    }
+    
+    mouseSelectionCombo->clear();
+    mouseSelectionCombo->addItem(tr("Loading available mice..."));
+    mouseSelectionCombo->setEnabled(false);
+    
+    // Call RPC to get available mice
+    QString command = "miceavailable";
+    
+    // TODO: Use proper RPC call through walletModel
+    // For now, add placeholder items
+    mouseSelectionCombo->clear();
+    mouseSelectionCombo->addItem(tr("Select a mouse to tokenize..."), "");
+    
+    // Placeholder data - in real implementation, this would come from RPC
+    QStringList placeholderMice;
+    placeholderMice << "BCT abc123...:0 (Mouse #0 - Mature)"
+                   << "BCT abc123...:1 (Mouse #1 - Mature)"
+                   << "BCT def456...:0 (Mouse #0 - Mature)"
+                   << "BCT def456...:1 (Mouse #1 - Mature)";
+    
+    for (const QString& mouseDesc : placeholderMice) {
+        QString mouseId = mouseDesc.split(" ").first();
+        mouseSelectionCombo->addItem(mouseDesc, mouseId);
+    }
+    
+    mouseSelectionCombo->setEnabled(true);
 }
 
 void BeeNFTPage::tokenizeBee()
@@ -177,13 +213,12 @@ void BeeNFTPage::tokenizeBee()
         return;
     }
     
-    QString bctTxid = bctTxidEdit->text().trimmed();
-    int beeIndex = beeIndexSpin->value();
+    QString selectedMouseData = mouseSelectionCombo->currentData().toString();
     QString ownerAddress = ownerAddressEdit->text().trimmed();
     
     // Validate inputs
-    if (bctTxid.isEmpty()) {
-        QMessageBox::warning(this, tr("Input Error"), tr("Please enter a BCT transaction ID."));
+    if (selectedMouseData.isEmpty() || mouseSelectionCombo->currentIndex() == 0) {
+        QMessageBox::warning(this, tr("Input Error"), tr("Please select a mouse to tokenize."));
         return;
     }
     
@@ -192,11 +227,16 @@ void BeeNFTPage::tokenizeBee()
         return;
     }
     
+    // Extract mouse info from selection
+    QString selectedMouseText = mouseSelectionCombo->currentText();
+    
     // Confirm tokenization
-    QString message = tr("Are you sure you want to tokenize mouse #%1 from BCT %2?\n\n"
+    QString message = tr("Are you sure you want to tokenize this mouse?\n\n"
+                        "Selected: %1\n"
+                        "Owner: %2\n\n"
                         "This will create a transferable NFT for this mouse.")
-                        .arg(beeIndex)
-                        .arg(bctTxid);
+                        .arg(selectedMouseText)
+                        .arg(ownerAddress);
     
     QMessageBox::StandardButton reply = QMessageBox::question(this, tr("Confirm Tokenization"), 
                                                              message,

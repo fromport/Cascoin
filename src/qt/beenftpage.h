@@ -44,6 +44,7 @@ private Q_SLOTS:
     void showBeeNFTDetails();
     void onBeeNFTSelectionChanged();
     void generateNewAddress();
+    void loadAvailableMice();
 
 private:
     WalletModel *walletModel;
@@ -62,8 +63,8 @@ private:
     
     // Tokenize Tab
     QWidget *tokenizeTab;
-    QLineEdit *bctTxidEdit;
-    QSpinBox *beeIndexSpin;
+    QComboBox *mouseSelectionCombo;
+    QPushButton *refreshMiceButton;
     QLineEdit *ownerAddressEdit;
     QPushButton *tokenizeButton;
     QPushButton *generateAddressButton;
