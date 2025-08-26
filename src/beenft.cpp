@@ -8,6 +8,7 @@
 #include <script/standard.h>
 #include <utilstrencodings.h>
 #include <consensus/validation.h>
+#include <base58.h>
 
 #include <algorithm>
 
@@ -55,7 +56,12 @@ bool IsValidBeeNFTTokenTransaction(const CTransaction& tx, std::string& error) {
                 }
                 
                 // Validate owner address format
-                if (token.currentOwner.empty() || !IsValidDestinationString(token.currentOwner)) {
+                if (token.currentOwner.empty()) {
+                    error = "Invalid owner address";
+                    return false;
+                }
+                CTxDestination dest = DecodeDestination(token.currentOwner);
+                if (!IsValidDestination(dest)) {
                     error = "Invalid owner address";
                     return false;
                 }
@@ -104,12 +110,22 @@ bool IsValidBeeNFTTransferTransaction(const CTransaction& tx, std::string& error
                 }
                 
                 // Validate address formats
-                if (transfer.fromOwner.empty() || !IsValidDestinationString(transfer.fromOwner)) {
+                if (transfer.fromOwner.empty()) {
+                    error = "Invalid from owner address";
+                    return false;
+                }
+                CTxDestination fromDest = DecodeDestination(transfer.fromOwner);
+                if (!IsValidDestination(fromDest)) {
                     error = "Invalid from owner address";
                     return false;
                 }
                 
-                if (transfer.toOwner.empty() || !IsValidDestinationString(transfer.toOwner)) {
+                if (transfer.toOwner.empty()) {
+                    error = "Invalid to owner address";
+                    return false;
+                }
+                CTxDestination toDest = DecodeDestination(transfer.toOwner);
+                if (!IsValidDestination(toDest)) {
                     error = "Invalid to owner address";
                     return false;
                 }
@@ -149,7 +165,7 @@ bool ParseBeeNFTTokenTransaction(const CTransaction& tx, std::vector<BeeNFTToken
             
             // Get data length
             unsigned char dataLen = txout.scriptPubKey[2];
-            if (dataLen + 3 > txout.scriptPubKey.size()) {
+            if (static_cast<size_t>(dataLen + 3) > txout.scriptPubKey.size()) {
                 error = "Invalid bee NFT token data length";
                 return false;
             }
@@ -207,7 +223,7 @@ bool ParseBeeNFTTransferTransaction(const CTransaction& tx, std::vector<BeeNFTTr
             
             // Get data length
             unsigned char dataLen = txout.scriptPubKey[2];
-            if (dataLen + 3 > txout.scriptPubKey.size()) {
+            if (static_cast<size_t>(dataLen + 3) > txout.scriptPubKey.size()) {
                 error = "Invalid bee NFT transfer data length";
                 return false;
             }

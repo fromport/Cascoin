@@ -9,6 +9,8 @@
 #include <uint256.h>
 #include <script/script.h>
 #include <support/allocators/secure.h>
+#include <hash.h>
+#include <primitives/transaction.h>
 
 #include <string>
 #include <vector>

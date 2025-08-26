@@ -1257,16 +1257,22 @@ UniValue micenftokenize(const JSONRPCRequest& request) {
         ownerAddress = request.params[2].get_str();
         
         // Validate address
-        if (!IsValidDestinationString(ownerAddress)) {
+        CTxDestination dest = DecodeDestination(ownerAddress);
+        if (!IsValidDestination(dest)) {
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid owner address");
         }
     } else {
-        // Generate new address for bee NFT
-        CTxDestination dest;
-        std::string error;
-        if (!pwallet->GetNewDestination(OUTPUT_TYPE_LEGACY, "", dest, error)) {
-            throw JSONRPCError(RPC_WALLET_KEYPOOL_RAN_OUT, error);
+        // Generate new address for mice NFT
+        if (!pwallet->IsLocked()) {
+            pwallet->TopUpKeyPool();
         }
+        
+        CPubKey newKey;
+        if (!pwallet->GetKeyFromPool(newKey)) {
+            throw JSONRPCError(RPC_WALLET_KEYPOOL_RAN_OUT, "Error: Keypool ran out, please call keypoolrefill first");
+        }
+        pwallet->LearnRelatedScripts(newKey, OUTPUT_TYPE_LEGACY);
+        CTxDestination dest = GetDestinationForKey(newKey, OUTPUT_TYPE_LEGACY);
         ownerAddress = EncodeDestination(dest);
     }
 
@@ -1345,7 +1351,8 @@ UniValue micenftransfer(const JSONRPCRequest& request) {
     std::string toAddress = request.params[1].get_str();
 
     // Validate recipient address
-    if (!IsValidDestinationString(toAddress)) {
+    CTxDestination dest = DecodeDestination(toAddress);
+    if (!IsValidDestination(dest)) {
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid recipient address");
     }
 

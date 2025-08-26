@@ -74,6 +74,9 @@ public Q_SLOTS:
     // Cascoin: Hive: Switch to hive page
     void gotoHivePage();
 
+    // Cascoin: Bee NFT: Switch to bee NFT page
+    void gotoBeeNFTPage();
+
     // Cascoin: Key import helper
     void importPrivateKey();
 

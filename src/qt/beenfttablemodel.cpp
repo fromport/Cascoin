@@ -11,6 +11,18 @@
 #include <QIcon>
 #include <QDateTime>
 
+// Column alignments for the table
+static int column_alignments[] = {
+    Qt::AlignLeft|Qt::AlignVCenter,   /* BeeNFTId */
+    Qt::AlignLeft|Qt::AlignVCenter,   /* OriginalBCT */
+    Qt::AlignRight|Qt::AlignVCenter,  /* BeeIndex */
+    Qt::AlignLeft|Qt::AlignVCenter,   /* Status */
+    Qt::AlignLeft|Qt::AlignVCenter,   /* Owner */
+    Qt::AlignRight|Qt::AlignVCenter,  /* BlocksLeft */
+    Qt::AlignRight|Qt::AlignVCenter,  /* MaturityHeight */
+    Qt::AlignRight|Qt::AlignVCenter   /* ExpiryHeight */
+};
+
 BeeNFTTableModel::BeeNFTTableModel(WalletModel *parent) :
     QAbstractTableModel(parent),
     walletModel(parent),
@@ -74,15 +86,7 @@ QVariant BeeNFTTableModel::data(const QModelIndex &index, int role) const
             return rec.expiryHeight;
         }
     } else if (role == Qt::TextAlignmentRole) {
-        switch(index.column()) {
-        case BeeIndex:
-        case BlocksLeft:
-        case MaturityHeight:
-        case ExpiryHeight:
-            return Qt::AlignRight + Qt::AlignVCenter;
-        default:
-            return Qt::AlignLeft + Qt::AlignVCenter;
-        }
+        return column_alignments[index.column()];
     } else if (role == Qt::ToolTipRole) {
         switch(index.column()) {
         case BeeNFTId:

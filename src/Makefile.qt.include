@@ -189,6 +189,8 @@ QT_MOC_CPP = \
   qt/moc_transactiontablemodel.cpp \
   qt/moc_transactionview.cpp \
   qt/moc_hivedialog.cpp \
+  qt/moc_beenftpage.cpp \
+  qt/moc_beenfttablemodel.cpp \
   qt/moc_utilitydialog.cpp \
   qt/moc_walletframe.cpp \
   qt/moc_walletmodel.cpp \

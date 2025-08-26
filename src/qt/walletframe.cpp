@@ -125,6 +125,14 @@ void WalletFrame::gotoHivePage()
         i.value()->gotoHivePage();
 }
 
+// Cascoin: Bee NFT page
+void WalletFrame::gotoBeeNFTPage()
+{
+    QMap<QString, WalletView*>::const_iterator i;
+    for (i = mapWalletViews.constBegin(); i != mapWalletViews.constEnd(); ++i)
+        i.value()->gotoBeeNFTPage();
+}
+
 // Cascoin: Key import helper
 void WalletFrame::importPrivateKey()
 {
