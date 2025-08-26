@@ -106,7 +106,189 @@ jobs:
           ls -lah src/qt || true
           file src/qt/*-qt || true
 
-      - name: Upload artifacts
+      - name: Create Linux distribution package
+        shell: bash
+        run: |
+          # Create distribution structure
+          DIST_DIR="cascoin-linux-distribution"
+          mkdir -p "$DIST_DIR"/usr/bin
+          mkdir -p "$DIST_DIR"/usr/lib/x86_64-linux-gnu
+          mkdir -p "$DIST_DIR"/usr/share/applications
+          mkdir -p "$DIST_DIR"/usr/share/pixmaps
+          mkdir -p "$DIST_DIR"/usr/lib/qt6/plugins
+          
+          # Copy binaries
+          cp src/qt/cascoin-qt "$DIST_DIR"/usr/bin/ || true
+          cp src/cascoind "$DIST_DIR"/usr/bin/ || true
+          cp src/cascoin-cli "$DIST_DIR"/usr/bin/ || true
+          cp src/cascoin-tx "$DIST_DIR"/usr/bin/ || true
+          
+          # Function to copy library dependencies
+          copy_lib_deps() {
+            local binary="$1"
+            local lib_dir="$2"
+            
+            if [[ ! -f "$binary" ]]; then return; fi
+            
+            echo "Collecting libraries for: $(basename "$binary")"
+            ldd "$binary" 2>/dev/null | grep "=>" | awk '{print $3}' | while read lib; do
+              if [[ -f "$lib" && "$lib" =~ ^/usr/lib|^/lib ]]; then
+                lib_name=$(basename "$lib")
+                if [[ ! -f "$lib_dir/$lib_name" ]]; then
+                  echo "  Copying: $lib_name"
+                  cp "$lib" "$lib_dir/" 2>/dev/null || true
+                fi
+              fi
+            done
+          }
+          
+          # Copy libraries for all binaries
+          LIB_DIR="$DIST_DIR/usr/lib/x86_64-linux-gnu"
+          for binary in "$DIST_DIR"/usr/bin/*; do
+            if [[ -f "$binary" ]]; then
+              copy_lib_deps "$binary" "$LIB_DIR"
+            fi
+          done
+          
+          # Copy Qt6 libraries from host system
+          echo "Copying Qt6 libraries..."
+          find /usr/lib/x86_64-linux-gnu -name "libQt6*.so*" -exec cp {} "$LIB_DIR/" \; 2>/dev/null || true
+          
+          # Copy Qt6 plugins
+          if [[ -d /usr/lib/x86_64-linux-gnu/qt6/plugins ]]; then
+            echo "Copying Qt6 plugins..."
+            cp -r /usr/lib/x86_64-linux-gnu/qt6/plugins/* "$DIST_DIR"/usr/lib/qt6/plugins/ 2>/dev/null || true
+          fi
+          
+          # Copy additional system libraries that might be needed
+          echo "Copying essential system libraries..."
+          essential_libs=(
+            "libssl.so*" "libcrypto.so*" "libboost_*.so*"
+            "libevent*.so*" "libprotobuf.so*" "libminiupnpc.so*"
+            "libzmq.so*" "libqrencode.so*" "libdb*.so*"
+            "libstdc++.so*" "libgcc_s.so*"
+          )
+          
+          for pattern in "${essential_libs[@]}"; do
+            find /usr/lib/x86_64-linux-gnu /lib/x86_64-linux-gnu -name "$pattern" 2>/dev/null | while read lib; do
+              if [[ -f "$lib" ]]; then
+                lib_name=$(basename "$lib")
+                if [[ ! -f "$LIB_DIR/$lib_name" ]]; then
+                  cp "$lib" "$LIB_DIR/" 2>/dev/null || true
+                fi
+              fi
+            done
+          done
+          
+          # Create wrapper scripts
+          cat > "$DIST_DIR"/usr/bin/cascoin-qt-wrapper << 'EOF'
+          #!/bin/bash
+          export LD_LIBRARY_PATH="/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH"
+          export QT_PLUGIN_PATH="/usr/lib/qt6/plugins:$QT_PLUGIN_PATH"
+          exec /usr/bin/cascoin-qt "$@"
+          EOF
+          
+          cat > "$DIST_DIR"/usr/bin/cascoind-wrapper << 'EOF'
+          #!/bin/bash
+          export LD_LIBRARY_PATH="/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH"
+          exec /usr/bin/cascoind "$@"
+          EOF
+          
+          chmod +x "$DIST_DIR"/usr/bin/*wrapper
+          
+          # Create desktop entry
+          cat > "$DIST_DIR"/usr/share/applications/cascoin-qt.desktop << 'EOF'
+          [Desktop Entry]
+          Name=Cascoin Core
+          Comment=Cascoin cryptocurrency wallet
+          Icon=cascoin
+          Exec=/usr/bin/cascoin-qt-wrapper
+          Terminal=false
+          Type=Application
+          Categories=Office;Finance;
+          StartupWMClass=Cascoin-qt
+          EOF
+          
+          # Copy icon if available
+          if [[ -f share/pixmaps/bitcoin128.png ]]; then
+            cp share/pixmaps/bitcoin128.png "$DIST_DIR"/usr/share/pixmaps/cascoin.png
+          fi
+          
+          # Create installation script
+          cat > "$DIST_DIR"/install.sh << 'EOF'
+          #!/bin/bash
+          
+          if [[ $EUID -ne 0 ]]; then
+             echo "This script must be run as root (use sudo)"
+             exit 1
+          fi
+          
+          echo "Installing Cascoin Core Linux Distribution..."
+          
+          # Copy all files to system directories
+          cp -r usr/* /usr/
+          
+          # Update library cache
+          echo "/usr/lib/x86_64-linux-gnu" > /etc/ld.so.conf.d/cascoin.conf
+          ldconfig
+          
+          # Update desktop database
+          if command -v update-desktop-database >/dev/null 2>&1; then
+              update-desktop-database
+          fi
+          
+          echo "Installation complete!"
+          echo ""
+          echo "You can now run:"
+          echo "  cascoin-qt-wrapper    # GUI wallet"
+          echo "  cascoind-wrapper      # Daemon"
+          echo "  cascoin-cli           # CLI tool"
+          echo "  cascoin-tx            # Transaction tool"
+          EOF
+          
+          chmod +x "$DIST_DIR"/install.sh
+          
+          # Create README
+          cat > "$DIST_DIR"/README.md << 'EOF'
+          # Cascoin Core Linux Distribution Package
+          
+          This package contains a complete, self-contained installation of Cascoin Core
+          with all required libraries included. No additional package installation required.
+          
+          ## Installation
+          
+          ```bash
+          sudo ./install.sh
+          ```
+          
+          ## Usage
+          
+          After installation:
+          
+          ```bash
+          cascoin-qt-wrapper    # GUI wallet
+          cascoind-wrapper      # Daemon
+          cascoin-cli           # CLI tool
+          cascoin-tx            # Transaction tool
+          ```
+          
+          ## System Requirements
+          
+          - Linux x86_64
+          - GLIBC 2.31+ (Ubuntu 20.04+)
+          - X11 or Wayland display server (for GUI)
+          EOF
+          
+          # Show distribution contents
+          echo "Distribution package created:"
+          find "$DIST_DIR" -type f | head -20
+          echo "... ($(find "$DIST_DIR" -type f | wc -l) total files)"
+          
+          # Get version and create package
+          VERSION=$(git describe --tags --always --dirty 2>/dev/null || echo "latest")
+          tar -czf "cascoin-linux-x86_64-distribution-$VERSION.tar.gz" "$DIST_DIR"/
+
+      - name: Upload artifacts (binaries only)
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -115,6 +297,15 @@ jobs:
             src/qt/*-qt
             src/*coind
             src/*coin-cli
+          if-no-files-found: warn
+
+      - name: Upload Linux distribution package
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cascoin-linux-x86_64-distribution
+          path: |
+            cascoin-linux-x86_64-distribution-*.tar.gz
           if-no-files-found: warn
 
       - name: Upload debug symbols
