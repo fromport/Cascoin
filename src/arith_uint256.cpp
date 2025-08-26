@@ -249,14 +249,45 @@ uint32_t arith_uint256::GetCompact(bool fNegative) const
 uint256 ArithToUint256(const arith_uint256 &a)
 {
     uint256 b;
-    for(int x=0; x<a.WIDTH; ++x)
-        WriteLE32(b.begin() + x*4, a.pn[x]);
+    unsigned char* ptr = b.begin();
+    
+    // Check for invalid pointer
+    if (!ptr) {
+        // Return default-initialized uint256 if pointer is NULL
+        return b;
+    }
+    
+    for(int x=0; x<a.WIDTH; ++x) {
+        unsigned char* writePtr = ptr + x*4;
+        // Additional check to ensure we don't write beyond bounds
+        if (writePtr < ptr || writePtr + 4 > ptr + b.size()) {
+            // Skip writing if we would write beyond bounds
+            continue;
+        }
+        WriteLE32(writePtr, a.pn[x]);
+    }
     return b;
 }
 arith_uint256 UintToArith256(const uint256 &a)
 {
     arith_uint256 b;
-    for(int x=0; x<b.WIDTH; ++x)
-        b.pn[x] = ReadLE32(a.begin() + x*4);
+    const unsigned char* ptr = a.begin();
+    
+    // Check for invalid pointer
+    if (!ptr) {
+        // Return zero-initialized arith_uint256 if pointer is NULL
+        return b;
+    }
+    
+    for(int x=0; x<b.WIDTH; ++x) {
+        const unsigned char* readPtr = ptr + x*4;
+        // Additional check to ensure we don't read from invalid memory
+        if (readPtr < ptr || readPtr + 4 > ptr + a.size()) {
+            // If we would read beyond bounds, zero the remaining elements
+            b.pn[x] = 0;
+        } else {
+            b.pn[x] = ReadLE32(readPtr);
+        }
+    }
     return b;
 }

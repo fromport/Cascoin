@@ -18,6 +18,8 @@
 #include <QSpinBox>
 #include <QCheckBox>
 
+#include <qt/bctdatabase.h>
+
 class WalletModel;
 class BeeNFTTableModel;
 class PlatformStyle;
@@ -45,11 +47,14 @@ private Q_SLOTS:
     void onBeeNFTSelectionChanged();
     void generateNewAddress();
     void loadAvailableMice();
+    void loadAvailableMiceFromWallet();
+    void loadSampleBCTData();
 
 private:
     WalletModel *walletModel;
     BeeNFTTableModel *beeNFTModel;
     const PlatformStyle *platformStyle;
+    BCTDatabase *bctDatabase;
 
     // UI Components
     QTabWidget *tabWidget;

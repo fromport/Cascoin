@@ -31,7 +31,7 @@
 #include <QRadialGradient>
 
 SplashScreen::SplashScreen(Qt::WindowFlags f, const NetworkStyle *networkStyle) :
-    QWidget(0, f), curAlignment(0)
+    QWidget(0, f), curAlignment(0), startTime(QDateTime::currentDateTime())
 {
     // set reference point, paddings
     int paddingRight            = 10;   // Cascoin: Fix ugly spacing on splash screen
@@ -53,8 +53,8 @@ SplashScreen::SplashScreen(Qt::WindowFlags f, const NetworkStyle *networkStyle) 
 
     QString font            = QApplication::font().toString();
 
-    // create a bitmap according to device pixelratio
-    QSize splashSize(480*devicePixelRatio,320*devicePixelRatio);
+    // create a larger bitmap for more information display (slightly reduced)
+    QSize splashSize(700*devicePixelRatio,480*devicePixelRatio);
     pixmap = QPixmap(splashSize);
 
 #if QT_VERSION > 0x050100
@@ -197,19 +197,106 @@ void SplashScreen::slotFinish(QWidget *mainWin)
 
 static void InitMessage(SplashScreen *splash, const std::string &message)
 {
+    // Only show InitMessage if it's not a progress update
+    if (message.find("━━━") != std::string::npos) {
+        // This is already a formatted progress message, show as-is
+        QMetaObject::invokeMethod(splash, "showMessage",
+            Qt::QueuedConnection,
+            Q_ARG(QString, QString::fromStdString(message)),
+            Q_ARG(int, Qt::AlignBottom|Qt::AlignHCenter),
+            Q_ARG(QColor, QColor(55,55,55)));
+        return;
+    }
+    
+    // Simple startup messages only
+    std::string simpleMessage;
+    
+    if (message.find("Done") != std::string::npos) {
+        simpleMessage = std::string("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n") +
+                       "          CASCOIN BEREIT!\n" +
+                       "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n" +
+                       "Das Wallet wird geöffnet...\n" +
+                       "BCTs und Mice NFTs werden geladen.";
+    } else {
+        simpleMessage = std::string("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n") +
+                       "        CASCOIN STARTET\n" +
+                       "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n" +
+                       "Initialisierung läuft...\n" +
+                       "Bitte warten Sie einen Moment.";
+    }
+    
     QMetaObject::invokeMethod(splash, "showMessage",
         Qt::QueuedConnection,
-        Q_ARG(QString, QString::fromStdString(message)),
+        Q_ARG(QString, QString::fromStdString(simpleMessage)),
         Q_ARG(int, Qt::AlignBottom|Qt::AlignHCenter),
         Q_ARG(QColor, QColor(55,55,55)));
 }
 
 static void ShowProgress(SplashScreen *splash, const std::string &title, int nProgress, bool resume_possible)
 {
-    InitMessage(splash, title + std::string("\n") +
-            (resume_possible ? _("(press q to shutdown and continue later)")
-                                : _("press q to shutdown")) +
-            strprintf("\n%d", nProgress) + "%");
+    // Calculate elapsed time
+    QDateTime currentTime = QDateTime::currentDateTime();
+    qint64 elapsedSeconds = splash->startTime.secsTo(currentTime);
+    
+    // Estimate remaining time
+    std::string timeInfo;
+    if (nProgress >= 1 && elapsedSeconds >= 1) {
+        qint64 estimatedTotalSeconds = (elapsedSeconds * 100) / nProgress;
+        qint64 remainingSeconds = estimatedTotalSeconds - elapsedSeconds;
+        
+        if (remainingSeconds > 60) {
+            int remainingMinutes = remainingSeconds / 60;
+            timeInfo = strprintf("Noch ca. %d Minute(n)", remainingMinutes);
+        } else if (remainingSeconds > 0) {
+            timeInfo = strprintf("Noch ca. %d Sekunde(n)", (int)remainingSeconds);
+        } else {
+            timeInfo = "Fast fertig!";
+        }
+    } else {
+        timeInfo = "Berechne Restzeit...";
+    }
+    
+    // Create single, clear status message
+    std::string statusMessage;
+    
+    if (title.find("Mice") != std::string::npos || title.find("MICE") != std::string::npos) {
+        statusMessage = "INITIALISIERE MICE-DATENBANK";
+    } else if (title.find("Loading") != std::string::npos) {
+        statusMessage = "LADE BLOCKCHAIN-DATENBANK";
+    } else if (title.find("Verifying") != std::string::npos) {
+        statusMessage = "ÜBERPRÜFE BLOCKCHAIN";
+    } else if (title.find("Rescanning") != std::string::npos) {
+        statusMessage = "SCANNE TRANSAKTIONEN";
+    } else {
+        statusMessage = "INITIALISIERE CASCOIN";
+    }
+    
+    // Format single, clear message
+    std::string finalMessage = 
+        std::string("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n") +
+        "            " + statusMessage + "\n" +
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n" +
+        "Status: " + title + "\n\n" +
+        "FORTSCHRITT: " + strprintf("%d", nProgress) + "%\n" +
+        "ZEIT: " + strprintf("%d", (int)elapsedSeconds) + " Sekunden\n" +
+        "VERBLEIBEND: " + timeInfo + "\n\n";
+    
+    if (nProgress < 30) {
+        finalMessage += "Dies ist normal beim ersten Start\n";
+    } else if (nProgress < 70) {
+        finalMessage += "Synchronisation läuft...\n";
+    } else {
+        finalMessage += "Fast bereit!\n";
+    }
+    
+    finalMessage += "\n(Drücke 'q' zum Beenden)";
+    
+    // Use direct message display instead of InitMessage to avoid confusion
+    QMetaObject::invokeMethod(splash, "showMessage",
+        Qt::QueuedConnection,
+        Q_ARG(QString, QString::fromStdString(finalMessage)),
+        Q_ARG(int, Qt::AlignBottom|Qt::AlignHCenter),
+        Q_ARG(QColor, QColor(55,55,55)));
 }
 
 #ifdef ENABLE_WALLET
@@ -255,16 +342,47 @@ void SplashScreen::paintEvent(QPaintEvent *event)
 {
     QPainter painter(this);
     painter.drawPixmap(0, 0, pixmap);
-    QRect r = rect().adjusted(8, 8, -8, -8);
+    QRect r = rect().adjusted(10, 10, -10, -10);
     painter.setPen(curColor);
-    // Elide long lines to ensure they fit horizontally; keep at most last 3 lines
+    
+    // Use smaller font for more text
+    QFont font = painter.font();
+    font.setPointSize(9);
+    painter.setFont(font);
+    
+    // Don't limit lines - show all information
     QStringList lines = curMessage.split('\n');
-    if (lines.size() > 3) {
-        lines = lines.mid(lines.size() - 3);
+    // Only remove empty lines at the end
+    while (!lines.isEmpty() && lines.last().trimmed().isEmpty()) {
+        lines.removeLast();
     }
+    
     QFontMetrics fm(painter.font());
     for (int i = 0; i < lines.size(); ++i) {
-        lines[i] = fm.elidedText(lines[i], Qt::ElideRight, r.width());
+        // Allow text wrapping for long lines
+        QString line = lines[i];
+        if (fm.horizontalAdvance(line) > r.width()) {
+            // Simple word wrapping
+            QStringList words = line.split(' ');
+            QString currentLine;
+            for (const QString& word : words) {
+                QString testLine = currentLine.isEmpty() ? word : currentLine + " " + word;
+                if (fm.horizontalAdvance(testLine) <= r.width()) {
+                    currentLine = testLine;
+                } else {
+                    if (!currentLine.isEmpty()) {
+                        lines[i] = currentLine;
+                        lines.insert(i + 1, word);
+                        currentLine = word;
+                    } else {
+                        lines[i] = fm.elidedText(word, Qt::ElideRight, r.width());
+                    }
+                }
+            }
+            if (!currentLine.isEmpty() && currentLine != lines[i]) {
+                lines[i] = currentLine;
+            }
+        }
     }
     const QString toDraw = lines.join('\n');
     painter.drawText(r, curAlignment, toDraw);

@@ -249,6 +249,7 @@ BITCOIN_QT_H = \
   qt/hivedialog.h \
   qt/beenftpage.h \
   qt/beenfttablemodel.h \
+  qt/bctdatabase.h \
   qt/paymentrequestplus.h \
   qt/paymentserver.h \
   qt/peertablemodel.h \
@@ -393,6 +394,7 @@ BITCOIN_QT_WALLET_CPP = \
   qt/hivedialog.cpp \
   qt/beenftpage.cpp \
   qt/beenfttablemodel.cpp \
+  qt/bctdatabase.cpp \
   qt/paymentrequestplus.cpp \
   qt/paymentserver.cpp \
   qt/receivecoinsdialog.cpp \

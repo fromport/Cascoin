@@ -7,6 +7,7 @@
 #include <qt/platformstyle.h>
 #include <qt/guiutil.h>
 #include <qt/bitcoinunits.h>
+#include <qt/rpcconsole.h>
 
 #include <QHeaderView>
 #include <QMessageBox>
@@ -14,18 +15,27 @@
 #include <QClipboard>
 #include <QGridLayout>
 #include <QSortFilterProxyModel>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonArray>
+#include <QJsonParseError>
+#include <QDateTime>
+#include <QTimer>
+#include <thread>
 
 BeeNFTPage::BeeNFTPage(const PlatformStyle *_platformStyle, QWidget *parent) :
     QWidget(parent),
     walletModel(0),
     beeNFTModel(0),
-    platformStyle(_platformStyle)
+    platformStyle(_platformStyle),
+    bctDatabase(new BCTDatabase())
 {
     setupUI();
 }
 
 BeeNFTPage::~BeeNFTPage()
 {
+    delete bctDatabase;
 }
 
 void BeeNFTPage::setModel(WalletModel *_walletModel)
@@ -38,7 +48,9 @@ void BeeNFTPage::setModel(WalletModel *_walletModel)
         
         updateBeeNFTCombo();
         refreshBeeNFTs();
-        loadAvailableMice();
+        
+        // Load mice asynchronously to not block GUI startup
+        QTimer::singleShot(100, this, SLOT(loadAvailableMice()));
     }
 }
 
@@ -168,10 +180,17 @@ void BeeNFTPage::setupUI()
     connect(beeNFTView->selectionModel(), SIGNAL(selectionChanged(QItemSelection,QItemSelection)),
             this, SLOT(onBeeNFTSelectionChanged()));
     
-    // Load available mice on startup
-    if (walletModel) {
-        loadAvailableMice();
-    }
+    // Defer heavy loading until the user visits the Tokenize tab
+    connect(tabWidget, &QTabWidget::currentChanged, this, [this](int idx){
+        QWidget* w = tabWidget->widget(idx);
+        if (w == tokenizeTab) {
+            static bool loadedOnce = false;
+            if (!loadedOnce) {
+                loadedOnce = true;
+                QTimer::singleShot(50, this, SLOT(loadAvailableMice()));
+            }
+        }
+    });
 }
 
 void BeeNFTPage::loadAvailableMice()
@@ -181,30 +200,201 @@ void BeeNFTPage::loadAvailableMice()
     }
     
     mouseSelectionCombo->clear();
-    mouseSelectionCombo->addItem(tr("Loading available mice..."));
+    mouseSelectionCombo->addItem(tr("Loading BCT overview..."));
     mouseSelectionCombo->setEnabled(false);
+
+    // Run RPC in background to avoid blocking UI
+    std::thread([this]() {
+        // Inform splash that mice DB init starts
+        uiInterface.ShowProgress("Mice DB initialisieren", 1, false);
+        std::string rpcResult;
+        std::string rpcCommand = "miceavailable";
+
+        bool rpcOk = RPCConsole::RPCExecuteCommandLine(rpcResult, rpcCommand);
+
+        if (!rpcOk) {
+            // Fallback to local DB on UI thread
+            QMetaObject::invokeMethod(this, "loadAvailableMiceFromWallet", Qt::QueuedConnection);
+            QMetaObject::invokeMethod(this, [this]() {
+                mouseSelectionCombo->setEnabled(true);
+            }, Qt::QueuedConnection);
+            uiInterface.ShowProgress("Mice DB initialisieren", 100, false);
+            return;
+        }
+
+        // Parse and populate on UI thread
+        QMetaObject::invokeMethod(this, [this, rpcResult]() {
+            QString jsonString = QString::fromStdString(rpcResult);
+            QJsonParseError error;
+            QJsonDocument doc = QJsonDocument::fromJson(jsonString.toUtf8(), &error);
+
+            mouseSelectionCombo->clear();
+            mouseSelectionCombo->addItem(tr("Select a BCT (mice will be selectable next)"), "");
+
+            if (error.error == QJsonParseError::NoError && doc.isArray()) {
+                QJsonArray bctArray = doc.array();
+                int totalAvailableMice = 0;
+                int totalBCTs = 0;
+
+                int idx = 0;
+                for (const QJsonValue& bctValue : bctArray) {
+                    if (!bctValue.isObject()) continue;
+
+                    QJsonObject bct = bctValue.toObject();
+                    QString bctTxid = bct["bct_txid"].toString();
+                    QString status = bct["status"].toString();
+                    int totalMiceInBct = bct["total_mice"].toInt();
+
+                    totalBCTs++;
+                    if (status != "mature") continue;
+
+                    // Compute available mice count without enumerating all into the UI
+                    QJsonArray availableMice = bct["available_mice"].toArray();
+                    int availableCount = 0;
+                    for (const QJsonValue& mouseValue : availableMice) {
+                        if (!mouseValue.isObject()) continue;
+                        QJsonObject mouse = mouseValue.toObject();
+                        bool alreadyTokenized = mouse["already_tokenized"].toBool();
+                        if (!alreadyTokenized) availableCount++;
+                    }
+
+                    QString displayText = QString("BCT %1 — %2/%3 mice available (%4)")
+                                           .arg(bctTxid.left(8) + "...")
+                                           .arg(availableCount)
+                                           .arg(totalMiceInBct)
+                                           .arg(status);
+                    mouseSelectionCombo->addItem(displayText, bctTxid);
+                    totalAvailableMice += availableCount;
+                    // Update splash progress roughly based on loop
+                    int denom = (int)bctArray.size();
+                    if (denom <= 0) denom = 1;
+                    int progress = bctArray.isEmpty() ? 100 : (idx * 100) / denom;
+                    if (progress > 99) progress = 99;
+                    if (progress < 1) progress = 1;
+                    uiInterface.ShowProgress("Mice DB initialisieren", progress, false);
+                    ++idx;
+                }
+
+                if (totalAvailableMice == 0) {
+                    mouseSelectionCombo->clear();
+                    mouseSelectionCombo->addItem(tr("No mature BCTs with available mice yet"), "");
+                } else {
+                    mouseSelectionCombo->insertItem(1, tr("--- %1 available mice across %2 BCTs ---").arg(totalAvailableMice).arg(totalBCTs), "");
+                    mouseSelectionCombo->insertSeparator(2);
+                }
+                uiInterface.ShowProgress("Mice DB initialisieren", 100, false);
+            } else {
+                mouseSelectionCombo->clear();
+                mouseSelectionCombo->addItem(tr("Error parsing mice data: %1").arg(error.errorString()), "");
+                uiInterface.ShowProgress("Mice DB initialisieren", 100, false);
+            }
+
+            mouseSelectionCombo->setEnabled(true);
+        }, Qt::QueuedConnection);
+    }).detach();
+}
+
+void BeeNFTPage::loadAvailableMiceFromWallet()
+{
+    // Load BCTs from local database (much faster than blockchain sync)
     
-    // Call RPC to get available mice
-    QString command = "miceavailable";
-    
-    // TODO: Use proper RPC call through walletModel
-    // For now, add placeholder items
     mouseSelectionCombo->clear();
     mouseSelectionCombo->addItem(tr("Select a mouse to tokenize..."), "");
     
-    // Placeholder data - in real implementation, this would come from RPC
-    QStringList placeholderMice;
-    placeholderMice << "BCT abc123...:0 (Mouse #0 - Mature)"
-                   << "BCT abc123...:1 (Mouse #1 - Mature)"
-                   << "BCT def456...:0 (Mouse #0 - Mature)"
-                   << "BCT def456...:1 (Mouse #1 - Mature)";
-    
-    for (const QString& mouseDesc : placeholderMice) {
-        QString mouseId = mouseDesc.split(" ").first();
-        mouseSelectionCombo->addItem(mouseDesc, mouseId);
+    if (!bctDatabase) {
+        mouseSelectionCombo->addItem(tr("BCT database not available"), "");
+        return;
     }
     
-    mouseSelectionCombo->setEnabled(true);
+    // Initialize database asynchronously to avoid blocking GUI
+    // Don't initialize here, use cached data or show loading message
+    
+    // Try to load from cache file first (fast) - simplified without try-catch
+    if (!bctDatabase->loadFromFile()) {
+        // If no cache exists, show placeholder and setup lazy loading
+        mouseSelectionCombo->addItem(tr("BCT database loading... Please wait"), "");
+        mouseSelectionCombo->addItem(tr("(Database will be ready shortly)"), "");
+        return;
+    }
+        
+    // Load all BCTs from local database cache
+    QList<BCTDatabase::BCTInfo> bctList = bctDatabase->getAllBCTs();
+        
+    if (bctList.isEmpty()) {
+        // Just show placeholder - don't create sample data on startup
+        mouseSelectionCombo->addItem(tr("No BCT data available yet"), "");
+        mouseSelectionCombo->addItem(tr("(Data will load as blockchain syncs)"), "");
+        return;
+    }
+        
+    int totalAvailableMice = 0;
+    int matureBCTs = 0;
+    
+    for (const BCTDatabase::BCTInfo& bct : bctList) {
+        // Only show mature BCTs
+        if (bct.status != "mature") continue;
+        
+        matureBCTs++;
+        
+        // Add each individual mouse from this BCT
+        for (int mouseIndex = 0; mouseIndex < bct.availableMice.size(); mouseIndex++) {
+            QString mouseId = bct.availableMice[mouseIndex];
+            QString displayText = QString("BCT %1: Mouse #%2 (%3 - %4 mice total)")
+                               .arg(bct.txid.left(8) + "...")
+                               .arg(mouseIndex)
+                               .arg(bct.status)
+                               .arg(bct.totalMice);
+            
+            mouseSelectionCombo->addItem(displayText, mouseId);
+            totalAvailableMice++;
+        }
+    }
+    
+    // Insert summary at top
+    if (totalAvailableMice > 0) {
+        mouseSelectionCombo->insertItem(1, tr("--- %1 Available Mice from %2 Mature BCTs ---").arg(totalAvailableMice).arg(matureBCTs), "");
+        mouseSelectionCombo->insertSeparator(2);
+        mouseSelectionCombo->insertItem(3, tr("(Using local BCT database - instant loading)"), "");
+        mouseSelectionCombo->insertSeparator(4);
+    } else {
+        mouseSelectionCombo->clear();
+        mouseSelectionCombo->addItem(tr("No mature BCTs with available mice found"), "");
+    }
+}
+
+void BeeNFTPage::loadSampleBCTData()
+{
+    if (!bctDatabase) return;
+    
+    // Create sample BCT data quickly for immediate GUI response
+    QStringList sampleTxids = {
+        "a1b2c3d4e5f67890abcdef1234567890abcdef1234567890abcdef123456789a",
+        "b2c3d4e5f67890abcdef1234567890abcdef1234567890abcdef123456789ab",
+        "c3d4e5f67890abcdef1234567890abcdef1234567890abcdef123456789abc",
+        "d4e5f67890abcdef1234567890abcdef1234567890abcdef123456789abcd",
+        "e5f67890abcdef1234567890abcdef1234567890abcdef123456789abcde",
+        "f67890abcdef1234567890abcdef1234567890abcdef123456789abcdef",
+        "67890abcdef1234567890abcdef1234567890abcdef123456789abcdef6",
+        "7890abcdef1234567890abcdef1234567890abcdef123456789abcdef67"
+    };
+    
+    for (int i = 0; i < sampleTxids.size(); ++i) {
+        BCTDatabase::BCTInfo bct;
+        bct.txid = sampleTxids[i];
+        bct.status = "mature";
+        bct.totalMice = (i % 8) + 1; // 1-8 mice per BCT  
+        bct.blocksLeft = 0;
+        bct.honeyAddress = QString("CAddr%1Sample123...").arg(i + 1);
+        bct.timestamp = QDateTime::currentSecsSinceEpoch() - (i * 3600);
+        
+        // Generate available mice for this BCT
+        for (int mouseIndex = 0; mouseIndex < bct.totalMice; ++mouseIndex) {
+            QString mouseId = QString("%1:%2").arg(bct.txid).arg(mouseIndex);
+            bct.availableMice.append(mouseId);
+        }
+        
+        bctDatabase->addBCT(bct);
+    }
 }
 
 void BeeNFTPage::tokenizeBee()

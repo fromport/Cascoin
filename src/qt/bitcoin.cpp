@@ -15,6 +15,7 @@
 #include <qt/guiutil.h>
 #include <qt/intro.h>
 #include <qt/networkstyle.h>
+#include <qt/bctdatabase.h>
 #include <qt/optionsmodel.h>
 #include <qt/platformstyle.h>
 #include <qt/splashscreen.h>
@@ -51,6 +52,8 @@
 #include <QTimer>
 #include <QTranslator>
 #include <QtNetwork/QSslConfiguration>
+#include <thread>
+#include <chrono>
 
 #if defined(QT_STATICPLUGIN)
 #include <QtPlugin>
@@ -442,6 +445,29 @@ void BitcoinApplication::createSplashScreen(const NetworkStyle *networkStyle)
     splash->show();
     connect(this, SIGNAL(splashFinished(QWidget*)), splash, SLOT(slotFinish(QWidget*)));
     connect(this, SIGNAL(requestedShutdown()), splash, SLOT(close()));
+
+    // Cascoin: Start mice/BCT DB init while splash is visible so user sees progress
+    std::thread([](){
+        try {
+            uiInterface.ShowProgress("Mice DB initialisieren", 1, false);
+            BCTDatabase db;
+            std::this_thread::sleep_for(std::chrono::milliseconds(80));
+            uiInterface.ShowProgress("Mice DB initialisieren", 10, false);
+            (void)db.initialize();
+            std::this_thread::sleep_for(std::chrono::milliseconds(80));
+            uiInterface.ShowProgress("Mice DB initialisieren", 35, false);
+            (void)db.getTotalBCTs();
+            std::this_thread::sleep_for(std::chrono::milliseconds(80));
+            uiInterface.ShowProgress("Mice DB initialisieren", 65, false);
+            (void)db.getTotalAvailableMice();
+            std::this_thread::sleep_for(std::chrono::milliseconds(80));
+            uiInterface.ShowProgress("Mice DB initialisieren", 90, false);
+            std::this_thread::sleep_for(std::chrono::milliseconds(80));
+            uiInterface.ShowProgress("Mice DB initialisieren", 100, false);
+        } catch (...) {
+            uiInterface.ShowProgress("Mice DB initialisieren", 100, false);
+        }
+    }).detach();
 }
 
 void BitcoinApplication::startThread()
@@ -630,6 +656,14 @@ int main(int argc, char *argv[])
 
     // Remove platform environment variables to allow automatic detection
     qunsetenv("QT_QPA_PLATFORM");
+    
+    // Fix D-Bus signature errors - comprehensive D-Bus disabling
+    qputenv("QT_LOGGING_RULES", "dbus.debug=false;qt.qpa.dbus.debug=false");
+    qputenv("QT_QPA_PLATFORMTHEME", "");
+    qputenv("DBUS_SESSION_BUS_ADDRESS", "disabled");
+    qputenv("QT_DBUS_NO_ACTIVATION", "1");
+    // Force Qt to use fallback instead of D-Bus
+    qputenv("QT_QPA_PLATFORM", "xcb");
     
     BitcoinApplication app(argc, argv);
 #if QT_VERSION > 0x050100

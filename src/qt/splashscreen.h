@@ -7,6 +7,7 @@
 
 #include <functional>
 #include <QSplashScreen>
+#include <QDateTime>
 
 class CWallet;
 class NetworkStyle;
@@ -36,6 +37,10 @@ public Q_SLOTS:
     /** Show message and progress */
     void showMessage(const QString &message, int alignment, const QColor &color);
 
+public:
+    // Enhanced loading information
+    QDateTime startTime;
+
 protected:
     bool eventFilter(QObject * obj, QEvent * ev);
 
@@ -53,6 +58,7 @@ private:
     int curAlignment;
 
     QList<CWallet*> connectedWallets;
+    QString estimatedTimeMessage;
 };
 
 #endif // BITCOIN_QT_SPLASHSCREEN_H
