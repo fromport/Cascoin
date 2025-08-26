@@ -65,22 +65,22 @@ DIST_DIR="cascoin-linux-distribution"
 echo "Creating distribution in $DIST_DIR..."
 
 rm -rf "$DIST_DIR"
-mkdir -p "$DIST_DIR/usr/bin"
-mkdir -p "$DIST_DIR/usr/lib/x86_64-linux-gnu"
-mkdir -p "$DIST_DIR/usr/share/applications"
-mkdir -p "$DIST_DIR/usr/share/pixmaps"
+mkdir -p "$DIST_DIR/bin"
+mkdir -p "$DIST_DIR/lib"
+mkdir -p "$DIST_DIR/share/applications"
+mkdir -p "$DIST_DIR/share/pixmaps"
 mkdir -p "$DIST_DIR/usr/lib/qt6/plugins"
 
 # Copy binaries
 echo "Copying binaries..."
-cp src/qt/cascoin-qt "$DIST_DIR/usr/bin/"
-cp src/cascoind "$DIST_DIR/usr/bin/"
-cp src/cascoin-cli "$DIST_DIR/usr/bin/"
-cp src/cascoin-tx "$DIST_DIR/usr/bin/"
+cp src/qt/cascoin-qt "$DIST_DIR/bin/"
+cp src/cascoind "$DIST_DIR/bin/"
+cp src/cascoin-cli "$DIST_DIR/bin/"
+cp src/cascoin-tx "$DIST_DIR/bin/"
 
 # Copy ONLY the exact libraries that Cascoin needs (no automatic discovery)
 echo "Copying ONLY required Cascoin libraries..."
-LIB_DIR="$DIST_DIR/usr/lib/x86_64-linux-gnu"
+LIB_DIR="$DIST_DIR/lib"
 
 # Copy exact Boost libraries needed by Cascoin
 echo "  Collecting required Boost libraries..."
@@ -173,27 +173,27 @@ echo "Skipping Qt6 libraries - they should be installed on target system via pac
 
 # Create wrapper scripts
 echo "Creating wrapper scripts..."
-cat > "$DIST_DIR/usr/bin/cascoin-qt-wrapper" << 'EOF'
+cat > "$DIST_DIR/bin/cascoin-qt-wrapper" << 'EOF'
 #!/bin/bash
-export LD_LIBRARY_PATH="/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH"
-exec /usr/bin/cascoin-qt "$@"
+export LD_LIBRARY_PATH="$(dirname "$0")/../lib:$LD_LIBRARY_PATH"
+exec "$(dirname "$0")/cascoin-qt" "$@"
 EOF
 
-cat > "$DIST_DIR/usr/bin/cascoind-wrapper" << 'EOF'
+cat > "$DIST_DIR/bin/cascoind-wrapper" << 'EOF'
 #!/bin/bash
-export LD_LIBRARY_PATH="/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH"
-exec /usr/bin/cascoind "$@"
+export LD_LIBRARY_PATH="$(dirname "$0")/../lib:$LD_LIBRARY_PATH"
+exec "$(dirname "$0")/cascoind" "$@"
 EOF
 
-chmod +x "$DIST_DIR/usr/bin"/*wrapper
+chmod +x "$DIST_DIR/bin"/*wrapper
 
 # Create desktop entry
-cat > "$DIST_DIR/usr/share/applications/cascoin-qt.desktop" << 'EOF'
+cat > "$DIST_DIR/share/applications/cascoin-qt.desktop" << 'EOF'
 [Desktop Entry]
 Name=Cascoin Core
 Comment=Cascoin cryptocurrency wallet
 Icon=cascoin
-Exec=/usr/bin/cascoin-qt-wrapper
+Exec=/opt/cascoin/bin/cascoin-qt-wrapper
 Terminal=false
 Type=Application
 Categories=Office;Finance;
@@ -202,7 +202,7 @@ EOF
 
 # Copy icon if available
 if [[ -f share/pixmaps/bitcoin128.png ]]; then
-    cp share/pixmaps/bitcoin128.png "$DIST_DIR/usr/share/pixmaps/cascoin.png"
+  cp share/pixmaps/bitcoin128.png "$DIST_DIR/share/pixmaps/cascoin.png"
 fi
 
 # Create installation scripts
@@ -216,12 +216,27 @@ fi
 
 echo "Installing Cascoin Core Linux Distribution..."
 
-# Copy all files to system directories
-cp -r usr/* /usr/
+# Create installation directory
+mkdir -p /opt/cascoin
 
-# Update library cache
-echo "/usr/lib/x86_64-linux-gnu" > /etc/ld.so.conf.d/cascoin.conf
-ldconfig
+# Copy all files to /opt/cascoin
+cp -r bin lib share /opt/cascoin/
+
+# Create symlinks in /usr/local/bin
+ln -sf /opt/cascoin/bin/cascoin-qt-wrapper /usr/local/bin/cascoin-qt
+ln -sf /opt/cascoin/bin/cascoind-wrapper /usr/local/bin/cascoind
+ln -sf /opt/cascoin/bin/cascoin-cli /usr/local/bin/cascoin-cli
+ln -sf /opt/cascoin/bin/cascoin-tx /usr/local/bin/cascoin-tx
+
+# Install desktop entry
+if [[ -f share/applications/cascoin-qt.desktop ]]; then
+  cp share/applications/cascoin-qt.desktop /usr/share/applications/
+fi
+
+# Install icon
+if [[ -f share/pixmaps/cascoin.png ]]; then
+  cp share/pixmaps/cascoin.png /usr/share/pixmaps/
+fi
 
 # Update desktop database
 if command -v update-desktop-database >/dev/null 2>&1; then
@@ -231,10 +246,10 @@ fi
 echo "Installation complete!"
 echo ""
 echo "You can now run:"
-echo "  cascoin-qt-wrapper    # GUI wallet"
-echo "  cascoind-wrapper      # Daemon"
-echo "  cascoin-cli           # CLI tool"
-echo "  cascoin-tx            # Transaction tool"
+echo "  cascoin-qt    # GUI wallet (requires Qt6)"
+echo "  cascoind      # Daemon"
+echo "  cascoin-cli   # CLI tool"
+echo "  cascoin-tx    # Transaction tool"
 EOF
 
 chmod +x "$DIST_DIR/install.sh"
@@ -312,11 +327,24 @@ echo "=== Distribution Package Created ==="
 echo "Package: $PACKAGE_NAME.tar.gz"
 echo "Size: $(du -h "$PACKAGE_NAME.tar.gz" | cut -f1)"
 echo ""
-echo "Contents:"
-find "$DIST_DIR" -type f | head -20
-echo "... ($(find "$DIST_DIR" -type f | wc -l) total files)"
+echo "File structure:"
+find "$DIST_DIR" -type d | sort
+echo ""
+echo "Libraries collected:"
+ls -la "$DIST_DIR/lib/" | head -10
+echo ""
+echo "Binaries:"
+ls -la "$DIST_DIR/bin/"
+echo ""
+echo "Total files: $(find "$DIST_DIR" -type f | wc -l)"
 echo ""
 echo "To test installation:"
 echo "  tar -xzf $PACKAGE_NAME.tar.gz"
 echo "  cd $DIST_DIR"
 echo "  sudo ./install.sh"
+echo ""
+echo "After installation:"
+echo "  cascoin-qt    # GUI wallet (requires Qt6)"
+echo "  cascoind      # Daemon"
+echo "  cascoin-cli   # CLI tool"
+echo "  cascoin-tx    # Transaction tool"

@@ -111,17 +111,17 @@ jobs:
         run: |
           # Create distribution structure
           DIST_DIR="cascoin-linux-distribution"
-          mkdir -p "$DIST_DIR"/usr/bin
-          mkdir -p "$DIST_DIR"/usr/lib/x86_64-linux-gnu
-          mkdir -p "$DIST_DIR"/usr/share/applications
-          mkdir -p "$DIST_DIR"/usr/share/pixmaps
+          mkdir -p "$DIST_DIR"/bin
+          mkdir -p "$DIST_DIR"/lib
+          mkdir -p "$DIST_DIR"/share/applications
+          mkdir -p "$DIST_DIR"/share/pixmaps
 
           
           # Copy binaries
-          cp src/qt/cascoin-qt "$DIST_DIR"/usr/bin/ || true
-          cp src/cascoind "$DIST_DIR"/usr/bin/ || true
-          cp src/cascoin-cli "$DIST_DIR"/usr/bin/ || true
-          cp src/cascoin-tx "$DIST_DIR"/usr/bin/ || true
+          cp src/qt/cascoin-qt "$DIST_DIR"/bin/ || true
+          cp src/cascoind "$DIST_DIR"/bin/ || true
+          cp src/cascoin-cli "$DIST_DIR"/bin/ || true
+          cp src/cascoin-tx "$DIST_DIR"/bin/ || true
           
           # Function to copy library dependencies
           copy_lib_deps() {
@@ -142,19 +142,14 @@ jobs:
             done
           }
           
-          # Copy libraries for all binaries
-          LIB_DIR="$DIST_DIR/usr/lib/x86_64-linux-gnu"
-          for binary in "$DIST_DIR"/usr/bin/*; do
-            if [[ -f "$binary" ]]; then
-              copy_lib_deps "$binary" "$LIB_DIR"
-            fi
-          done
+
           
           # Note: Qt6 libraries are NOT copied - they should be installed on target system
           echo "Skipping Qt6 libraries - they should be installed on target system via package manager"
           
           # Copy ONLY the exact libraries that Cascoin needs (no extras)
           echo "Copying ONLY required Cascoin libraries..."
+          LIB_DIR="$DIST_DIR/lib"
           
           # Copy exact Boost libraries needed by Cascoin
           echo "  Collecting required Boost libraries..."
@@ -243,27 +238,27 @@ jobs:
           done
           
           # Create wrapper scripts
-          cat > "$DIST_DIR"/usr/bin/cascoin-qt-wrapper << 'EOF'
+          cat > "$DIST_DIR"/bin/cascoin-qt-wrapper << 'EOF'
           #!/bin/bash
-          export LD_LIBRARY_PATH="/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH"
-          exec /usr/bin/cascoin-qt "$@"
+          export LD_LIBRARY_PATH="$(dirname "$0")/../lib:$LD_LIBRARY_PATH"
+          exec "$(dirname "$0")/cascoin-qt" "$@"
           EOF
           
-          cat > "$DIST_DIR"/usr/bin/cascoind-wrapper << 'EOF'
+          cat > "$DIST_DIR"/bin/cascoind-wrapper << 'EOF'
           #!/bin/bash
-          export LD_LIBRARY_PATH="/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH"
-          exec /usr/bin/cascoind "$@"
+          export LD_LIBRARY_PATH="$(dirname "$0")/../lib:$LD_LIBRARY_PATH"
+          exec "$(dirname "$0")/cascoind" "$@"
           EOF
           
-          chmod +x "$DIST_DIR"/usr/bin/*wrapper
+          chmod +x "$DIST_DIR"/bin/*wrapper
           
           # Create desktop entry
-          cat > "$DIST_DIR"/usr/share/applications/cascoin-qt.desktop << 'EOF'
+          cat > "$DIST_DIR"/share/applications/cascoin-qt.desktop << 'EOF'
           [Desktop Entry]
           Name=Cascoin Core
           Comment=Cascoin cryptocurrency wallet
           Icon=cascoin
-          Exec=/usr/bin/cascoin-qt-wrapper
+          Exec=/opt/cascoin/bin/cascoin-qt-wrapper
           Terminal=false
           Type=Application
           Categories=Office;Finance;
@@ -272,7 +267,7 @@ jobs:
           
           # Copy icon if available
           if [[ -f share/pixmaps/bitcoin128.png ]]; then
-            cp share/pixmaps/bitcoin128.png "$DIST_DIR"/usr/share/pixmaps/cascoin.png
+            cp share/pixmaps/bitcoin128.png "$DIST_DIR"/share/pixmaps/cascoin.png
           fi
           
           # Create installation script
@@ -286,12 +281,27 @@ jobs:
           
           echo "Installing Cascoin Core Linux Distribution..."
           
-          # Copy all files to system directories
-          cp -r usr/* /usr/
+          # Create installation directory
+          mkdir -p /opt/cascoin
           
-          # Update library cache
-          echo "/usr/lib/x86_64-linux-gnu" > /etc/ld.so.conf.d/cascoin.conf
-          ldconfig
+          # Copy all files to /opt/cascoin
+          cp -r bin lib share /opt/cascoin/
+          
+          # Create symlinks in /usr/local/bin
+          ln -sf /opt/cascoin/bin/cascoin-qt-wrapper /usr/local/bin/cascoin-qt
+          ln -sf /opt/cascoin/bin/cascoind-wrapper /usr/local/bin/cascoind
+          ln -sf /opt/cascoin/bin/cascoin-cli /usr/local/bin/cascoin-cli
+          ln -sf /opt/cascoin/bin/cascoin-tx /usr/local/bin/cascoin-tx
+          
+          # Install desktop entry
+          if [[ -f share/applications/cascoin-qt.desktop ]]; then
+            cp share/applications/cascoin-qt.desktop /usr/share/applications/
+          fi
+          
+          # Install icon
+          if [[ -f share/pixmaps/cascoin.png ]]; then
+            cp share/pixmaps/cascoin.png /usr/share/pixmaps/
+          fi
           
           # Update desktop database
           if command -v update-desktop-database >/dev/null 2>&1; then
@@ -301,10 +311,10 @@ jobs:
           echo "Installation complete!"
           echo ""
           echo "You can now run:"
-          echo "  cascoin-qt-wrapper    # GUI wallet"
-          echo "  cascoind-wrapper      # Daemon"
-          echo "  cascoin-cli           # CLI tool"
-          echo "  cascoin-tx            # Transaction tool"
+          echo "  cascoin-qt    # GUI wallet (requires Qt6)"
+          echo "  cascoind      # Daemon"
+          echo "  cascoin-cli   # CLI tool"
+          echo "  cascoin-tx    # Transaction tool"
           EOF
           
           chmod +x "$DIST_DIR"/install.sh
@@ -378,16 +388,19 @@ jobs:
           echo "  OpenSSL libraries:"
           ls -la "$LIB_DIR"/libcrypto.so* 2>/dev/null || echo "    No libcrypto found"
           echo "  Qt6 libraries: (not included - installed via package manager)"
-          echo "  Other specific libraries:"
-          ls -la "$LIB_DIR"/libevent*.so* "$LIB_DIR"/libprotobuf*.so* "$LIB_DIR"/libzmq*.so* 2>/dev/null || echo "    No other libraries found"
+          echo "  Other required libraries:"
+          ls -la "$LIB_DIR"/libevent*.so* "$LIB_DIR"/libprotobuf*.so* "$LIB_DIR"/libzmq*.so* "$LIB_DIR"/libminiupnpc*.so* "$LIB_DIR"/libqrencode*.so* 2>/dev/null || echo "    No other libraries found"
           
           echo ""
           echo "Distribution package created:"
           echo "File structure:"
-          find "$DIST_DIR" -type d | sort | head -10
+          find "$DIST_DIR" -type d | sort
           echo ""
-          echo "Sample files:"
-          find "$DIST_DIR" -type f | head -15
+          echo "Libraries collected:"
+          ls -la "$DIST_DIR"/lib/ | head -10
+          echo ""
+          echo "Binaries:"
+          ls -la "$DIST_DIR"/bin/
           echo ""
           total_files=$(find "$DIST_DIR" -type f 2>/dev/null | wc -l)
           echo "Total files: $total_files"
