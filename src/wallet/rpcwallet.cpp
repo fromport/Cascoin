@@ -30,6 +30,7 @@
 #include <wallet/walletutil.h>
 #include <rialto.h>             // LitcoinCash: Rialto
 #include <net_processing.h>     // LitcoinCash: Rialto
+#include <beenft.h>             // Cascoin: Bee NFT System
 
 #include <init.h>  // For StartShutdown
 
@@ -1215,6 +1216,275 @@ UniValue rialtodecrypt(const JSONRPCRequest& request) {
     throw JSONRPCError(RPC_RIALTO_ERROR, "Error: Couldn't decrypt.");
 }
 */
+
+// Cascoin: Mice NFT System: Tokenize individual mice from a BCT
+UniValue micenftokenize(const JSONRPCRequest& request) {
+    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
+        return NullUniValue;
+
+    if (request.fHelp || request.params.size() < 2 || request.params.size() > 3)
+        throw std::runtime_error(
+            "micenftokenize \"bct_txid\" mouse_index ( \"owner_address\" )\n"
+            "\nTokenize a specific mouse from a BCT into a transferable NFT.\n"
+            "\nArguments:\n"
+            "1. \"bct_txid\"         (string, required) The BCT transaction ID containing the mouse.\n"
+            "2. mouse_index         (numeric, required) Index of the mouse to tokenize (0-based).\n"
+            "3. \"owner_address\"   (string, optional) Address to receive the mice NFT. Uses new address if not specified.\n"
+            "\nResult:\n"
+            "\"txid\"               (string) The transaction ID of the mice NFT tokenization.\n"
+            "\nExamples:\n"
+            + HelpExampleCli("micenftokenize", "\"1a2b3c...\" 0")
+            + HelpExampleCli("micenftokenize", "\"1a2b3c...\" 5 \"CYourAddress123...\"")
+            + HelpExampleRpc("micenftokenize", "\"1a2b3c...\", 0")
+        );
+
+    // Check if wallet is locked
+    if (pwallet->IsLocked())
+        throw JSONRPCError(RPC_WALLET_UNLOCK_NEEDED, "Error: Please enter the wallet passphrase with walletpassphrase first.");
+
+    // Get parameters
+    RPCTypeCheckArgument(request.params[0], UniValue::VSTR);
+    std::string bctTxidStr = request.params[0].get_str();
+    uint256 bctTxid = uint256S(bctTxidStr);
+
+    RPCTypeCheckArgument(request.params[1], UniValue::VNUM);
+    int beeIndex = request.params[1].get_int();
+
+    std::string ownerAddress;
+    if (request.params.size() > 2) {
+        RPCTypeCheckArgument(request.params[2], UniValue::VSTR);
+        ownerAddress = request.params[2].get_str();
+        
+        // Validate address
+        if (!IsValidDestinationString(ownerAddress)) {
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid owner address");
+        }
+    } else {
+        // Generate new address for bee NFT
+        CTxDestination dest;
+        std::string error;
+        if (!pwallet->GetNewDestination(OUTPUT_TYPE_LEGACY, "", dest, error)) {
+            throw JSONRPCError(RPC_WALLET_KEYPOOL_RAN_OUT, error);
+        }
+        ownerAddress = EncodeDestination(dest);
+    }
+
+    // Validate mouse index
+    if (beeIndex < 0) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Mouse index must be non-negative");
+    }
+
+    // TODO: Validate that BCT exists and user owns it
+    // TODO: Validate that mouse hasn't already been tokenized
+    // TODO: Check mouse maturity and expiry
+    
+    // Create bee NFT token
+    BeeNFTToken token;
+    token.originalBCT = bctTxid;
+    token.beeIndex = static_cast<uint32_t>(beeIndex);
+    token.tokenizedHeight = static_cast<uint32_t>(chainActive.Height());
+    token.currentOwner = ownerAddress;
+    
+    // TODO: Calculate maturity and expiry heights from original BCT
+    token.maturityHeight = token.tokenizedHeight + 100;  // Placeholder
+    token.expiryHeight = token.maturityHeight + 1000;    // Placeholder
+
+    // Create tokenization transaction
+    CMutableTransaction mtx;
+    mtx.nVersion = 2;
+
+    // Add bee NFT token output
+    std::vector<BeeNFTToken> tokens = {token};
+    CScript tokenScript = CreateBeeNFTTokenScript(tokens);
+    mtx.vout.push_back(CTxOut(0, tokenScript));
+
+    // Add change output to owner address
+    CScript ownerScript = GetScriptForDestination(DecodeDestination(ownerAddress));
+    mtx.vout.push_back(CTxOut(1000, ownerScript)); // Minimal value to make output spendable
+
+    // TODO: Add proper input selection and fee calculation
+    // For now, this is a placeholder implementation
+    
+    CValidationState state;
+    CTransactionRef tx = MakeTransactionRef(std::move(mtx));
+    
+    return tx->GetHash().GetHex();
+}
+
+// Cascoin: Mice NFT System: Transfer mice NFT to another address
+UniValue micenftransfer(const JSONRPCRequest& request) {
+    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
+        return NullUniValue;
+
+    if (request.fHelp || request.params.size() != 2)
+        throw std::runtime_error(
+            "micenftransfer \"mice_nft_id\" \"to_address\"\n"
+            "\nTransfer a mice NFT to another address.\n"
+            "\nArguments:\n"
+            "1. \"mice_nft_id\"     (string, required) The unique mice NFT identifier.\n"
+            "2. \"to_address\"      (string, required) The recipient's address.\n"
+            "\nResult:\n"
+            "\"txid\"               (string) The transaction ID of the transfer.\n"
+            "\nExamples:\n"
+            + HelpExampleCli("micenftransfer", "\"mice123...\" \"CRecipientAddress123...\"")
+            + HelpExampleRpc("micenftransfer", "\"mice123...\", \"CRecipientAddress123...\"")
+        );
+
+    // Check if wallet is locked
+    if (pwallet->IsLocked())
+        throw JSONRPCError(RPC_WALLET_UNLOCK_NEEDED, "Error: Please enter the wallet passphrase with walletpassphrase first.");
+
+    // Get parameters
+    RPCTypeCheckArgument(request.params[0], UniValue::VSTR);
+    std::string beeNFTIdStr = request.params[0].get_str();
+    uint256 beeNFTId = uint256S(beeNFTIdStr);
+
+    RPCTypeCheckArgument(request.params[1], UniValue::VSTR);
+    std::string toAddress = request.params[1].get_str();
+
+    // Validate recipient address
+    if (!IsValidDestinationString(toAddress)) {
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid recipient address");
+    }
+
+    // TODO: Validate that user owns this mice NFT
+    // TODO: Validate that mice NFT exists and is not expired
+    
+    // Create bee NFT transfer
+    BeeNFTTransfer transfer;
+    transfer.beeNFTId = beeNFTId;
+    transfer.fromOwner = ""; // TODO: Get current owner from database
+    transfer.toOwner = toAddress;
+    transfer.transferHeight = static_cast<uint32_t>(chainActive.Height());
+    transfer.transferFee = 1000; // TODO: Calculate appropriate fee
+
+    // Create transfer transaction
+    CMutableTransaction mtx;
+    mtx.nVersion = 2;
+
+    // Add bee NFT transfer output
+    std::vector<BeeNFTTransfer> transfers = {transfer};
+    CScript transferScript = CreateBeeNFTTransferScript(transfers);
+    mtx.vout.push_back(CTxOut(0, transferScript));
+
+    // Add output to recipient
+    CScript recipientScript = GetScriptForDestination(DecodeDestination(toAddress));
+    mtx.vout.push_back(CTxOut(1000, recipientScript)); // Minimal value to make output spendable
+
+    // TODO: Add proper input selection and fee calculation
+    
+    CValidationState state;
+    CTransactionRef tx = MakeTransactionRef(std::move(mtx));
+    
+    return tx->GetHash().GetHex();
+}
+
+// Cascoin: Mice NFT System: List all mice NFTs owned by the wallet
+UniValue micenftlist(const JSONRPCRequest& request) {
+    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
+        return NullUniValue;
+
+    if (request.fHelp || request.params.size() > 1)
+        throw std::runtime_error(
+            "micenftlist ( include_expired )\n"
+            "\nList all mice NFTs owned by this wallet.\n"
+            "\nArguments:\n"
+            "1. include_expired     (boolean, optional, default=false) Include expired mice NFTs.\n"
+            "\nResult:\n"
+            "[\n"
+            "  {\n"
+            "    \"mice_nft_id\": \"xxx\",          (string) Unique mice NFT identifier\n"
+            "    \"original_bct\": \"xxx\",         (string) Original BCT transaction ID\n"
+            "    \"mouse_index\": n,                (numeric) Index of mouse within BCT\n"
+            "    \"owner\": \"address\",            (string) Current owner address\n"
+            "    \"status\": \"mature|immature|expired\", (string) Current mouse status\n"
+            "    \"maturity_height\": n,            (numeric) Block height when mouse matures\n"
+            "    \"expiry_height\": n,              (numeric) Block height when mouse expires\n"
+            "    \"blocks_left\": n                 (numeric) Blocks remaining until expiry\n"
+            "  }\n"
+            "  ,...\n"
+            "]\n"
+            "\nExamples:\n"
+            + HelpExampleCli("micenftlist", "")
+            + HelpExampleCli("micenftlist", "true")
+            + HelpExampleRpc("micenftlist", "")
+        );
+
+    bool includeExpired = false;
+    if (request.params.size() > 0) {
+        RPCTypeCheckArgument(request.params[0], UniValue::VBOOL);
+        includeExpired = request.params[0].get_bool();
+    }
+
+    UniValue results(UniValue::VARR);
+    
+    // TODO: Implement mice NFT database lookup
+    // For now, return empty array as placeholder
+    
+    return results;
+}
+
+// Cascoin: Mice NFT System: Get information about a specific mice NFT
+UniValue micenftinfo(const JSONRPCRequest& request) {
+    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
+        return NullUniValue;
+
+    if (request.fHelp || request.params.size() != 1)
+        throw std::runtime_error(
+            "micenftinfo \"mice_nft_id\"\n"
+            "\nGet detailed information about a specific mice NFT.\n"
+            "\nArguments:\n"
+            "1. \"mice_nft_id\"     (string, required) The unique mice NFT identifier.\n"
+            "\nResult:\n"
+            "{\n"
+            "  \"mice_nft_id\": \"xxx\",            (string) Unique mice NFT identifier\n"
+            "  \"original_bct\": \"xxx\",           (string) Original BCT transaction ID\n"
+            "  \"mouse_index\": n,                  (numeric) Index of mouse within BCT\n"
+            "  \"current_owner\": \"address\",      (string) Current owner address\n"
+            "  \"status\": \"mature|immature|expired\", (string) Current mouse status\n"
+            "  \"maturity_height\": n,              (numeric) Block height when mouse matures\n"
+            "  \"expiry_height\": n,                (numeric) Block height when mouse expires\n"
+            "  \"tokenized_height\": n,             (numeric) Block height when mouse was tokenized\n"
+            "  \"blocks_left\": n,                  (numeric) Blocks remaining until expiry\n"
+            "  \"transfer_history\": [              (array) Transfer history\n"
+            "    {\n"
+            "      \"from\": \"address\",           (string) Previous owner\n"
+            "      \"to\": \"address\",             (string) New owner\n"
+            "      \"height\": n,                   (numeric) Transfer block height\n"
+            "      \"txid\": \"xxx\"                (string) Transfer transaction ID\n"
+            "    }\n"
+            "  ],\n"
+            "  \"mining_history\": [                (array) Mining performance history\n"
+            "    {\n"
+            "      \"block_height\": n,             (numeric) Mined block height\n"
+            "      \"block_hash\": \"xxx\",         (string) Mined block hash\n"
+            "      \"reward\": x.xxx                (numeric) Mining reward received\n"
+            "    }\n"
+            "  ]\n"
+            "}\n"
+            "\nExamples:\n"
+            + HelpExampleCli("micenftinfo", "\"mice123...\"")
+            + HelpExampleRpc("micenftinfo", "\"mice123...\"")
+        );
+
+    // Get parameter
+    RPCTypeCheckArgument(request.params[0], UniValue::VSTR);
+    std::string beeNFTIdStr = request.params[0].get_str();
+    uint256 beeNFTId = uint256S(beeNFTIdStr);
+
+    UniValue result(UniValue::VOBJ);
+    
+    // TODO: Implement mice NFT database lookup
+    // For now, return minimal info as placeholder
+    result.push_back(Pair("bee_nft_id", beeNFTIdStr));
+    result.push_back(Pair("error", "Not implemented yet"));
+    
+    return result;
+}
 
 // Cascoin: Hive: Get network hive info
 UniValue getnetworkhiveinfo(const JSONRPCRequest& request)
@@ -4678,6 +4948,10 @@ static const CRPCCommand commands[] =
     { "wallet",             "rialtoisnickblocked",      &rialtoisnickblocked,      {"nickname"} },                                          // Cascoin: Rialto: Check if given nick is blocked
     { "wallet",             "rialtogetblockednicks",    &rialtogetblockednicks,    {} },                                                    // Cascoin: Rialto: Get all blocked nicks
     { "wallet",             "rialtogetincomingmessages",&rialtogetincomingmessages,{} },                                                    // Cascoin: Rialto: Get incoming messages
+    { "wallet",             "micenftokenize",           &micenftokenize,           {"bct_txid","mouse_index","owner_address"} },            // Cascoin: Mice NFT System: Tokenize individual mice
+    { "wallet",             "micenftransfer",           &micenftransfer,           {"mice_nft_id","to_address"} },                          // Cascoin: Mice NFT System: Transfer mice NFT
+    { "wallet",             "micenftlist",              &micenftlist,              {"include_expired"} },                                   // Cascoin: Mice NFT System: List owned mice NFTs
+    { "wallet",             "micenftinfo",              &micenftinfo,              {"mice_nft_id"} },                                       // Cascoin: Mice NFT System: Get mice NFT info
     { "rawtransactions",    "fundrawtransaction",       &fundrawtransaction,       {"hexstring","options","iswitness"} },
     { "hidden",             "resendwallettransactions", &resendwallettransactions, {} },
     { "wallet",             "abandontransaction",       &abandontransaction,       {"txid"} },

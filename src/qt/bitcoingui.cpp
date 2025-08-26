@@ -99,6 +99,7 @@ BitcoinGUI::BitcoinGUI(const PlatformStyle *_platformStyle, const NetworkStyle *
     appMenuBar(0),
     overviewAction(0),
     hiveAction(0),              // Cascoin: Hive page
+    beeNFTAction(0),            // Cascoin: Bee NFT page
     importPrivateKeyAction(0),  // Cascoin: Key import helper
     historyAction(0),
     quitAction(0),
@@ -345,6 +346,14 @@ void BitcoinGUI::createActions()
     hiveAction->setShortcut(QKeySequence(Qt::ALT | Qt::Key_1));
     tabGroup->addAction(hiveAction);
 
+    // Cascoin: Mice NFT page
+    beeNFTAction = new QAction(platformStyle->SingleColorIcon(":/icons/bee"), tr("&Mice NFTs"), this);
+    beeNFTAction->setStatusTip(tr("Manage and transfer mice NFTs"));
+    beeNFTAction->setToolTip(beeNFTAction->statusTip());
+    beeNFTAction->setCheckable(true);
+    beeNFTAction->setShortcut(QKeySequence(Qt::ALT | Qt::Key_6));
+    tabGroup->addAction(beeNFTAction);
+
 #ifdef ENABLE_WALLET
     // These showNormalIfMinimized are needed because Send Coins and Receive Coins
     // can be triggered from the tray menu, and need to show the GUI to be useful.
@@ -352,6 +361,8 @@ void BitcoinGUI::createActions()
     connect(overviewAction, SIGNAL(triggered()), this, SLOT(gotoOverviewPage()));
     connect(hiveAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));  // Cascoin: Hive page
     connect(hiveAction, SIGNAL(triggered()), this, SLOT(gotoHivePage()));           // Cascoin: Hive page
+    connect(beeNFTAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized())); // Cascoin: Bee NFT page
+    connect(beeNFTAction, SIGNAL(triggered()), this, SLOT(gotoBeeNFTPage()));        // Cascoin: Bee NFT page
     connect(sendCoinsAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
     connect(sendCoinsAction, SIGNAL(triggered()), this, SLOT(gotoSendCoinsPage()));
     connect(sendCoinsMenuAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
@@ -504,6 +515,7 @@ void BitcoinGUI::createToolBars()
         toolbar->addAction(receiveCoinsAction);
         toolbar->addAction(historyAction);
         toolbar->addAction(hiveAction);     // Cascoin: Hive page
+        toolbar->addAction(beeNFTAction);   // Cascoin: Bee NFT page
         overviewAction->setChecked(true);
     }
 }
@@ -734,6 +746,12 @@ void BitcoinGUI::gotoHivePage()
 {
     hiveAction->setChecked(true);
     if (walletFrame) walletFrame->gotoHivePage();
+}
+
+void BitcoinGUI::gotoBeeNFTPage()
+{
+    beeNFTAction->setChecked(true);
+    if (walletFrame) walletFrame->gotoBeeNFTPage();
 }
 
 void BitcoinGUI::gotoHistoryPage()

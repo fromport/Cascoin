@@ -14,6 +14,7 @@ class BitcoinGUI;
 class ClientModel;
 class OverviewPage;
 class HiveDialog;     // Cascoin: Hive page
+class BeeNFTPage;     // Cascoin: Bee NFT page
 class PlatformStyle;
 class ReceiveCoinsDialog;
 class SendCoinsDialog;
@@ -64,6 +65,7 @@ private:
 
     OverviewPage *overviewPage;
     HiveDialog *hivePage;     // Cascoin: Hive page
+    BeeNFTPage *beeNFTPage;   // Cascoin: Bee NFT page
     QWidget *transactionsPage;
     ReceiveCoinsDialog *receiveCoinsPage;
     SendCoinsDialog *sendCoinsPage;
@@ -87,6 +89,9 @@ public Q_SLOTS:
 
     // Cascoin: Hive: Switch to hive page
     void gotoHivePage();
+    
+    // Cascoin: Bee NFT: Switch to bee NFT page
+    void gotoBeeNFTPage();
 
     /** Show Sign/Verify Message dialog and switch to sign message tab */
     void gotoSignMessageTab(QString addr = "");

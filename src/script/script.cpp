@@ -145,6 +145,10 @@ const char* GetOpName(opcodetype opcode)
     // Cascoin: Rialto
     case OP_NICK_CREATE            : return "OP_NICK_CREATE";
 
+    // Cascoin: Bee NFT System
+    case OP_BEE_TOKEN              : return "OP_BEE_TOKEN";
+    case OP_BEE_TRANSFER           : return "OP_BEE_TRANSFER";
+
     case OP_INVALIDOPCODE          : return "OP_INVALIDOPCODE";
 
     // Note:

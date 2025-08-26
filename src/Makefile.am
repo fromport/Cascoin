@@ -176,7 +176,8 @@ BITCOIN_CORE_H = \
   zmq/zmqconfig.h\
   zmq/zmqnotificationinterface.h \
   zmq/zmqpublishnotifier.h \
-  rialto.h
+  rialto.h \
+  beenft.h
 
 
 obj/build.h: FORCE
@@ -229,6 +230,7 @@ libbitcoin_server_a_SOURCES = \
   validationinterface.cpp \
   versionbits.cpp \
   rialto.cpp \
+  beenft.cpp \
   $(BITCOIN_CORE_H)
 
 if ENABLE_ZMQ
