@@ -102,41 +102,14 @@ for binary in "$DIST_DIR/usr/bin"/*; do
     copy_libs_for_binary "$binary" "$LIB_DIR"
 done
 
-# Copy Qt6 libraries and plugins
-echo "Copying Qt6 libraries..."
-find /usr/lib/x86_64-linux-gnu -name "libQt6*.so*" -exec cp {} "$LIB_DIR/" \; 2>/dev/null || true
-
-if [[ -d /usr/lib/x86_64-linux-gnu/qt6/plugins ]]; then
-    echo "Copying essential Qt6 plugins..."
-    # Essential platform plugins
-    mkdir -p "$DIST_DIR/usr/lib/qt6/plugins/platforms"
-    cp /usr/lib/x86_64-linux-gnu/qt6/plugins/platforms/libqxcb.so "$DIST_DIR/usr/lib/qt6/plugins/platforms/" 2>/dev/null || true
-    cp /usr/lib/x86_64-linux-gnu/qt6/plugins/platforms/libqwayland*.so "$DIST_DIR/usr/lib/qt6/plugins/platforms/" 2>/dev/null || true
-    cp /usr/lib/x86_64-linux-gnu/qt6/plugins/platforms/libqminimal.so "$DIST_DIR/usr/lib/qt6/plugins/platforms/" 2>/dev/null || true
-    
-    # Essential image format plugins
-    mkdir -p "$DIST_DIR/usr/lib/qt6/plugins/imageformats"
-    cp /usr/lib/x86_64-linux-gnu/qt6/plugins/imageformats/libqjpeg.so "$DIST_DIR/usr/lib/qt6/plugins/imageformats/" 2>/dev/null || true
-    cp /usr/lib/x86_64-linux-gnu/qt6/plugins/imageformats/libqpng.so "$DIST_DIR/usr/lib/qt6/plugins/imageformats/" 2>/dev/null || true
-    cp /usr/lib/x86_64-linux-gnu/qt6/plugins/imageformats/libqsvg.so "$DIST_DIR/usr/lib/qt6/plugins/imageformats/" 2>/dev/null || true
-    cp /usr/lib/x86_64-linux-gnu/qt6/plugins/imageformats/libqico.so "$DIST_DIR/usr/lib/qt6/plugins/imageformats/" 2>/dev/null || true
-    
-    # Icon engine plugins
-    mkdir -p "$DIST_DIR/usr/lib/qt6/plugins/iconengines"
-    cp /usr/lib/x86_64-linux-gnu/qt6/plugins/iconengines/libqsvgicon.so "$DIST_DIR/usr/lib/qt6/plugins/iconengines/" 2>/dev/null || true
-    
-    # Platform theme plugins
-    mkdir -p "$DIST_DIR/usr/lib/qt6/plugins/platformthemes"
-    cp /usr/lib/x86_64-linux-gnu/qt6/plugins/platformthemes/libqgtk3.so "$DIST_DIR/usr/lib/qt6/plugins/platformthemes/" 2>/dev/null || true
-    cp /usr/lib/x86_64-linux-gnu/qt6/plugins/platformthemes/libqxdgdesktopportal.so "$DIST_DIR/usr/lib/qt6/plugins/platformthemes/" 2>/dev/null || true
-fi
+# Note: Qt6 libraries are NOT copied - they should be installed on target system
+echo "Skipping Qt6 libraries - they should be installed on target system via package manager"
 
 # Create wrapper scripts
 echo "Creating wrapper scripts..."
 cat > "$DIST_DIR/usr/bin/cascoin-qt-wrapper" << 'EOF'
 #!/bin/bash
 export LD_LIBRARY_PATH="/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH"
-export QT_PLUGIN_PATH="/usr/lib/qt6/plugins:$QT_PLUGIN_PATH"
 exec /usr/bin/cascoin-qt "$@"
 EOF
 
@@ -199,6 +172,66 @@ echo "  cascoin-tx            # Transaction tool"
 EOF
 
 chmod +x "$DIST_DIR/install.sh"
+
+# Create README
+cat > "$DIST_DIR/README.md" << 'EOF'
+# Cascoin Core Linux Distribution Package
+
+This package contains Cascoin Core binaries with essential libraries.
+Qt6 must be installed separately via your distribution's package manager.
+
+## Prerequisites
+
+Install Qt6 before running the GUI:
+
+```bash
+# Ubuntu/Debian
+sudo apt-get install qt6-base-dev qt6-base-dev-tools
+
+# Fedora/RHEL
+sudo dnf install qt6-qtbase-devel
+
+# Arch Linux
+sudo pacman -S qt6-base
+```
+
+## Installation
+
+```bash
+sudo ./install.sh
+```
+
+## Usage
+
+After installation:
+
+```bash
+cascoin-qt-wrapper    # GUI wallet (requires Qt6)
+cascoind-wrapper      # Daemon
+cascoin-cli           # CLI tool
+cascoin-tx            # Transaction tool
+```
+
+## System Requirements
+
+- Linux x86_64
+- GLIBC 2.31+ (Ubuntu 20.04+)
+- Qt6 6.0+ (for GUI)
+- X11 or Wayland display server (for GUI)
+
+## Included Libraries
+
+- Boost 1.83+ (system, filesystem, thread, chrono, program_options)
+- Berkeley DB 5.3+
+- OpenSSL 3.0+
+- libevent 2.1+
+- Protocol Buffers
+- ZeroMQ 5.2+
+- libqrencode 4.1+
+- libminiupnpc
+
+Qt6 libraries are NOT included - install via package manager.
+EOF
 
 # Create package
 VERSION=$(git describe --tags --always --dirty 2>/dev/null || echo "unknown")
