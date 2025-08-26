@@ -91,6 +91,7 @@ private:
     void executeTokenizationBatch(const QString& bctId, int quantity, const QString& ownerAddress);
     void executeCompleteBCTTokenization(const QString& bctId, const QString& ownerAddress);
     void updateTableModelWithRealData(const QString& jsonString);
+    void loadRealNFTData();
 };
 
 #endif // CASCOIN_QT_BEENFTPAGE_H

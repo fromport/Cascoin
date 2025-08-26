@@ -777,6 +777,9 @@ void BeeNFTPage::refreshBeeNFTs()
                 if (beeNFTModel) {
                     // Trigger model update which will reload the data
                     beeNFTModel->updateBeeNFTs();
+    
+    // Note: Real NFT data will be loaded on demand when user interacts with the NFT system
+    // This prevents startup crashes when no RPC connection is available
                 }
             }, Qt::QueuedConnection);
             
@@ -933,4 +936,80 @@ void BeeNFTPage::updateTableModelWithRealData(const QString& jsonString)
     
     // Update the model with real data
     beeNFTModel->updateBeeNFTListWithData(newRecords);
+}
+
+void BeeNFTPage::loadRealNFTData()
+{
+    if (!walletModel) {
+        return;
+    }
+    
+    // Execute bctnftlist RPC command to get real NFT data
+    std::thread([=]() {
+        try {
+            std::string resultStr;
+            bool success = false;
+            
+            // Try to execute RPC command, but handle gracefully if it fails
+            try {
+                success = RPCConsole::RPCExecuteCommandLine(resultStr, "bctnftlist");
+            } catch (const std::exception& rpc_e) {
+                // RPC command doesn't exist or failed - this is OK
+                qDebug() << "bctnftlist RPC not available:" << QString::fromStdString(rpc_e.what());
+                return; // Exit thread gracefully
+            } catch (...) {
+                // Any other exception - exit gracefully
+                qDebug() << "Unknown error calling bctnftlist RPC";
+                return;
+            }
+            
+            if (!success || resultStr.empty()) {
+                // RPC failed or returned empty - exit gracefully
+                return;
+            }
+            
+            QString result = QString::fromStdString(resultStr);
+            
+            if (!result.isEmpty() && result != "null") {
+                // Parse the JSON result and update the table model
+                QJsonParseError error;
+                QJsonDocument doc = QJsonDocument::fromJson(result.toUtf8(), &error);
+                
+                if (error.error == QJsonParseError::NoError && doc.isArray()) {
+                    QJsonArray nftArray = doc.array();
+                    QList<BeeNFTRecord> nftRecords;
+                    
+                    for (const QJsonValue& value : nftArray) {
+                        if (value.isObject()) {
+                            QJsonObject nftObj = value.toObject();
+                            
+                            BeeNFTRecord record;
+                            record.beeNFTId = nftObj["nft_id"].toString();
+                            record.originalBCT = nftObj["original_bct"].toString();
+                            record.beeIndex = nftObj["total_mice"].toInt();
+                            record.currentOwner = nftObj["owner"].toString();
+                            record.status = nftObj["status"].toString();
+                            record.maturityHeight = nftObj["maturity_height"].toInt();
+                            record.expiryHeight = nftObj["expiry_height"].toInt();
+                            record.tokenizedHeight = nftObj["tokenized_height"].toInt();
+                            record.blocksLeft = nftObj["blocks_left"].toInt();
+                            
+                            nftRecords.append(record);
+                        }
+                    }
+                    
+                    // Update UI on main thread
+                    QMetaObject::invokeMethod(this, [=]() {
+                        if (beeNFTModel) {
+                            beeNFTModel->updateBeeNFTListWithData(nftRecords);
+                        }
+                    }, Qt::QueuedConnection);
+                }
+            }
+            
+        } catch (const std::exception& e) {
+            // Handle RPC errors gracefully - NFT table will remain empty
+            qDebug() << "Failed to load NFT data:" << QString::fromStdString(e.what());
+        }
+    }).detach();
 }

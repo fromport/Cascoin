@@ -201,64 +201,9 @@ void BeeNFTTableModel::updateBeeNFTList()
     beginResetModel();
     cachedBeeNFTList.clear();
     
-    // TODO: Fetch actual mice NFTs from wallet
-    // For now, add sample data for demonstration
-    
-    // Sample BCT NFT records with realistic mice counts
-    BeeNFTRecord sample1;
-    sample1.beeNFTId = "bct-nft-123456789abcdef...";
-    sample1.originalBCT = "bct987654321fedcba...";
-    sample1.beeIndex = 200000; // Total mice in this BCT
-    sample1.currentOwner = "CMyWalletAddress123...";
-    sample1.status = "active";
-    sample1.maturityHeight = 100000;
-    sample1.expiryHeight = 200000;
-    sample1.tokenizedHeight = 50000;
-    sample1.blocksLeft = 5000;
-    
-    cachedBeeNFTList.append(sample1);
-    
-    BeeNFTRecord sample2;
-    sample2.beeNFTId = "bct-nft-987654321fedcba...";
-    sample2.originalBCT = "bct123456789abcdef...";
-    sample2.beeIndex = 150000; // Total mice in this BCT
-    sample2.currentOwner = "CMyWalletAddress123...";
-    sample2.status = "active";
-    sample2.maturityHeight = 95000;
-    sample2.expiryHeight = 195000;
-    sample2.tokenizedHeight = 48000;
-    sample2.blocksLeft = 8000;
-    
-    cachedBeeNFTList.append(sample2);
-    
-    BeeNFTRecord sample3;
-    sample3.beeNFTId = "bct-nft-abcdef123456789...";
-    sample3.originalBCT = "bctfedcba987654321...";
-    sample3.beeIndex = 250000; // Total mice in this BCT
-    sample3.currentOwner = "CMyWalletAddress123...";
-    sample3.status = "active";
-    sample3.maturityHeight = 90000;
-    sample3.expiryHeight = 190000;
-    sample3.tokenizedHeight = 45000;
-    sample3.blocksLeft = 12000;
-    
-    cachedBeeNFTList.append(sample3);
-    
-    // Add expired sample if including expired
-    if (includeExpired) {
-        BeeNFTRecord expiredSample;
-        expiredSample.beeNFTId = "bct-nft-expired123...";
-        expiredSample.originalBCT = "bctexpired987654321...";
-        expiredSample.beeIndex = 180000; // Total mice in expired BCT
-        expiredSample.currentOwner = "CMyWalletAddress123...";
-        expiredSample.status = "expired";
-        expiredSample.maturityHeight = 80000;
-        expiredSample.expiryHeight = 180000;
-        expiredSample.tokenizedHeight = 40000;
-        expiredSample.blocksLeft = 0;
-        
-        cachedBeeNFTList.append(expiredSample);
-    }
+    // No sample data - only real NFTs will be shown when loaded via updateBeeNFTListWithData
+    // This ensures the table starts empty and only shows actual NFTs from the wallet
+
 
     endResetModel();
     
