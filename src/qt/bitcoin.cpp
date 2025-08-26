@@ -52,6 +52,7 @@
 #include <QTimer>
 #include <QTranslator>
 #include <QtNetwork/QSslConfiguration>
+#include <atomic>
 #include <thread>
 #include <chrono>
 
@@ -79,6 +80,9 @@ Q_IMPORT_PLUGIN(QCocoaIntegrationPlugin);
 // Declare meta types used for QMetaObject::invokeMethod
 Q_DECLARE_METATYPE(bool*)
 Q_DECLARE_METATYPE(CAmount)
+
+// Cascoin: Track readiness of mice/BCT DB init so we can keep splash visible
+static std::atomic<bool> g_miceDbReady{false};
 
 static void InitMessage(const std::string &message)
 {
@@ -464,8 +468,10 @@ void BitcoinApplication::createSplashScreen(const NetworkStyle *networkStyle)
             uiInterface.ShowProgress("Mice DB initialisieren", 90, false);
             std::this_thread::sleep_for(std::chrono::milliseconds(80));
             uiInterface.ShowProgress("Mice DB initialisieren", 100, false);
+            g_miceDbReady.store(true);
         } catch (...) {
             uiInterface.ShowProgress("Mice DB initialisieren", 100, false);
+            g_miceDbReady.store(true);
         }
     }).detach();
 }
@@ -576,6 +582,14 @@ void BitcoinApplication::initializeResult(bool success)
         else
         {
             window->show();
+        }
+        // Keep splash until mice DB init finished
+        if (!g_miceDbReady.load()) {
+            QElapsedTimer timer; timer.start();
+            while (!g_miceDbReady.load() && timer.elapsed() < 10000) {
+                QThread::msleep(50);
+                QCoreApplication::processEvents(QEventLoop::AllEvents, 20);
+            }
         }
         Q_EMIT splashFinished(window);
 

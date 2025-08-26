@@ -17,6 +17,7 @@
 #include <QGroupBox>
 #include <QSpinBox>
 #include <QCheckBox>
+#include <QProgressBar>
 
 #include <qt/bctdatabase.h>
 
@@ -73,6 +74,9 @@ private:
     QLineEdit *ownerAddressEdit;
     QPushButton *tokenizeButton;
     QPushButton *generateAddressButton;
+    QLabel *bctStatusLabel;
+    QProgressBar *bctProgressBar;
+    bool bctLoading = false;
     
     // Transfer Tab
     QWidget *transferTab;

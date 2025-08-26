@@ -109,6 +109,17 @@ void BeeNFTPage::setupUI()
     // Refresh button for mouse list
     refreshMiceButton = new QPushButton(tr("Refresh Available Mice"));
     tokenizeGridLayout->addWidget(refreshMiceButton, 0, 3);
+
+    // Loading indicators
+    bctStatusLabel = new QLabel(tr("Loading BCT overview..."));
+    bctProgressBar = new QProgressBar();
+    bctProgressBar->setRange(0, 100);
+    bctProgressBar->setValue(0);
+    bctProgressBar->setTextVisible(true);
+    bctStatusLabel->setVisible(false);
+    bctProgressBar->setVisible(false);
+    tokenizeGridLayout->addWidget(bctStatusLabel, 1, 0, 1, 2);
+    tokenizeGridLayout->addWidget(bctProgressBar, 1, 2, 1, 2);
     
     // Owner Address
     tokenizeGridLayout->addWidget(new QLabel(tr("Owner Address:")), 2, 0);
@@ -202,6 +213,10 @@ void BeeNFTPage::loadAvailableMice()
     mouseSelectionCombo->clear();
     mouseSelectionCombo->addItem(tr("Loading BCT overview..."));
     mouseSelectionCombo->setEnabled(false);
+    bctStatusLabel->setVisible(true);
+    bctProgressBar->setVisible(true);
+    bctStatusLabel->setText(tr("Loading BCT overview..."));
+    bctProgressBar->setValue(1);
 
     // Run RPC in background to avoid blocking UI
     std::thread([this]() {
@@ -217,6 +232,8 @@ void BeeNFTPage::loadAvailableMice()
             QMetaObject::invokeMethod(this, "loadAvailableMiceFromWallet", Qt::QueuedConnection);
             QMetaObject::invokeMethod(this, [this]() {
                 mouseSelectionCombo->setEnabled(true);
+                bctStatusLabel->setText(tr("Using local BCT cache"));
+                bctProgressBar->setValue(100);
             }, Qt::QueuedConnection);
             uiInterface.ShowProgress("Mice DB initialisieren", 100, false);
             return;
@@ -272,6 +289,8 @@ void BeeNFTPage::loadAvailableMice()
                     if (progress > 99) progress = 99;
                     if (progress < 1) progress = 1;
                     uiInterface.ShowProgress("Mice DB initialisieren", progress, false);
+                    bctStatusLabel->setText(tr("Loading BCTs: %1/%2").arg(idx).arg(denom));
+                    bctProgressBar->setValue(progress);
                     ++idx;
                 }
 
@@ -283,13 +302,18 @@ void BeeNFTPage::loadAvailableMice()
                     mouseSelectionCombo->insertSeparator(2);
                 }
                 uiInterface.ShowProgress("Mice DB initialisieren", 100, false);
+                bctStatusLabel->setText(tr("BCTs loaded"));
+                bctProgressBar->setValue(100);
             } else {
                 mouseSelectionCombo->clear();
                 mouseSelectionCombo->addItem(tr("Error parsing mice data: %1").arg(error.errorString()), "");
                 uiInterface.ShowProgress("Mice DB initialisieren", 100, false);
+                bctStatusLabel->setText(tr("Error parsing BCT data"));
+                bctProgressBar->setValue(100);
             }
 
             mouseSelectionCombo->setEnabled(true);
+            bctLoading = false;
         }, Qt::QueuedConnection);
     }).detach();
 }
