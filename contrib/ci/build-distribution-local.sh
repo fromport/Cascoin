@@ -78,28 +78,94 @@ cp src/cascoind "$DIST_DIR/usr/bin/"
 cp src/cascoin-cli "$DIST_DIR/usr/bin/"
 cp src/cascoin-tx "$DIST_DIR/usr/bin/"
 
-# Function to copy libraries recursively
-copy_libs_for_binary() {
-    local binary="$1"
-    local lib_dir="$2"
-    
-    echo "Analyzing dependencies for: $(basename "$binary")"
-    
-    ldd "$binary" 2>/dev/null | grep "=>" | awk '{print $3}' | while read lib; do
-        if [[ -f "$lib" && "$lib" =~ ^/usr/lib|^/lib ]]; then
-            lib_name=$(basename "$lib")
-            if [[ ! -f "$lib_dir/$lib_name" ]]; then
-                echo "  Copying: $lib_name"
-                cp "$lib" "$lib_dir/" 2>/dev/null || true
-            fi
-        fi
-    done
-}
-
-# Copy libraries for each binary
+# Copy ONLY the exact libraries that Cascoin needs (no automatic discovery)
+echo "Copying ONLY required Cascoin libraries..."
 LIB_DIR="$DIST_DIR/usr/lib/x86_64-linux-gnu"
-for binary in "$DIST_DIR/usr/bin"/*; do
-    copy_libs_for_binary "$binary" "$LIB_DIR"
+
+# Copy exact Boost libraries needed by Cascoin
+echo "  Collecting required Boost libraries..."
+boost_libs=(
+  "libboost_system.so*"
+  "libboost_filesystem.so*" 
+  "libboost_chrono.so*"
+  "libboost_thread.so*"
+  "libboost_program_options.so*"
+)
+
+for boost_lib in "${boost_libs[@]}"; do
+  find /usr/lib/x86_64-linux-gnu -name "$boost_lib" 2>/dev/null | while read lib; do
+    if [[ -f "$lib" ]]; then
+      lib_name=$(basename "$lib")
+      if [[ ! -f "$LIB_DIR/$lib_name" ]]; then
+        echo "    Copying: $lib_name"
+        cp "$lib" "$LIB_DIR/" 2>/dev/null || true
+      fi
+    fi
+  done
+done
+
+# Copy Berkeley DB libraries (C++ interface for wallet)
+echo "  Collecting Berkeley DB libraries..."
+find /usr/lib/x86_64-linux-gnu -name "libdb_cxx-*.so*" -o -name "libdb-*.so*" 2>/dev/null | while read lib; do
+  if [[ -f "$lib" ]]; then
+    lib_name=$(basename "$lib")
+    if [[ ! -f "$LIB_DIR/$lib_name" ]]; then
+      echo "    Copying: $lib_name"
+      cp "$lib" "$LIB_DIR/" 2>/dev/null || true
+    fi
+  fi
+done
+
+# Copy libcrypto (OpenSSL crypto only, not SSL)
+echo "  Collecting libcrypto..."
+find /usr/lib/x86_64-linux-gnu -name "libcrypto.so*" 2>/dev/null | while read lib; do
+  if [[ -f "$lib" ]]; then
+    lib_name=$(basename "$lib")
+    if [[ ! -f "$LIB_DIR/$lib_name" ]]; then
+      echo "    Copying: $lib_name"
+      cp "$lib" "$LIB_DIR/" 2>/dev/null || true
+    fi
+  fi
+done
+
+# Copy exact libevent libraries needed
+echo "  Collecting libevent libraries..."
+libevent_libs=(
+  "libevent-*.so*"
+  "libevent_pthreads-*.so*"
+)
+
+for event_lib in "${libevent_libs[@]}"; do
+  find /usr/lib/x86_64-linux-gnu -name "$event_lib" 2>/dev/null | while read lib; do
+    if [[ -f "$lib" ]]; then
+      lib_name=$(basename "$lib")
+      if [[ ! -f "$LIB_DIR/$lib_name" ]]; then
+        echo "    Copying: $lib_name"
+        cp "$lib" "$LIB_DIR/" 2>/dev/null || true
+      fi
+    fi
+  done
+done
+
+# Copy remaining required libraries
+echo "  Collecting other required libraries..."
+other_required_libs=(
+  "libminiupnpc.so*"
+  "libprotobuf.so*"
+  "libqrencode.so*"
+  "libzmq.so*"
+)
+
+for req_lib in "${other_required_libs[@]}"; do
+  find /usr/lib/x86_64-linux-gnu -name "$req_lib" 2>/dev/null | while read lib; do
+    if [[ -f "$lib" ]]; then
+      lib_name=$(basename "$lib")
+      if [[ ! -f "$LIB_DIR/$lib_name" ]]; then
+        echo "    Copying: $lib_name"
+        cp "$lib" "$LIB_DIR/" 2>/dev/null || true
+      fi
+    fi
+  done
 done
 
 # Note: Qt6 libraries are NOT copied - they should be installed on target system
@@ -219,18 +285,18 @@ cascoin-tx            # Transaction tool
 - Qt6 6.0+ (for GUI)
 - X11 or Wayland display server (for GUI)
 
-## Included Libraries
-
-- Boost 1.83+ (system, filesystem, thread, chrono, program_options)
-- Berkeley DB 5.3+
-- OpenSSL 3.0+
-- libevent 2.1+
-- Protocol Buffers
-- ZeroMQ 5.2+
-- libqrencode 4.1+
-- libminiupnpc
-
-Qt6 libraries are NOT included - install via package manager.
+          ## Included Libraries (ONLY required ones)
+          
+          - Boost (system, filesystem, chrono, thread, program_options)
+          - Berkeley DB (C++ interface for wallet)
+          - libcrypto (OpenSSL crypto functions)
+          - libevent + libevent_pthreads (networking)
+          - libminiupnpc (UPnP support)
+          - libprotobuf (serialization)
+          - libqrencode (QR code generation)
+          - libzmq (ZeroMQ messaging)
+          
+          Qt6 libraries are NOT included - install via package manager.
 EOF
 
 # Create package

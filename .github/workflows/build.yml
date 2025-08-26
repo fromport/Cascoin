@@ -153,68 +153,85 @@ jobs:
           # Note: Qt6 libraries are NOT copied - they should be installed on target system
           echo "Skipping Qt6 libraries - they should be installed on target system via package manager"
           
-          # Copy only essential versioned libraries that Cascoin specifically needs
-          echo "Copying Cascoin-specific versioned libraries..."
+          # Copy ONLY the exact libraries that Cascoin needs (no extras)
+          echo "Copying ONLY required Cascoin libraries..."
           
-          # Copy specific Boost libraries with versions
-          echo "  Collecting Boost libraries..."
-          find /usr/lib/x86_64-linux-gnu -name "libboost_system.so*" -o \
-                                          -name "libboost_filesystem.so*" -o \
-                                          -name "libboost_chrono.so*" -o \
-                                          -name "libboost_thread.so*" -o \
-                                          -name "libboost_program_options.so*" \
-                                          2>/dev/null | while read lib; do
-            if [[ -f "$lib" ]]; then
-              lib_name=$(basename "$lib")
-              if [[ ! -f "$LIB_DIR/$lib_name" ]]; then
-                echo "    Copying: $lib_name"
-                cp "$lib" "$LIB_DIR/" 2>/dev/null || true
-              fi
-            fi
-          done
-          
-          # Copy specific Berkeley DB libraries
-          echo "  Collecting Berkeley DB libraries..."
-          find /usr/lib/x86_64-linux-gnu -name "libdb-*.so*" -o \
-                                          -name "libdb++-*.so*" -o \
-                                          -name "libdb.so*" -o \
-                                          -name "libdb++.so*" \
-                                          2>/dev/null | while read lib; do
-            if [[ -f "$lib" ]]; then
-              lib_name=$(basename "$lib")
-              if [[ ! -f "$LIB_DIR/$lib_name" ]]; then
-                echo "    Copying: $lib_name"
-                cp "$lib" "$LIB_DIR/" 2>/dev/null || true
-              fi
-            fi
-          done
-          
-          # Copy specific OpenSSL libraries with versions
-          echo "  Collecting OpenSSL libraries..."
-          find /usr/lib/x86_64-linux-gnu -name "libssl.so.*" -o \
-                                          -name "libcrypto.so.*" \
-                                          2>/dev/null | while read lib; do
-            if [[ -f "$lib" ]]; then
-              lib_name=$(basename "$lib")
-              if [[ ! -f "$LIB_DIR/$lib_name" ]]; then
-                echo "    Copying: $lib_name"
-                cp "$lib" "$LIB_DIR/" 2>/dev/null || true
-              fi
-            fi
-          done
-          
-          # Copy specific networking/protocol libraries
-          echo "  Collecting networking libraries..."
-          cascoin_specific_libs=(
-            "libevent-2.*.so*" "libevent_core-2.*.so*" "libevent_extra-2.*.so*"
-            "libprotobuf.so.*" "libprotobuf-lite.so.*"
-            "libminiupnpc.so.*"
-            "libzmq.so.*"
-            "libqrencode.so.*"
+          # Copy exact Boost libraries needed by Cascoin
+          echo "  Collecting required Boost libraries..."
+          boost_libs=(
+            "libboost_system.so*"
+            "libboost_filesystem.so*" 
+            "libboost_chrono.so*"
+            "libboost_thread.so*"
+            "libboost_program_options.so*"
           )
           
-          for pattern in "${cascoin_specific_libs[@]}"; do
-            find /usr/lib/x86_64-linux-gnu -name "$pattern" 2>/dev/null | while read lib; do
+          for boost_lib in "${boost_libs[@]}"; do
+            find /usr/lib/x86_64-linux-gnu -name "$boost_lib" 2>/dev/null | while read lib; do
+              if [[ -f "$lib" ]]; then
+                lib_name=$(basename "$lib")
+                if [[ ! -f "$LIB_DIR/$lib_name" ]]; then
+                  echo "    Copying: $lib_name"
+                  cp "$lib" "$LIB_DIR/" 2>/dev/null || true
+                fi
+              fi
+            done
+          done
+          
+          # Copy Berkeley DB libraries (C++ interface for wallet)
+          echo "  Collecting Berkeley DB libraries..."
+          find /usr/lib/x86_64-linux-gnu -name "libdb_cxx-*.so*" -o -name "libdb-*.so*" 2>/dev/null | while read lib; do
+            if [[ -f "$lib" ]]; then
+              lib_name=$(basename "$lib")
+              if [[ ! -f "$LIB_DIR/$lib_name" ]]; then
+                echo "    Copying: $lib_name"
+                cp "$lib" "$LIB_DIR/" 2>/dev/null || true
+              fi
+            fi
+          done
+          
+          # Copy libcrypto (OpenSSL crypto only, not SSL)
+          echo "  Collecting libcrypto..."
+          find /usr/lib/x86_64-linux-gnu -name "libcrypto.so*" 2>/dev/null | while read lib; do
+            if [[ -f "$lib" ]]; then
+              lib_name=$(basename "$lib")
+              if [[ ! -f "$LIB_DIR/$lib_name" ]]; then
+                echo "    Copying: $lib_name"
+                cp "$lib" "$LIB_DIR/" 2>/dev/null || true
+              fi
+            fi
+          done
+          
+          # Copy exact libevent libraries needed
+          echo "  Collecting libevent libraries..."
+          libevent_libs=(
+            "libevent-*.so*"
+            "libevent_pthreads-*.so*"
+          )
+          
+          for event_lib in "${libevent_libs[@]}"; do
+            find /usr/lib/x86_64-linux-gnu -name "$event_lib" 2>/dev/null | while read lib; do
+              if [[ -f "$lib" ]]; then
+                lib_name=$(basename "$lib")
+                if [[ ! -f "$LIB_DIR/$lib_name" ]]; then
+                  echo "    Copying: $lib_name"
+                  cp "$lib" "$LIB_DIR/" 2>/dev/null || true
+                fi
+              fi
+            done
+          done
+          
+          # Copy remaining required libraries
+          echo "  Collecting other required libraries..."
+          other_required_libs=(
+            "libminiupnpc.so*"
+            "libprotobuf.so*"
+            "libqrencode.so*"
+            "libzmq.so*"
+          )
+          
+          for req_lib in "${other_required_libs[@]}"; do
+            find /usr/lib/x86_64-linux-gnu -name "$req_lib" 2>/dev/null | while read lib; do
               if [[ -f "$lib" ]]; then
                 lib_name=$(basename "$lib")
                 if [[ ! -f "$LIB_DIR/$lib_name" ]]; then
@@ -338,16 +355,16 @@ jobs:
           - Qt6 6.0+ (for GUI)
           - X11 or Wayland display server (for GUI)
           
-          ## Included Libraries
+          ## Included Libraries (ONLY required ones)
           
-          - Boost 1.83+ (system, filesystem, thread, chrono, program_options)
-          - Berkeley DB 5.3+
-          - OpenSSL 3.0+
-          - libevent 2.1+
-          - Protocol Buffers
-          - ZeroMQ 5.2+
-          - libqrencode 4.1+
-          - libminiupnpc
+          - Boost (system, filesystem, chrono, thread, program_options)
+          - Berkeley DB (C++ interface for wallet)
+          - libcrypto (OpenSSL crypto functions)
+          - libevent + libevent_pthreads (networking)
+          - libminiupnpc (UPnP support)
+          - libprotobuf (serialization)
+          - libqrencode (QR code generation)
+          - libzmq (ZeroMQ messaging)
           
           Qt6 libraries are NOT included - install via package manager.
           EOF
@@ -359,7 +376,7 @@ jobs:
           echo "  Berkeley DB libraries:"
           ls -la "$LIB_DIR"/libdb*.so* 2>/dev/null || echo "    No Berkeley DB libraries found"
           echo "  OpenSSL libraries:"
-          ls -la "$LIB_DIR"/libssl.so* "$LIB_DIR"/libcrypto.so* 2>/dev/null || echo "    No OpenSSL libraries found"
+          ls -la "$LIB_DIR"/libcrypto.so* 2>/dev/null || echo "    No libcrypto found"
           echo "  Qt6 libraries: (not included - installed via package manager)"
           echo "  Other specific libraries:"
           ls -la "$LIB_DIR"/libevent*.so* "$LIB_DIR"/libprotobuf*.so* "$LIB_DIR"/libzmq*.so* 2>/dev/null || echo "    No other libraries found"
