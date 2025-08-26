@@ -76,6 +76,7 @@ private:
 
 public Q_SLOTS:
     void updateBeeNFTs();
+    void updateBeeNFTListWithData(const QList<BeeNFTRecord>& newRecords);
 
 Q_SIGNALS:
     void beeNFTsChanged();

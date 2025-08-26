@@ -86,6 +86,11 @@ private:
     
     void setupUI();
     void updateBeeNFTCombo();
+    void showMouseSelectionDialog(const QString& bctId, const QString& ownerAddress);
+    void executeTokenization(const QString& bctId, int mouseIndex, const QString& ownerAddress);
+    void executeTokenizationBatch(const QString& bctId, int quantity, const QString& ownerAddress);
+    void executeCompleteBCTTokenization(const QString& bctId, const QString& ownerAddress);
+    void updateTableModelWithRealData(const QString& jsonString);
 };
 
 #endif // CASCOIN_QT_BEENFTPAGE_H

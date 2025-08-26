@@ -28,9 +28,9 @@ BeeNFTTableModel::BeeNFTTableModel(WalletModel *parent) :
     walletModel(parent),
     includeExpired(false)
 {
-    columns << tr("Mice NFT ID") << tr("Original BCT") << tr("Mouse #") 
+    columns << tr("BCT NFT ID") << tr("Original BCT") << tr("Total Mice") 
             << tr("Status") << tr("Owner") << tr("Blocks Left")
-            << tr("Maturity Height") << tr("Expiry Height");
+            << tr("Created Height") << tr("Expiry Height");
 
     timer = new QTimer(this);
     connect(timer, SIGNAL(timeout()), this, SLOT(updateBeeNFTs()));
@@ -72,8 +72,16 @@ QVariant BeeNFTTableModel::data(const QModelIndex &index, int role) const
             return rec.beeNFTId.left(16) + "..."; // Truncate for display
         case OriginalBCT:
             return rec.originalBCT.left(16) + "..."; // Truncate for display
-        case BeeIndex:
-            return rec.beeIndex;
+        case BeeIndex: // Now "Total Mice"
+            {
+                // Format number with thousands separators
+                QString numStr = QString::number(rec.beeIndex);
+                int len = numStr.length();
+                for (int i = len - 3; i > 0; i -= 3) {
+                    numStr.insert(i, ',');
+                }
+                return numStr;
+            }
         case Status:
             return rec.status;
         case Owner:
@@ -196,27 +204,53 @@ void BeeNFTTableModel::updateBeeNFTList()
     // TODO: Fetch actual mice NFTs from wallet
     // For now, add sample data for demonstration
     
-    // Sample mice NFT record
-    BeeNFTRecord sample;
-    sample.beeNFTId = "bee123456789abcdef...";
-    sample.originalBCT = "bct987654321fedcba...";
-    sample.beeIndex = 0;
-    sample.currentOwner = "COwnerAddress123...";
-    sample.status = "mature";
-    sample.maturityHeight = 100000;
-    sample.expiryHeight = 200000;
-    sample.tokenizedHeight = 50000;
-    sample.blocksLeft = 5000;
+    // Sample BCT NFT records with realistic mice counts
+    BeeNFTRecord sample1;
+    sample1.beeNFTId = "bct-nft-123456789abcdef...";
+    sample1.originalBCT = "bct987654321fedcba...";
+    sample1.beeIndex = 200000; // Total mice in this BCT
+    sample1.currentOwner = "CMyWalletAddress123...";
+    sample1.status = "active";
+    sample1.maturityHeight = 100000;
+    sample1.expiryHeight = 200000;
+    sample1.tokenizedHeight = 50000;
+    sample1.blocksLeft = 5000;
     
-    cachedBeeNFTList.append(sample);
+    cachedBeeNFTList.append(sample1);
+    
+    BeeNFTRecord sample2;
+    sample2.beeNFTId = "bct-nft-987654321fedcba...";
+    sample2.originalBCT = "bct123456789abcdef...";
+    sample2.beeIndex = 150000; // Total mice in this BCT
+    sample2.currentOwner = "CMyWalletAddress123...";
+    sample2.status = "active";
+    sample2.maturityHeight = 95000;
+    sample2.expiryHeight = 195000;
+    sample2.tokenizedHeight = 48000;
+    sample2.blocksLeft = 8000;
+    
+    cachedBeeNFTList.append(sample2);
+    
+    BeeNFTRecord sample3;
+    sample3.beeNFTId = "bct-nft-abcdef123456789...";
+    sample3.originalBCT = "bctfedcba987654321...";
+    sample3.beeIndex = 250000; // Total mice in this BCT
+    sample3.currentOwner = "CMyWalletAddress123...";
+    sample3.status = "active";
+    sample3.maturityHeight = 90000;
+    sample3.expiryHeight = 190000;
+    sample3.tokenizedHeight = 45000;
+    sample3.blocksLeft = 12000;
+    
+    cachedBeeNFTList.append(sample3);
     
     // Add expired sample if including expired
     if (includeExpired) {
         BeeNFTRecord expiredSample;
-        expiredSample.beeNFTId = "bee987654321abcdef...";
-        expiredSample.originalBCT = "bct123456789fedcba...";
-        expiredSample.beeIndex = 1;
-        expiredSample.currentOwner = "COwnerAddress456...";
+        expiredSample.beeNFTId = "bct-nft-expired123...";
+        expiredSample.originalBCT = "bctexpired987654321...";
+        expiredSample.beeIndex = 180000; // Total mice in expired BCT
+        expiredSample.currentOwner = "CMyWalletAddress123...";
         expiredSample.status = "expired";
         expiredSample.maturityHeight = 80000;
         expiredSample.expiryHeight = 180000;
@@ -234,4 +268,13 @@ void BeeNFTTableModel::updateBeeNFTList()
 void BeeNFTTableModel::updateBeeNFTs()
 {
     updateBeeNFTList();
+}
+
+void BeeNFTTableModel::updateBeeNFTListWithData(const QList<BeeNFTRecord>& newRecords)
+{
+    beginResetModel();
+    cachedBeeNFTList = newRecords;
+    endResetModel();
+    
+    Q_EMIT beeNFTsChanged();
 }

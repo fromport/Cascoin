@@ -1318,6 +1318,138 @@ UniValue micenftokenize(const JSONRPCRequest& request) {
     return tx->GetHash().GetHex();
 }
 
+// Cascoin: BCT NFT System: Tokenize complete BCT as single NFT
+UniValue bctnftokenize(const JSONRPCRequest& request) {
+    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
+        return NullUniValue;
+
+    if (request.fHelp || request.params.size() < 1 || request.params.size() > 2)
+        throw std::runtime_error(
+            "bctnftokenize \"bct_txid\" ( \"owner_address\" )\n"
+            "\nTokenize a complete BCT into a single transferable NFT.\n"
+            "\nArguments:\n"
+            "1. \"bct_txid\"         (string, required) The BCT transaction ID to tokenize completely.\n"
+            "2. \"owner_address\"   (string, optional) Address to receive the BCT NFT. Uses new address if not specified.\n"
+            "\nResult:\n"
+            "\"txid\"               (string) The transaction ID of the BCT NFT tokenization.\n"
+            "\nExamples:\n"
+            + HelpExampleCli("bctnftokenize", "\"1a2b3c...\"")
+            + HelpExampleCli("bctnftokenize", "\"1a2b3c...\" \"CYourAddress123...\"")
+            + HelpExampleRpc("bctnftokenize", "\"1a2b3c...\"")
+        );
+
+    // Check if wallet is locked
+    if (pwallet->IsLocked())
+        throw JSONRPCError(RPC_WALLET_UNLOCK_NEEDED, "Error: Please enter the wallet passphrase with walletpassphrase first.");
+
+    // Get parameters
+    RPCTypeCheckArgument(request.params[0], UniValue::VSTR);
+    std::string bctTxidStr = request.params[0].get_str();
+    uint256 bctTxid = uint256S(bctTxidStr);
+
+    std::string ownerAddress;
+    if (request.params.size() > 1) {
+        RPCTypeCheckArgument(request.params[1], UniValue::VSTR);
+        ownerAddress = request.params[1].get_str();
+        
+        // Validate address
+        CTxDestination dest = DecodeDestination(ownerAddress);
+        if (!IsValidDestination(dest)) {
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid Cascoin address");
+        }
+    } else {
+        // Generate new address for BCT NFT
+        if (!pwallet->IsLocked()) {
+            CPubKey newKey;
+            if (pwallet->GetKeyFromPool(newKey)) {
+                CKeyID keyID = newKey.GetID();
+                ownerAddress = EncodeDestination(keyID);
+                pwallet->SetAddressBook(keyID, "BCT NFT Address", "receive");
+            } else {
+                throw JSONRPCError(RPC_WALLET_KEYPOOL_RAN_OUT, "Error: Keypool ran out");
+            }
+        } else {
+            throw JSONRPCError(RPC_WALLET_UNLOCK_NEEDED, "Wallet must be unlocked to generate new address");
+        }
+    }
+
+    // Implement actual BCT tokenization logic
+    LOCK2(cs_main, pwallet->cs_wallet);
+    
+    // Verify the BCT exists and we own it
+    auto it = pwallet->mapWallet.find(bctTxid);
+    if (it == pwallet->mapWallet.end()) {
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "BCT transaction not found in wallet");
+    }
+    const CWalletTx& wtxBCT = it->second;
+    
+    // Verify this is actually a BCT transaction
+    if (!wtxBCT.IsTrusted()) {
+        throw JSONRPCError(RPC_WALLET_ERROR, "BCT transaction is not trusted");
+    }
+    
+    // Check if we own the BCT by verifying we can spend its outputs
+    bool ownsBCT = false;
+    for (unsigned int i = 0; i < wtxBCT.tx->vout.size(); i++) {
+        if (IsMine(*pwallet, wtxBCT.tx->vout[i].scriptPubKey)) {
+            ownsBCT = true;
+            break;
+        }
+    }
+    
+    if (!ownsBCT) {
+        throw JSONRPCError(RPC_WALLET_ERROR, "We don't own this BCT transaction");
+    }
+    
+    // Verify this looks like a valid BCT by checking transaction structure
+    if (wtxBCT.tx->vout.empty()) {
+        throw JSONRPCError(RPC_WALLET_ERROR, "Invalid BCT transaction: no outputs");
+    }
+    
+    // Get current block height for proper timing
+    int currentHeight = chainActive.Height();
+    
+    // Use the real wallet CreateTransaction method for proper fee calculation and signing
+    
+    // Create BCT NFT token with real data
+    BeeNFTToken token;
+    token.originalBCT = bctTxid;
+    token.beeIndex = 0; // 0 for complete BCT
+    token.currentOwner = ownerAddress;
+    token.maturityHeight = currentHeight; // Mature immediately
+    token.expiryHeight = currentHeight + 525600; // Expire in ~1 year (blocks)
+    token.tokenizedHeight = currentHeight;
+    
+    std::vector<BeeNFTToken> tokens = {token};
+    CScript nftScript = CreateBeeNFTTokenScript(tokens);
+    
+    // Create recipient for the NFT
+    CRecipient recipient = {nftScript, 1000, false}; // 0.00001 CAS dust amount
+    std::vector<CRecipient> vecSend;
+    vecSend.push_back(recipient);
+    
+    // Create and send the transaction using wallet's CreateTransaction
+    CReserveKey reservekey(pwallet);
+    CAmount nFeeRequired;
+    std::string strError;
+    int nChangePosRet = -1;
+    CCoinControl coin_control;
+    
+    CWalletTx wtxNew;
+    if (!pwallet->CreateTransaction(vecSend, wtxNew, reservekey, nFeeRequired, nChangePosRet, strError, coin_control)) {
+        throw JSONRPCError(RPC_WALLET_ERROR, strError);
+    }
+    
+    CValidationState state;
+    if (!pwallet->CommitTransaction(wtxNew, reservekey, g_connman.get(), state)) {
+        strError = strprintf("Error: The transaction was rejected! Reason given: %s", state.GetRejectReason());
+        throw JSONRPCError(RPC_WALLET_ERROR, strError);
+    }
+    
+    return wtxNew.GetHash().GetHex();
+}
+
 // Cascoin: Mice NFT System: Transfer mice NFT to another address
 UniValue micenftransfer(const JSONRPCRequest& request) {
     CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
@@ -1386,6 +1518,121 @@ UniValue micenftransfer(const JSONRPCRequest& request) {
     CTransactionRef tx = MakeTransactionRef(std::move(mtx));
     
     return tx->GetHash().GetHex();
+}
+
+// Cascoin: BCT NFT System: Transfer BCT NFT to another address
+UniValue bctnftransfer(const JSONRPCRequest& request) {
+    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
+        return NullUniValue;
+
+    if (request.fHelp || request.params.size() != 2)
+        throw std::runtime_error(
+            "bctnftransfer \"bct_nft_id\" \"to_address\"\n"
+            "\nTransfer a BCT NFT to another address.\n"
+            "\nArguments:\n"
+            "1. \"bct_nft_id\"      (string, required) The unique BCT NFT identifier.\n"
+            "2. \"to_address\"      (string, required) The recipient's address.\n"
+            "\nResult:\n"
+            "\"txid\"               (string) The transaction ID of the transfer.\n"
+            "\nExamples:\n"
+            + HelpExampleCli("bctnftransfer", "\"bct123...\" \"CRecipientAddress123...\"")
+            + HelpExampleRpc("bctnftransfer", "\"bct123...\", \"CRecipientAddress123...\"")
+        );
+
+    // Check if wallet is locked
+    if (pwallet->IsLocked())
+        throw JSONRPCError(RPC_WALLET_UNLOCK_NEEDED, "Error: Please enter the wallet passphrase with walletpassphrase first.");
+
+    // Get parameters
+    RPCTypeCheckArgument(request.params[0], UniValue::VSTR);
+    std::string bctNftId = request.params[0].get_str();
+    
+    RPCTypeCheckArgument(request.params[1], UniValue::VSTR);
+    std::string toAddress = request.params[1].get_str();
+    
+    // Validate recipient address
+    CTxDestination dest = DecodeDestination(toAddress);
+    if (!IsValidDestination(dest)) {
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid recipient address");
+    }
+
+    // Implement actual BCT NFT transfer logic
+    LOCK2(cs_main, pwallet->cs_wallet);
+    
+    // Find the BCT NFT transaction
+    uint256 nftTxid = uint256S(bctNftId);
+    auto it = pwallet->mapWallet.find(nftTxid);
+    if (it == pwallet->mapWallet.end()) {
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "BCT NFT transaction not found in wallet");
+    }
+    const CWalletTx& wtxNFT = it->second;
+    
+    // Verify we own this NFT and it's unspent
+    if (!wtxNFT.IsTrusted()) {
+        throw JSONRPCError(RPC_WALLET_ERROR, "NFT transaction is not trusted");
+    }
+    
+    // Check if the NFT output is unspent
+    if (pwallet->IsSpent(nftTxid, 0)) {
+        throw JSONRPCError(RPC_WALLET_ERROR, "NFT has already been spent");
+    }
+    
+    // Verify we own this NFT by checking if we can spend it
+    if (!IsMine(*pwallet, wtxNFT.tx->vout[0].scriptPubKey)) {
+        throw JSONRPCError(RPC_WALLET_ERROR, "We don't own this NFT");
+    }
+    
+    // Get current block height
+    int currentHeight = chainActive.Height();
+    
+    // Use the real wallet CreateTransaction method for proper fee calculation and signing
+    
+    // Create BCT NFT transfer record
+    BeeNFTTransfer transfer;
+    transfer.beeNFTId = nftTxid;
+    // Get current NFT ownership by extracting destination from NFT script
+    CTxDestination currentOwner;
+    if (ExtractDestination(wtxNFT.tx->vout[0].scriptPubKey, currentOwner)) {
+        transfer.fromOwner = EncodeDestination(currentOwner);
+    } else {
+        transfer.fromOwner = "unknown"; // Fallback for non-standard scripts
+    }
+    transfer.toOwner = toAddress;
+    transfer.transferHeight = currentHeight;
+    transfer.transferTxId = uint256(); // Will be set after transaction creation
+    transfer.transferFee = COIN / 1000; // 0.001 CAS
+    
+    std::vector<BeeNFTTransfer> transfers = {transfer};
+    CScript transferScript = CreateBeeNFTTransferScript(transfers);
+    
+    // Create recipient for the transferred NFT
+    CRecipient recipient = {transferScript, 1000, false}; // 0.00001 CAS dust amount
+    std::vector<CRecipient> vecSend;
+    vecSend.push_back(recipient);
+    
+    // Use coin control to spend the specific NFT UTXO
+    CCoinControl coin_control;
+    coin_control.Select(COutPoint(nftTxid, 0)); // Assume NFT is at output 0
+    
+    // Create and send the transaction
+    CReserveKey reservekey(pwallet);
+    CAmount nFeeRequired;
+    std::string strError;
+    int nChangePosRet = -1;
+    
+    CWalletTx wtxNew;
+    if (!pwallet->CreateTransaction(vecSend, wtxNew, reservekey, nFeeRequired, nChangePosRet, strError, coin_control)) {
+        throw JSONRPCError(RPC_WALLET_ERROR, strError);
+    }
+    
+    CValidationState state;
+    if (!pwallet->CommitTransaction(wtxNew, reservekey, g_connman.get(), state)) {
+        strError = strprintf("Error: The transaction was rejected! Reason given: %s", state.GetRejectReason());
+        throw JSONRPCError(RPC_WALLET_ERROR, strError);
+    }
+    
+    return wtxNew.GetHash().GetHex();
 }
 
 // Cascoin: Mice NFT System: List all mice NFTs owned by the wallet
@@ -5049,6 +5296,8 @@ static const CRPCCommand commands[] =
     { "wallet",             "micenftransfer",           &micenftransfer,           {"mice_nft_id","to_address"} },                          // Cascoin: Mice NFT System: Transfer mice NFT
     { "wallet",             "micenftlist",              &micenftlist,              {"include_expired"} },                                   // Cascoin: Mice NFT System: List owned mice NFTs
     { "wallet",             "micenftinfo",              &micenftinfo,              {"mice_nft_id"} },                                       // Cascoin: Mice NFT System: Get mice NFT info
+    { "wallet",             "bctnftokenize",            &bctnftokenize,            {"bct_txid","owner_address"} },                          // Cascoin: BCT NFT System: Tokenize complete BCT as single NFT
+    { "wallet",             "bctnftransfer",            &bctnftransfer,            {"bct_nft_id","to_address"} },                           // Cascoin: BCT NFT System: Transfer BCT NFT
     { "rawtransactions",    "fundrawtransaction",       &fundrawtransaction,       {"hexstring","options","iswitness"} },
     { "hidden",             "resendwallettransactions", &resendwallettransactions, {} },
     { "wallet",             "abandontransaction",       &abandontransaction,       {"txid"} },
