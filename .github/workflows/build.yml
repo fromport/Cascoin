@@ -188,87 +188,87 @@ jobs:
           ls -lah depends/*/native/bin || true
           ls -lah depends/${HOST}
 
-      - name: Autogen
-        shell: bash
-        run: ./autogen.sh
+#      - name: Autogen
+#        shell: bash
+#        run: ./autogen.sh
 
-      - name: Configure (Windows ${HOST}, Qt6 GUI, wallet, incompatible BDB)
-        shell: bash
-        run: |
-          export CONFIG_SITE="$PWD/depends/${HOST}/share/config.site"
-          echo "Using Qt tools from depends:"
-          ls -la "$PWD/depends/${HOST}/native/libexec/" | head -10
-          CFLAGS="-g -D_WIN32_WINNT=0x0601" CXXFLAGS="-g -D_WIN32_WINNT=0x0601" \
-          CPPFLAGS="-I$PWD/depends/${HOST}/include" \
-          LDFLAGS="-L$PWD/depends/${HOST}/lib" \
-          PKG_CONFIG_PATH="$PWD/depends/${HOST}/lib/pkgconfig" \
-          MOC="$PWD/depends/${HOST}/native/libexec/moc" \
-          UIC="$PWD/depends/${HOST}/native/libexec/uic" \
-          RCC="$PWD/depends/${HOST}/native/libexec/rcc" \
-          QMAKE="$PWD/depends/${HOST}/native/bin/qmake" \
-          LRELEASE="/usr/lib/qt6/bin/lrelease" \
-          LUPDATE="/usr/lib/qt6/bin/lupdate" \
-          ./configure \
-            --prefix="$PWD/depends/${HOST}" \
-            --host=${HOST} \
-            --disable-tests \
-            --disable-bench \
-            --with-gui=qt6 \
-            --with-qt-incdir="$PWD/depends/${HOST}/include" \
-            --with-qt-libdir="$PWD/depends/${HOST}/lib" \
-            --enable-wallet \
-            --with-incompatible-bdb \
-            --enable-glibc-back-compat \
-            --disable-bench \
-            --disable-tests
+#      - name: Configure (Windows ${HOST}, Qt6 GUI, wallet, incompatible BDB)
+#        shell: bash
+#        run: |
+#          export CONFIG_SITE="$PWD/depends/${HOST}/share/config.site"
+#          echo "Using Qt tools from depends:"
+#          ls -la "$PWD/depends/${HOST}/native/libexec/" | head -10
+#          CFLAGS="-g -D_WIN32_WINNT=0x0601" CXXFLAGS="-g -D_WIN32_WINNT=0x0601" \
+#          CPPFLAGS="-I$PWD/depends/${HOST}/include" \
+#          LDFLAGS="-L$PWD/depends/${HOST}/lib" \
+#          PKG_CONFIG_PATH="$PWD/depends/${HOST}/lib/pkgconfig" \
+#          MOC="$PWD/depends/${HOST}/native/libexec/moc" \
+#          UIC="$PWD/depends/${HOST}/native/libexec/uic" \
+#          RCC="$PWD/depends/${HOST}/native/libexec/rcc" \
+#          QMAKE="$PWD/depends/${HOST}/native/bin/qmake" \
+#          LRELEASE="/usr/lib/qt6/bin/lrelease" \
+#          LUPDATE="/usr/lib/qt6/bin/lupdate" \
+#          ./configure \
+#            --prefix="$PWD/depends/${HOST}" \
+#            --host=${HOST} \
+#            --disable-tests \
+#            --disable-bench \
+#            --with-gui=qt6 \
+#            --with-qt-incdir="$PWD/depends/${HOST}/include" \
+#            --with-qt-libdir="$PWD/depends/${HOST}/lib" \
+#            --enable-wallet \
+#            --with-incompatible-bdb \
+#            --enable-glibc-back-compat \
+#            --disable-bench \
+#            --disable-tests
 
-      - name: Build (Windows ${HOST})
-        shell: bash
-        run: make -j"$(nproc)"
+#      - name: Build (Windows ${HOST})
+#        shell: bash
+#        run: make -j"$(nproc)"
 
-      - name: Strip Windows binaries (non-fatal) and keep debug symbols
-        shell: bash
-        run: |
-          shopt -s nullglob
-          bins=(src/*.exe src/qt/*.exe)
-          for b in "${bins[@]}"; do
-            if [[ -f "$b" ]]; then
-              echo "Processing $b"
-              if command -v ${HOST}-objcopy >/dev/null 2>&1; then
-                ${HOST}-objcopy --only-keep-debug "$b" "$b".debug || true
-              fi
-              if command -v ${HOST}-strip >/dev/null 2>&1; then
-                ${HOST}-strip --strip-unneeded "$b" || true
-              fi
-              if command -v ${HOST}-objcopy >/dev/null 2>&1; then
-                ${HOST}-objcopy --add-gnu-debuglink="$b".debug "$b" || true
-              fi
-            fi
-          done
+#      - name: Strip Windows binaries (non-fatal) and keep debug symbols
+#        shell: bash
+#        run: |
+#          shopt -s nullglob
+#          bins=(src/*.exe src/qt/*.exe)
+#          for b in "${bins[@]}"; do
+#            if [[ -f "$b" ]]; then
+#              echo "Processing $b"
+#              if command -v ${HOST}-objcopy >/dev/null 2>&1; then
+#                ${HOST}-objcopy --only-keep-debug "$b" "$b".debug || true
+#              fi
+#              if command -v ${HOST}-strip >/dev/null 2>&1; then
+#                ${HOST}-strip --strip-unneeded "$b" || true
+#              fi
+#              if command -v ${HOST}-objcopy >/dev/null 2>&1; then
+#                ${HOST}-objcopy --add-gnu-debuglink="$b".debug "$b" || true
+#              fi
+#            fi
+#          done
 
-      - name: List built Windows binaries
-        shell: bash
-        run: |
-          ls -lah src || true
-          ls -lah src/qt || true
+#      - name: List built Windows binaries
+#        shell: bash
+#        run: |
+#          ls -lah src || true
+#          ls -lah src/qt || true
 
-      - name: Upload Windows artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: cascoin-windows-${{ env.HOST }}-build
-          path: |
-            src/*.exe
-            src/qt/*.exe
-          if-no-files-found: warn
+#      - name: Upload Windows artifacts
+#        if: always()
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: cascoin-windows-${{ env.HOST }}-build
+#          path: |
+#            src/*.exe
+#            src/qt/*.exe
+#          if-no-files-found: warn
 
-      - name: Upload Windows debug symbols
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: cascoin-windows-${{ env.HOST }}-debug
-          path: |
-            src/*.exe.debug
-            src/qt/*.exe.debug
-          if-no-files-found: ignore
+#      - name: Upload Windows debug symbols
+#        if: always()
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: cascoin-windows-${{ env.HOST }}-debug
+#          path: |
+#            src/*.exe.debug
+#            src/qt/*.exe.debug
+#          if-no-files-found: ignore
 
