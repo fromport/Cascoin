@@ -215,10 +215,10 @@ bool CheckTransaction(const CTransaction& tx, CValidationState &state, bool fChe
             // Soft Fork: Only validate if we have NFT support enabled
             // Old nodes will see this as standard OP_RETURN and accept it
             
-            // Check for NFT token magic bytes "BEETOK" instead of opcode
+            // Check for NFT token magic bytes "CASTOK" instead of opcode
             if (txout.scriptPubKey.size() >= 8) {
                 std::vector<unsigned char> magicBytes(txout.scriptPubKey.begin() + 1, txout.scriptPubKey.begin() + 7);
-                std::vector<unsigned char> expectedMagic = {'B', 'E', 'E', 'T', 'O', 'K'};
+                std::vector<unsigned char> expectedMagic = {'C', 'A', 'S', 'T', 'O', 'K'};
                 if (magicBytes == expectedMagic) {
                     hasNFTTokens = true;
                     
@@ -233,10 +233,10 @@ bool CheckTransaction(const CTransaction& tx, CValidationState &state, bool fChe
                 }
             }
             
-            // Check for NFT transfer magic bytes "BEEXFR" instead of opcode
+            // Check for NFT transfer magic bytes "CASXFR" instead of opcode
             if (txout.scriptPubKey.size() >= 8) {
                 std::vector<unsigned char> transferMagic(txout.scriptPubKey.begin() + 1, txout.scriptPubKey.begin() + 7);
-                std::vector<unsigned char> expectedTransfer = {'B', 'E', 'E', 'X', 'F', 'R'};
+                std::vector<unsigned char> expectedTransfer = {'C', 'A', 'S', 'X', 'F', 'R'};
                 if (transferMagic == expectedTransfer) {
                     hasNFTTransfers = true;
                     

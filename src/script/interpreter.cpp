@@ -1047,24 +1047,8 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                 }
                 break;
 
-                // Cascoin: Mice NFT System opcodes
-                case OP_BEE_TOKEN:
-                {
-                    // OP_BEE_TOKEN validates NFT token creation in OP_RETURN outputs
-                    // This is a consensus-valid opcode that always succeeds when executed
-                    // The actual validation is done in CheckTransaction
-                    stack.push_back(vchTrue);
-                }
-                break;
-
-                case OP_BEE_TRANSFER:
-                {
-                    // OP_BEE_TRANSFER validates NFT transfer in OP_RETURN outputs
-                    // This is a consensus-valid opcode that always succeeds when executed
-                    // The actual validation is done in CheckTransaction
-                    stack.push_back(vchTrue);
-                }
-                break;
+                // Cascoin: Mice NFT System - REMOVED opcodes for true soft fork compatibility
+                // NFT validation now uses magic bytes in OP_RETURN data instead of opcodes
 
                 default:
                     return set_error(serror, SCRIPT_ERR_BAD_OPCODE);

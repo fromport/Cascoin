@@ -18,15 +18,19 @@ bool IsValidBeeNFTTokenTransaction(const CTransaction& tx, std::string& error) {
     bool foundBeeToken = false;
     
     for (const CTxOut& txout : tx.vout) {
-        if (txout.scriptPubKey.size() >= 2 && 
-            txout.scriptPubKey[0] == OP_RETURN && 
-            txout.scriptPubKey[1] == OP_BEE_TOKEN) {
-            foundBeeToken = true;
-            
-            // Validate OP_RETURN data size
-            if (txout.scriptPubKey.size() > BEE_NFT_MAX_DATA_SIZE + 2) {
-                error = "Bee NFT token data exceeds maximum size";
-                return false;
+        // Check for NFT token magic bytes "BEETOK" instead of opcode
+        if (txout.scriptPubKey.size() >= 8 && 
+            txout.scriptPubKey[0] == OP_RETURN) {
+            std::vector<unsigned char> magicBytes(txout.scriptPubKey.begin() + 1, txout.scriptPubKey.begin() + 7);
+            std::vector<unsigned char> expectedMagic = {'C', 'A', 'S', 'T', 'O', 'K'};
+            if (magicBytes == expectedMagic) {
+                foundBeeToken = true;
+                
+                // Validate OP_RETURN data size (magic bytes + data)
+                if (txout.scriptPubKey.size() > BEE_NFT_MAX_DATA_SIZE + 7) {
+                    error = "Bee NFT token data exceeds maximum size";
+                    return false;
+                }
             }
             
             // Parse and validate token data
@@ -84,15 +88,19 @@ bool IsValidBeeNFTTransferTransaction(const CTransaction& tx, std::string& error
     bool foundBeeTransfer = false;
     
     for (const CTxOut& txout : tx.vout) {
-        if (txout.scriptPubKey.size() >= 2 && 
-            txout.scriptPubKey[0] == OP_RETURN && 
-            txout.scriptPubKey[1] == OP_BEE_TRANSFER) {
-            foundBeeTransfer = true;
-            
-            // Validate OP_RETURN data size
-            if (txout.scriptPubKey.size() > BEE_NFT_MAX_DATA_SIZE + 2) {
-                error = "Bee NFT transfer data exceeds maximum size";
-                return false;
+        // Check for NFT transfer magic bytes "BEEXFR" instead of opcode
+        if (txout.scriptPubKey.size() >= 8 && 
+            txout.scriptPubKey[0] == OP_RETURN) {
+            std::vector<unsigned char> transferMagic(txout.scriptPubKey.begin() + 1, txout.scriptPubKey.begin() + 7);
+            std::vector<unsigned char> expectedTransfer = {'C', 'A', 'S', 'X', 'F', 'R'};
+            if (transferMagic == expectedTransfer) {
+                foundBeeTransfer = true;
+                
+                // Validate OP_RETURN data size (magic bytes + data)
+                if (txout.scriptPubKey.size() > BEE_NFT_MAX_DATA_SIZE + 7) {
+                    error = "Bee NFT transfer data exceeds maximum size";
+                    return false;
+                }
             }
             
             // Parse and validate transfer data
@@ -153,28 +161,32 @@ bool ParseBeeNFTTokenTransaction(const CTransaction& tx, std::vector<BeeNFTToken
     tokens.clear();
     
     for (const CTxOut& txout : tx.vout) {
-        if (txout.scriptPubKey.size() >= 2 && 
-            txout.scriptPubKey[0] == OP_RETURN && 
-            txout.scriptPubKey[1] == OP_BEE_TOKEN) {
+        // Check for NFT token magic bytes "BEETOK" instead of opcode
+        if (txout.scriptPubKey.size() >= 8 && 
+            txout.scriptPubKey[0] == OP_RETURN) {
+            std::vector<unsigned char> magicBytes(txout.scriptPubKey.begin() + 1, txout.scriptPubKey.begin() + 7);
+            std::vector<unsigned char> expectedMagic = {'C', 'A', 'S', 'T', 'O', 'K'};
+            if (magicBytes == expectedMagic) {
             
-            // Extract data after OP_RETURN OP_BEE_TOKEN
-            if (txout.scriptPubKey.size() < 4) {
-                error = "Bee NFT token data too short";
-                return false;
+                // Extract data after OP_RETURN + magic bytes
+                if (txout.scriptPubKey.size() < 9) {
+                    error = "Bee NFT token data too short";
+                    return false;
+                }
             }
             
-            // Get data length
-            unsigned char dataLen = txout.scriptPubKey[2];
-            if (static_cast<size_t>(dataLen + 3) > txout.scriptPubKey.size()) {
-                error = "Invalid bee NFT token data length";
-                return false;
-            }
-            
-            // Extract raw data
-            std::vector<unsigned char> rawData(
-                txout.scriptPubKey.begin() + 3,
-                txout.scriptPubKey.begin() + 3 + dataLen
-            );
+                // Get data length (after magic bytes)
+                unsigned char dataLen = txout.scriptPubKey[7];
+                if (static_cast<size_t>(dataLen + 8) > txout.scriptPubKey.size()) {
+                    error = "Invalid bee NFT token data length";
+                    return false;
+                }
+                
+                // Extract raw data (after magic bytes + length)
+                std::vector<unsigned char> rawData(
+                    txout.scriptPubKey.begin() + 8,
+                    txout.scriptPubKey.begin() + 8 + dataLen
+                );
             
             // Parse token data (simplified format for MVP)
             if (rawData.size() < 32 + 4 + 4 + 4 + 4) { // BCT hash + 4 x uint32
@@ -211,64 +223,68 @@ bool ParseBeeNFTTransferTransaction(const CTransaction& tx, std::vector<BeeNFTTr
     transfers.clear();
     
     for (const CTxOut& txout : tx.vout) {
-        if (txout.scriptPubKey.size() >= 2 && 
-            txout.scriptPubKey[0] == OP_RETURN && 
-            txout.scriptPubKey[1] == OP_BEE_TRANSFER) {
+        // Check for NFT transfer magic bytes "BEEXFR" instead of opcode
+        if (txout.scriptPubKey.size() >= 8 && 
+            txout.scriptPubKey[0] == OP_RETURN) {
+            std::vector<unsigned char> transferMagic(txout.scriptPubKey.begin() + 1, txout.scriptPubKey.begin() + 7);
+            std::vector<unsigned char> expectedTransfer = {'C', 'A', 'S', 'X', 'F', 'R'};
+            if (transferMagic == expectedTransfer) {
             
-            // Extract data after OP_RETURN OP_BEE_TRANSFER
-            if (txout.scriptPubKey.size() < 4) {
-                error = "Bee NFT transfer data too short";
-                return false;
-            }
-            
-            // Get data length
-            unsigned char dataLen = txout.scriptPubKey[2];
-            if (static_cast<size_t>(dataLen + 3) > txout.scriptPubKey.size()) {
-                error = "Invalid bee NFT transfer data length";
-                return false;
-            }
-            
-            // Extract raw data
-            std::vector<unsigned char> rawData(
-                txout.scriptPubKey.begin() + 3,
-                txout.scriptPubKey.begin() + 3 + dataLen
-            );
-            
-            // Parse transfer data
-            if (rawData.size() < 32 + 4 + 32 + 8) { // Bee NFT ID + height + tx ID + fee
-                error = "Bee NFT transfer data too short for required fields";
-                return false;
-            }
-            
-            BeeNFTTransfer transfer;
-            
-            // Parse bee NFT ID (32 bytes)
-            std::copy(rawData.begin(), rawData.begin() + 32, transfer.beeNFTId.begin());
-            
-            // Parse transfer height (4 bytes)
-            transfer.transferHeight = ReadLE32(&rawData[32]);
-            
-            // Parse transfer tx ID (32 bytes)
-            std::copy(rawData.begin() + 36, rawData.begin() + 68, transfer.transferTxId.begin());
-            
-            // Parse transfer fee (8 bytes)
-            transfer.transferFee = ReadLE64(&rawData[68]);
-            
-            // Parse addresses (remaining bytes, split by null terminator)
-            if (rawData.size() > 76) {
-                std::string addresses(rawData.begin() + 76, rawData.end());
-                size_t nullPos = addresses.find('\0');
-                if (nullPos != std::string::npos) {
-                    transfer.fromOwner = addresses.substr(0, nullPos);
-                    transfer.toOwner = addresses.substr(nullPos + 1);
-                } else {
-                    error = "Invalid address format in transfer data";
+                // Extract data after OP_RETURN + magic bytes
+                if (txout.scriptPubKey.size() < 9) {
+                    error = "Bee NFT transfer data too short";
                     return false;
                 }
-            }
             
-            transfers.push_back(transfer);
-            break; // Only process first bee transfer output
+                // Get data length (after magic bytes)
+                unsigned char dataLen = txout.scriptPubKey[7];
+                if (static_cast<size_t>(dataLen + 8) > txout.scriptPubKey.size()) {
+                    error = "Invalid bee NFT transfer data length";
+                    return false;
+                }
+                
+                // Extract raw data (after magic bytes + length)
+                std::vector<unsigned char> rawData(
+                    txout.scriptPubKey.begin() + 8,
+                    txout.scriptPubKey.begin() + 8 + dataLen
+                );
+            
+                // Parse transfer data
+                if (rawData.size() < 32 + 4 + 32 + 8) { // Bee NFT ID + height + tx ID + fee
+                    error = "Bee NFT transfer data too short for required fields";
+                    return false;
+                }
+                
+                BeeNFTTransfer transfer;
+                
+                // Parse bee NFT ID (32 bytes)
+                std::copy(rawData.begin(), rawData.begin() + 32, transfer.beeNFTId.begin());
+                
+                // Parse transfer height (4 bytes)
+                transfer.transferHeight = ReadLE32(&rawData[32]);
+                
+                // Parse transfer tx ID (32 bytes)
+                std::copy(rawData.begin() + 36, rawData.begin() + 68, transfer.transferTxId.begin());
+                
+                // Parse transfer fee (8 bytes)
+                transfer.transferFee = ReadLE64(&rawData[68]);
+                
+                // Parse addresses (remaining bytes, split by null terminator)
+                if (rawData.size() > 76) {
+                    std::string addresses(rawData.begin() + 76, rawData.end());
+                    size_t nullPos = addresses.find('\0');
+                    if (nullPos != std::string::npos) {
+                        transfer.fromOwner = addresses.substr(0, nullPos);
+                        transfer.toOwner = addresses.substr(nullPos + 1);
+                    } else {
+                        error = "Invalid address format in transfer data";
+                        return false;
+                    }
+                }
+                
+                transfers.push_back(transfer);
+                break; // Only process first bee transfer output
+            }
         }
     }
     
@@ -404,7 +420,7 @@ CScript CreateBeeNFTTokenScript(const std::vector<BeeNFTToken>& tokens) {
     std::vector<unsigned char> tokenData = SerializeBeeNFTToken(token);
     
     // Soft Fork: Use magic bytes instead of new opcodes for old node compatibility
-    std::vector<unsigned char> nftMagic = {'B', 'E', 'E', 'T', 'O', 'K'};  // "BEETOK"
+    std::vector<unsigned char> nftMagic = {'C', 'A', 'S', 'T', 'O', 'K'};  // "CASTOK"
     script << OP_RETURN << nftMagic << tokenData;
     
     return script;
@@ -423,7 +439,7 @@ CScript CreateBeeNFTTransferScript(const std::vector<BeeNFTTransfer>& transfers)
     std::vector<unsigned char> transferData = SerializeBeeNFTTransfer(transfer);
     
     // Soft Fork: Use magic bytes instead of new opcodes for old node compatibility  
-    std::vector<unsigned char> transferMagic = {'B', 'E', 'E', 'X', 'F', 'R'};  // "BEEXFR"
+    std::vector<unsigned char> transferMagic = {'C', 'A', 'S', 'X', 'F', 'R'};  // "CASXFR"
     script << OP_RETURN << transferMagic << transferData;
     
     return script;

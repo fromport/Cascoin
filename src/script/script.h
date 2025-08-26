@@ -187,9 +187,9 @@ enum opcodetype
     // Cascoin: Rialto
     OP_NICK_CREATE = 0xbf,
 
-    // Cascoin: Bee NFT System
-    OP_BEE_TOKEN = 0xc0,        // Tokenize individual bees from BCT
-    OP_BEE_TRANSFER = 0xc1,     // Transfer bee NFTs to new owner
+    // Cascoin: Bee NFT System - REMOVED opcodes for true soft fork compatibility
+    // 0xc0 and 0xc1 are now undefined opcodes - old nodes will reject them
+    // NFT system now uses magic bytes in OP_RETURN data instead
 
     // template matching params
     OP_SMALLINTEGER = 0xfa,
@@ -201,7 +201,7 @@ enum opcodetype
 };
 
 // Maximum value that an opcode can be
-static const unsigned int MAX_OPCODE = OP_BEE_TRANSFER;  // Cascoin: Bee NFT System
+static const unsigned int MAX_OPCODE = OP_NICK_CREATE;  // Cascoin: Rialto
 
 const char* GetOpName(opcodetype opcode);
 
