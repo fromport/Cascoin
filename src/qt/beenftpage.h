@@ -50,6 +50,7 @@ private Q_SLOTS:
     void loadAvailableMice();
     void loadAvailableMiceFromWallet();
     void loadSampleBCTData();
+    void updateBeeNFTCombo();
 
 private:
     WalletModel *walletModel;
@@ -85,7 +86,6 @@ private:
     QPushButton *transferButton;
     
     void setupUI();
-    void updateBeeNFTCombo();
     void showMouseSelectionDialog(const QString& bctId, const QString& ownerAddress);
     void executeTokenization(const QString& bctId, int mouseIndex, const QString& ownerAddress);
     void executeTokenizationBatch(const QString& bctId, int quantity, const QString& ownerAddress);

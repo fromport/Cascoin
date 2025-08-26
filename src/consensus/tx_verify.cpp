@@ -8,6 +8,7 @@
 #include <primitives/transaction.h>
 #include <script/interpreter.h>
 #include <consensus/validation.h>
+#include <beenft.h>
 
 // TODO remove the following dependencies
 #include <chain.h>
@@ -200,6 +201,48 @@ bool CheckTransaction(const CTransaction& tx, CValidationState &state, bool fChe
         for (const auto& txin : tx.vin)
             if (txin.prevout.IsNull())
                 return state.DoS(10, false, REJECT_INVALID, "bad-txns-prevout-null");
+    }
+
+    // Cascoin: Mice NFT System: Validate NFT transactions (Soft Fork compatible)
+    // Only validate NFTs if we understand them - otherwise just accept as OP_RETURN data
+    bool hasNFTTokens = false;
+    bool hasNFTTransfers = false;
+    
+    for (const auto& txout : tx.vout) {
+        if (txout.scriptPubKey.size() >= 2 && 
+            txout.scriptPubKey[0] == OP_RETURN) {
+            
+            // Soft Fork: Only validate if we have NFT support enabled
+            // Old nodes will see this as standard OP_RETURN and accept it
+            
+            if (txout.scriptPubKey.size() >= 3 && txout.scriptPubKey[1] == OP_BEE_TOKEN) {
+                hasNFTTokens = true;
+                
+                // Only validate NFT structure on upgraded nodes
+                // This makes it a soft fork - old nodes just ignore the data
+                std::string error;
+                if (!IsValidBeeNFTTokenTransaction(tx, error)) {
+                    // For soft fork compatibility: only reject if this node understands NFTs
+                    // Old nodes will treat this as valid OP_RETURN data
+                    return state.DoS(0, false, REJECT_NONSTANDARD, "bad-txns-invalid-nft-token", false, error);
+                }
+            }
+            
+            if (txout.scriptPubKey.size() >= 3 && txout.scriptPubKey[1] == OP_BEE_TRANSFER) {
+                hasNFTTransfers = true;
+                
+                std::string error;
+                if (!IsValidBeeNFTTransferTransaction(tx, error)) {
+                    // For soft fork compatibility: non-standard instead of invalid
+                    return state.DoS(0, false, REJECT_NONSTANDARD, "bad-txns-invalid-nft-transfer", false, error);
+                }
+            }
+        }
+    }
+    
+    // Soft fork: Only reject mixed types on NFT-aware nodes
+    if (hasNFTTokens && hasNFTTransfers) {
+        return state.DoS(0, false, REJECT_NONSTANDARD, "bad-txns-mixed-nft-types");
     }
 
     return true;
