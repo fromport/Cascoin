@@ -154,10 +154,32 @@ jobs:
           echo "Copying Qt6 libraries..."
           find /usr/lib/x86_64-linux-gnu -name "libQt6*.so*" -exec cp {} "$LIB_DIR/" \; 2>/dev/null || true
           
-          # Copy Qt6 plugins
+          # Copy only essential Qt6 plugins (not all plugins to reduce package size)
+          echo "Copying essential Qt6 plugins..."
           if [[ -d /usr/lib/x86_64-linux-gnu/qt6/plugins ]]; then
-            echo "Copying Qt6 plugins..."
-            cp -r /usr/lib/x86_64-linux-gnu/qt6/plugins/* "$DIST_DIR"/usr/lib/qt6/plugins/ 2>/dev/null || true
+            # Essential platform plugins
+            mkdir -p "$DIST_DIR"/usr/lib/qt6/plugins/platforms
+            cp /usr/lib/x86_64-linux-gnu/qt6/plugins/platforms/libqxcb.so "$DIST_DIR"/usr/lib/qt6/plugins/platforms/ 2>/dev/null || true
+            cp /usr/lib/x86_64-linux-gnu/qt6/plugins/platforms/libqwayland*.so "$DIST_DIR"/usr/lib/qt6/plugins/platforms/ 2>/dev/null || true
+            cp /usr/lib/x86_64-linux-gnu/qt6/plugins/platforms/libqminimal.so "$DIST_DIR"/usr/lib/qt6/plugins/platforms/ 2>/dev/null || true
+            
+            # Essential image format plugins
+            mkdir -p "$DIST_DIR"/usr/lib/qt6/plugins/imageformats
+            cp /usr/lib/x86_64-linux-gnu/qt6/plugins/imageformats/libqjpeg.so "$DIST_DIR"/usr/lib/qt6/plugins/imageformats/ 2>/dev/null || true
+            cp /usr/lib/x86_64-linux-gnu/qt6/plugins/imageformats/libqpng.so "$DIST_DIR"/usr/lib/qt6/plugins/imageformats/ 2>/dev/null || true
+            cp /usr/lib/x86_64-linux-gnu/qt6/plugins/imageformats/libqsvg.so "$DIST_DIR"/usr/lib/qt6/plugins/imageformats/ 2>/dev/null || true
+            cp /usr/lib/x86_64-linux-gnu/qt6/plugins/imageformats/libqico.so "$DIST_DIR"/usr/lib/qt6/plugins/imageformats/ 2>/dev/null || true
+            
+            # Icon engine plugins
+            mkdir -p "$DIST_DIR"/usr/lib/qt6/plugins/iconengines
+            cp /usr/lib/x86_64-linux-gnu/qt6/plugins/iconengines/libqsvgicon.so "$DIST_DIR"/usr/lib/qt6/plugins/iconengines/ 2>/dev/null || true
+            
+            # Platform theme plugins (for system integration)
+            mkdir -p "$DIST_DIR"/usr/lib/qt6/plugins/platformthemes
+            cp /usr/lib/x86_64-linux-gnu/qt6/plugins/platformthemes/libqgtk3.so "$DIST_DIR"/usr/lib/qt6/plugins/platformthemes/ 2>/dev/null || true
+            cp /usr/lib/x86_64-linux-gnu/qt6/plugins/platformthemes/libqxdgdesktopportal.so "$DIST_DIR"/usr/lib/qt6/plugins/platformthemes/ 2>/dev/null || true
+            
+            echo "  Copied essential Qt6 plugins (platforms, imageformats, iconengines, platformthemes)"
           fi
           
           # Copy only essential versioned libraries that Cascoin specifically needs
@@ -346,8 +368,14 @@ jobs:
           
           echo ""
           echo "Distribution package created:"
-          find "$DIST_DIR" -type f | head -20
-          echo "... ($(find "$DIST_DIR" -type f | wc -l) total files)"
+          echo "File structure:"
+          find "$DIST_DIR" -type d | sort | head -10
+          echo ""
+          echo "Sample files:"
+          find "$DIST_DIR" -type f | head -15
+          echo ""
+          total_files=$(find "$DIST_DIR" -type f 2>/dev/null | wc -l)
+          echo "Total files: $total_files"
           
           # Get version and create package
           VERSION=$(git describe --tags --always --dirty 2>/dev/null || echo "latest")

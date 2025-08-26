@@ -107,8 +107,28 @@ echo "Copying Qt6 libraries..."
 find /usr/lib/x86_64-linux-gnu -name "libQt6*.so*" -exec cp {} "$LIB_DIR/" \; 2>/dev/null || true
 
 if [[ -d /usr/lib/x86_64-linux-gnu/qt6/plugins ]]; then
-    echo "Copying Qt6 plugins..."
-    cp -r /usr/lib/x86_64-linux-gnu/qt6/plugins/* "$DIST_DIR/usr/lib/qt6/plugins/" 2>/dev/null || true
+    echo "Copying essential Qt6 plugins..."
+    # Essential platform plugins
+    mkdir -p "$DIST_DIR/usr/lib/qt6/plugins/platforms"
+    cp /usr/lib/x86_64-linux-gnu/qt6/plugins/platforms/libqxcb.so "$DIST_DIR/usr/lib/qt6/plugins/platforms/" 2>/dev/null || true
+    cp /usr/lib/x86_64-linux-gnu/qt6/plugins/platforms/libqwayland*.so "$DIST_DIR/usr/lib/qt6/plugins/platforms/" 2>/dev/null || true
+    cp /usr/lib/x86_64-linux-gnu/qt6/plugins/platforms/libqminimal.so "$DIST_DIR/usr/lib/qt6/plugins/platforms/" 2>/dev/null || true
+    
+    # Essential image format plugins
+    mkdir -p "$DIST_DIR/usr/lib/qt6/plugins/imageformats"
+    cp /usr/lib/x86_64-linux-gnu/qt6/plugins/imageformats/libqjpeg.so "$DIST_DIR/usr/lib/qt6/plugins/imageformats/" 2>/dev/null || true
+    cp /usr/lib/x86_64-linux-gnu/qt6/plugins/imageformats/libqpng.so "$DIST_DIR/usr/lib/qt6/plugins/imageformats/" 2>/dev/null || true
+    cp /usr/lib/x86_64-linux-gnu/qt6/plugins/imageformats/libqsvg.so "$DIST_DIR/usr/lib/qt6/plugins/imageformats/" 2>/dev/null || true
+    cp /usr/lib/x86_64-linux-gnu/qt6/plugins/imageformats/libqico.so "$DIST_DIR/usr/lib/qt6/plugins/imageformats/" 2>/dev/null || true
+    
+    # Icon engine plugins
+    mkdir -p "$DIST_DIR/usr/lib/qt6/plugins/iconengines"
+    cp /usr/lib/x86_64-linux-gnu/qt6/plugins/iconengines/libqsvgicon.so "$DIST_DIR/usr/lib/qt6/plugins/iconengines/" 2>/dev/null || true
+    
+    # Platform theme plugins
+    mkdir -p "$DIST_DIR/usr/lib/qt6/plugins/platformthemes"
+    cp /usr/lib/x86_64-linux-gnu/qt6/plugins/platformthemes/libqgtk3.so "$DIST_DIR/usr/lib/qt6/plugins/platformthemes/" 2>/dev/null || true
+    cp /usr/lib/x86_64-linux-gnu/qt6/plugins/platformthemes/libqxdgdesktopportal.so "$DIST_DIR/usr/lib/qt6/plugins/platformthemes/" 2>/dev/null || true
 fi
 
 # Create wrapper scripts
