@@ -403,7 +403,9 @@ CScript CreateBeeNFTTokenScript(const std::vector<BeeNFTToken>& tokens) {
     const BeeNFTToken& token = tokens[0];
     std::vector<unsigned char> tokenData = SerializeBeeNFTToken(token);
     
-    script << OP_RETURN << OP_BEE_TOKEN << tokenData;
+    // Soft Fork: Use magic bytes instead of new opcodes for old node compatibility
+    std::vector<unsigned char> nftMagic = {'B', 'E', 'E', 'T', 'O', 'K'};  // "BEETOK"
+    script << OP_RETURN << nftMagic << tokenData;
     
     return script;
 }
@@ -420,7 +422,9 @@ CScript CreateBeeNFTTransferScript(const std::vector<BeeNFTTransfer>& transfers)
     const BeeNFTTransfer& transfer = transfers[0];
     std::vector<unsigned char> transferData = SerializeBeeNFTTransfer(transfer);
     
-    script << OP_RETURN << OP_BEE_TRANSFER << transferData;
+    // Soft Fork: Use magic bytes instead of new opcodes for old node compatibility  
+    std::vector<unsigned char> transferMagic = {'B', 'E', 'E', 'X', 'F', 'R'};  // "BEEXFR"
+    script << OP_RETURN << transferMagic << transferData;
     
     return script;
 }

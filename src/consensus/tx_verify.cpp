@@ -215,26 +215,36 @@ bool CheckTransaction(const CTransaction& tx, CValidationState &state, bool fChe
             // Soft Fork: Only validate if we have NFT support enabled
             // Old nodes will see this as standard OP_RETURN and accept it
             
-            if (txout.scriptPubKey.size() >= 3 && txout.scriptPubKey[1] == OP_BEE_TOKEN) {
-                hasNFTTokens = true;
-                
-                // Only validate NFT structure on upgraded nodes
-                // This makes it a soft fork - old nodes just ignore the data
-                std::string error;
-                if (!IsValidBeeNFTTokenTransaction(tx, error)) {
-                    // For soft fork compatibility: only reject if this node understands NFTs
-                    // Old nodes will treat this as valid OP_RETURN data
-                    return state.DoS(0, false, REJECT_NONSTANDARD, "bad-txns-invalid-nft-token", false, error);
+            // Check for NFT token magic bytes "BEETOK" instead of opcode
+            if (txout.scriptPubKey.size() >= 8) {
+                std::vector<unsigned char> magicBytes(txout.scriptPubKey.begin() + 1, txout.scriptPubKey.begin() + 7);
+                std::vector<unsigned char> expectedMagic = {'B', 'E', 'E', 'T', 'O', 'K'};
+                if (magicBytes == expectedMagic) {
+                    hasNFTTokens = true;
+                    
+                    // Only validate NFT structure on upgraded nodes
+                    // This makes it a soft fork - old nodes just ignore the data
+                    std::string error;
+                    if (!IsValidBeeNFTTokenTransaction(tx, error)) {
+                        // For soft fork compatibility: only reject if this node understands NFTs
+                        // Old nodes will treat this as valid OP_RETURN data
+                        return state.DoS(0, false, REJECT_NONSTANDARD, "bad-txns-invalid-nft-token", false, error);
+                    }
                 }
             }
             
-            if (txout.scriptPubKey.size() >= 3 && txout.scriptPubKey[1] == OP_BEE_TRANSFER) {
-                hasNFTTransfers = true;
-                
-                std::string error;
-                if (!IsValidBeeNFTTransferTransaction(tx, error)) {
-                    // For soft fork compatibility: non-standard instead of invalid
-                    return state.DoS(0, false, REJECT_NONSTANDARD, "bad-txns-invalid-nft-transfer", false, error);
+            // Check for NFT transfer magic bytes "BEEXFR" instead of opcode
+            if (txout.scriptPubKey.size() >= 8) {
+                std::vector<unsigned char> transferMagic(txout.scriptPubKey.begin() + 1, txout.scriptPubKey.begin() + 7);
+                std::vector<unsigned char> expectedTransfer = {'B', 'E', 'E', 'X', 'F', 'R'};
+                if (transferMagic == expectedTransfer) {
+                    hasNFTTransfers = true;
+                    
+                    std::string error;
+                    if (!IsValidBeeNFTTransferTransaction(tx, error)) {
+                        // For soft fork compatibility: non-standard instead of invalid
+                        return state.DoS(0, false, REJECT_NONSTANDARD, "bad-txns-invalid-nft-transfer", false, error);
+                    }
                 }
             }
         }
