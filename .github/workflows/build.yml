@@ -198,7 +198,7 @@ jobs:
           export CONFIG_SITE="$PWD/depends/${HOST}/share/config.site"
           echo "Using Qt tools from depends:"
           ls -la "$PWD/depends/${HOST}/native/libexec/" | head -10
-          CFLAGS="-g" CXXFLAGS="-g" \
+          CFLAGS="-g -D_WIN32_WINNT=0x0601" CXXFLAGS="-g -D_WIN32_WINNT=0x0601" \
           CPPFLAGS="-I$PWD/depends/${HOST}/include" \
           LDFLAGS="-L$PWD/depends/${HOST}/lib" \
           PKG_CONFIG_PATH="$PWD/depends/${HOST}/lib/pkgconfig" \
@@ -217,7 +217,10 @@ jobs:
             --with-qt-incdir="$PWD/depends/${HOST}/include" \
             --with-qt-libdir="$PWD/depends/${HOST}/lib" \
             --enable-wallet \
-            --with-incompatible-bdb
+            --with-incompatible-bdb \
+            --enable-glibc-back-compat \
+            --disable-bench \
+            --disable-tests
 
       - name: Build (Windows ${HOST})
         shell: bash
