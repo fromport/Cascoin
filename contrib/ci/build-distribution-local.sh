@@ -67,9 +67,7 @@ echo "Creating distribution in $DIST_DIR..."
 rm -rf "$DIST_DIR"
 mkdir -p "$DIST_DIR/bin"
 mkdir -p "$DIST_DIR/lib"
-mkdir -p "$DIST_DIR/share/applications"
-mkdir -p "$DIST_DIR/share/pixmaps"
-mkdir -p "$DIST_DIR/usr/lib/qt6/plugins"
+
 
 # Copy binaries
 echo "Copying binaries..."
@@ -187,23 +185,7 @@ EOF
 
 chmod +x "$DIST_DIR/bin"/*wrapper
 
-# Create desktop entry
-cat > "$DIST_DIR/share/applications/cascoin-qt.desktop" << 'EOF'
-[Desktop Entry]
-Name=Cascoin Core
-Comment=Cascoin cryptocurrency wallet
-Icon=cascoin
-Exec=/opt/cascoin/bin/cascoin-qt-wrapper
-Terminal=false
-Type=Application
-Categories=Office;Finance;
-StartupWMClass=Cascoin-qt
-EOF
 
-# Copy icon if available
-if [[ -f share/pixmaps/bitcoin128.png ]]; then
-  cp share/pixmaps/bitcoin128.png "$DIST_DIR/share/pixmaps/cascoin.png"
-fi
 
 # Create installation scripts
 cat > "$DIST_DIR/install.sh" << 'EOF'
@@ -220,7 +202,7 @@ echo "Installing Cascoin Core Linux Distribution..."
 mkdir -p /opt/cascoin
 
 # Copy all files to /opt/cascoin
-cp -r bin lib share /opt/cascoin/
+cp -r bin lib /opt/cascoin/
 
 # Create symlinks in /usr/local/bin
 ln -sf /opt/cascoin/bin/cascoin-qt-wrapper /usr/local/bin/cascoin-qt
@@ -228,20 +210,7 @@ ln -sf /opt/cascoin/bin/cascoind-wrapper /usr/local/bin/cascoind
 ln -sf /opt/cascoin/bin/cascoin-cli /usr/local/bin/cascoin-cli
 ln -sf /opt/cascoin/bin/cascoin-tx /usr/local/bin/cascoin-tx
 
-# Install desktop entry
-if [[ -f share/applications/cascoin-qt.desktop ]]; then
-  cp share/applications/cascoin-qt.desktop /usr/share/applications/
-fi
 
-# Install icon
-if [[ -f share/pixmaps/cascoin.png ]]; then
-  cp share/pixmaps/cascoin.png /usr/share/pixmaps/
-fi
-
-# Update desktop database
-if command -v update-desktop-database >/dev/null 2>&1; then
-    update-desktop-database
-fi
 
 echo "Installation complete!"
 echo ""
