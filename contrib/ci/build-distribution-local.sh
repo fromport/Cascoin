@@ -30,15 +30,35 @@ check_package "qt6-base-dev"
 check_package "libboost-all-dev"
 check_package "libssl-dev"
 
+# Check for ccache (optional but recommended)
+if ! command -v ccache &> /dev/null; then
+    echo "ccache not found - builds will be slower (install with: sudo apt-get install ccache)"
+fi
+
 if [ ${#MISSING_DEPS[@]} -ne 0 ]; then
     echo "Missing dependencies: ${MISSING_DEPS[*]}"
     echo "Install with: sudo apt-get install ${MISSING_DEPS[*]}"
     exit 1
 fi
 
+# Setup ccache for faster builds
+if command -v ccache &> /dev/null; then
+    echo "Setting up ccache..."
+    export CCACHE_DIR=$HOME/.ccache
+    export PATH="/usr/lib/ccache:$PATH"
+    ccache --max-size=2G
+    ccache --show-stats
+fi
+
 # Build the project
 echo "Building Cascoin Core..."
 ./contrib/ci/build-linux.sh
+
+# Show cache stats if available
+if command -v ccache &> /dev/null; then
+    echo "Final ccache stats:"
+    ccache --show-stats
+fi
 
 # Create distribution directory
 DIST_DIR="cascoin-linux-distribution"

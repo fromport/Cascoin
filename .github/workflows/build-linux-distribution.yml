@@ -15,7 +15,71 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Full history for git describe
       
+    - name: Cache APT packages
+      uses: actions/cache@v4
+      with:
+        path: /var/cache/apt/archives
+        key: ${{ runner.os }}-apt-${{ hashFiles('.github/workflows/build-linux-distribution.yml') }}
+        restore-keys: |
+          ${{ runner.os }}-apt-
+          
+    - name: Cache build dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache
+          ~/Library/Caches
+          %LocalAppData%\Temp\chocolatey
+          /tmp/.buildx-cache
+        key: ${{ runner.os }}-build-deps-${{ hashFiles('configure.ac', 'Makefile.am') }}
+        restore-keys: |
+          ${{ runner.os }}-build-deps-
+          
+    - name: Cache autotools
+      uses: actions/cache@v4
+      with:
+        path: |
+          autom4te.cache
+          config.cache
+        key: ${{ runner.os }}-autotools-${{ hashFiles('configure.ac', 'autogen.sh') }}
+        restore-keys: |
+          ${{ runner.os }}-autotools-
+          
+    - name: Cache compiled objects
+      uses: actions/cache@v4
+      with:
+        path: |
+          src/**/*.o
+          src/**/*.lo
+          src/**/*.la
+          src/.libs
+          **/.deps
+        key: ${{ runner.os }}-objects-${{ hashFiles('src/**/*.cpp', 'src/**/*.h', 'configure.ac') }}
+        restore-keys: |
+          ${{ runner.os }}-objects-
+          
+    - name: Cache Qt MOC files
+      uses: actions/cache@v4
+      with:
+        path: |
+          src/qt/moc_*.cpp
+          src/qt/qrc_*.cpp
+          src/qt/ui_*.h
+        key: ${{ runner.os }}-qt-moc-${{ hashFiles('src/qt/*.h', 'src/qt/*.ui', 'src/qt/*.qrc') }}
+        restore-keys: |
+          ${{ runner.os }}-qt-moc-
+          
+    - name: Cache ccache
+      uses: actions/cache@v4
+      with:
+        path: ~/.ccache
+        key: ${{ runner.os }}-ccache-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-ccache-
+
     - name: Install build dependencies
       run: |
         sudo apt-get update
@@ -25,10 +89,17 @@ jobs:
           libprotobuf-dev protobuf-compiler \
           libevent-dev libboost-all-dev \
           libminiupnpc-dev libssl-dev libzmq3-dev libqrencode-dev \
-          libdb++-dev patchelf chrpath
+          libdb++-dev patchelf chrpath ccache
 
     - name: Build Cascoin Core
       run: |
+        # Use ccache for faster builds
+        export CCACHE_DIR=$HOME/.ccache
+        export PATH="/usr/lib/ccache:$PATH"
+        ccache --max-size=1G
+        ccache --show-stats
+        
+        # Configure and build
         ./autogen.sh
         ./configure \
           --with-gui=qt6 \
@@ -37,12 +108,34 @@ jobs:
           --enable-zmq \
           --with-incompatible-bdb \
           --prefix=/usr \
+          --enable-ccache \
           MOC=/usr/lib/qt6/libexec/moc \
           UIC=/usr/lib/qt6/libexec/uic \
           RCC=/usr/lib/qt6/libexec/rcc \
           LRELEASE=/usr/bin/lrelease \
-          LUPDATE=/usr/bin/lupdate
-        make -j$(nproc)
+          LUPDATE=/usr/bin/lupdate \
+          CPPFLAGS="-DDEBUG_LOCKORDER -DDEBUG_LOCKCONTENTION" \
+          CXXFLAGS="-O2 -g0 -pipe"
+          
+        # Build with maximum parallelism but limited to avoid OOM
+        NPROC=$(nproc)
+        if [ $NPROC -gt 4 ]; then
+          NPROC=4  # Limit to 4 cores to avoid OOM on GitHub runners
+        fi
+        
+        make -j$NPROC V=1
+        
+        # Show cache stats
+        ccache --show-stats
+
+    - name: Cache system libraries
+      uses: actions/cache@v4
+      with:
+        path: |
+          /tmp/cascoin-libs-cache
+        key: ${{ runner.os }}-libs-${{ hashFiles('/usr/lib/x86_64-linux-gnu/libQt6*.so*') }}
+        restore-keys: |
+          ${{ runner.os }}-libs-
 
     - name: Create distribution structure
       run: |
@@ -357,3 +450,19 @@ jobs:
         asset_path: ./cascoin-linux-x86_64-${{ github.event.release.tag_name }}.tar.gz
         asset_name: cascoin-linux-x86_64-${{ github.event.release.tag_name }}.tar.gz
         asset_content_type: application/gzip
+
+    - name: Cleanup and cache maintenance
+      if: always()
+      run: |
+        # Clean up large temporary files
+        rm -rf cascoin-linux-distribution/
+        
+        # Show final cache stats
+        if command -v ccache &> /dev/null; then
+          echo "Final ccache statistics:"
+          ccache --show-stats
+          ccache --cleanup
+        fi
+        
+        # Show disk usage
+        df -h

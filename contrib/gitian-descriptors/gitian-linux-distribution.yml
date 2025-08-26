@@ -1,0 +1,246 @@
+---
+name: "cascoin-linux-distribution-3.1"
+enable_cache: true
+suites:
+- "jammy"  # Ubuntu 22.04 LTS
+architectures:
+- "amd64"
+packages:
+- "build-essential"
+- "autoconf"
+- "automake"
+- "libtool"
+- "pkg-config"
+- "qt6-base-dev"
+- "qt6-base-dev-tools"
+- "qt6-tools-dev-tools"
+- "libprotobuf-dev"
+- "protobuf-compiler"
+- "libevent-dev"
+- "libboost-all-dev"
+- "libminiupnpc-dev"
+- "libssl-dev"
+- "libzmq3-dev"
+- "libqrencode-dev"
+- "libdb++-dev"
+- "patchelf"
+- "chrpath"
+- "curl"
+- "git"
+- "ca-certificates"
+- "python3"
+- "faketime"
+- "bsdmainutils"
+
+remotes:
+- "url": "https://github.com/cascoin-project/cascoin.git"
+  "dir": "cascoin"
+
+files: []
+
+script: |
+  
+  WRAP_DIR=$HOME/wrapped
+  HOSTS="x86_64-linux-gnu"
+  FAKETIME_PROGS="date ar ranlib nm"
+  
+  export QT_RCC_TEST=1
+  export GZIP="-9n"
+  export TAR_OPTIONS="--mtime="$REFERENCE_DATE\\\ $REFERENCE_TIME""
+  export TZ="UTC"
+  export BUILD_DIR=`pwd`
+  mkdir -p ${WRAP_DIR}
+  
+  function create_global_faketime_wrappers {
+    for prog in ${FAKETIME_PROGS}; do
+      echo '#!/bin/bash' > ${WRAP_DIR}/${prog}
+      echo "REAL=\`which -a ${prog} | grep -v ${WRAP_DIR}/${prog} | head -1\`" >> ${WRAP_DIR}/${prog}
+      echo 'export LD_PRELOAD=/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1' >> ${WRAP_DIR}/${prog}
+      echo "export FAKETIME=\"$1\"" >> ${WRAP_DIR}/${prog}
+      echo "\$REAL \$@" >> $WRAP_DIR/${prog}
+      chmod +x ${WRAP_DIR}/${prog}
+    done
+  }
+  
+  # Faketime for build reproducibility
+  export PATH_orig=${PATH}
+  create_global_faketime_wrappers "${REFERENCE_DATETIME}"
+  export PATH=${WRAP_DIR}:${PATH}
+  
+  cd cascoin
+  
+  # Build Cascoin Core with system libraries
+  ./autogen.sh
+  ./configure \
+    --with-gui=qt6 \
+    --enable-wallet \
+    --with-qrencode \
+    --enable-zmq \
+    --with-incompatible-bdb \
+    --prefix=/usr \
+    --enable-reduce-exports \
+    --disable-tests \
+    --disable-bench \
+    MOC=/usr/lib/qt6/libexec/moc \
+    UIC=/usr/lib/qt6/libexec/uic \
+    RCC=/usr/lib/qt6/libexec/rcc \
+    LRELEASE=/usr/bin/lrelease \
+    LUPDATE=/usr/bin/lupdate
+    
+  make -j$(nproc)
+  
+  # Create distribution structure
+  DIST_DIR="cascoin-linux-distribution"
+  mkdir -p ${DIST_DIR}/usr/bin
+  mkdir -p ${DIST_DIR}/usr/lib/x86_64-linux-gnu
+  mkdir -p ${DIST_DIR}/usr/share/applications
+  mkdir -p ${DIST_DIR}/usr/share/pixmaps
+  mkdir -p ${DIST_DIR}/usr/lib/qt6/plugins
+  
+  # Copy binaries and strip them
+  cp src/qt/cascoin-qt ${DIST_DIR}/usr/bin/
+  cp src/cascoind ${DIST_DIR}/usr/bin/
+  cp src/cascoin-cli ${DIST_DIR}/usr/bin/
+  cp src/cascoin-tx ${DIST_DIR}/usr/bin/
+  
+  strip ${DIST_DIR}/usr/bin/*
+  
+  # Function to copy library and dependencies
+  copy_lib_deps() {
+    local binary="$1"
+    local lib_dir="$2"
+    
+    ldd "$binary" 2>/dev/null | grep "=>" | awk '{print $3}' | while read lib; do
+      if [[ -f "$lib" && "$lib" =~ ^/usr/lib|^/lib ]]; then
+        lib_name=$(basename "$lib")
+        if [[ ! -f "$lib_dir/$lib_name" ]]; then
+          cp "$lib" "$lib_dir/" 2>/dev/null || true
+        fi
+      fi
+    done
+  }
+  
+  # Copy required libraries
+  LIB_DIR="${DIST_DIR}/usr/lib/x86_64-linux-gnu"
+  for binary in ${DIST_DIR}/usr/bin/*; do
+    copy_lib_deps "$binary" "$LIB_DIR"
+  done
+  
+  # Copy Qt6 libraries and plugins
+  find /usr/lib/x86_64-linux-gnu -name "libQt6*.so*" -exec cp {} "$LIB_DIR/" \; 2>/dev/null || true
+  
+  if [[ -d /usr/lib/x86_64-linux-gnu/qt6/plugins ]]; then
+    cp -r /usr/lib/x86_64-linux-gnu/qt6/plugins/* ${DIST_DIR}/usr/lib/qt6/plugins/ 2>/dev/null || true
+  fi
+  
+  # Create wrapper scripts
+  cat > ${DIST_DIR}/usr/bin/cascoin-qt-wrapper << 'EOF'
+  #!/bin/bash
+  export LD_LIBRARY_PATH="/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH"
+  export QT_PLUGIN_PATH="/usr/lib/qt6/plugins:$QT_PLUGIN_PATH"
+  exec /usr/bin/cascoin-qt "$@"
+  EOF
+  
+  cat > ${DIST_DIR}/usr/bin/cascoind-wrapper << 'EOF'
+  #!/bin/bash
+  export LD_LIBRARY_PATH="/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH"
+  exec /usr/bin/cascoind "$@"
+  EOF
+  
+  chmod +x ${DIST_DIR}/usr/bin/*wrapper
+  
+  # Create desktop entry
+  cat > ${DIST_DIR}/usr/share/applications/cascoin-qt.desktop << 'EOF'
+  [Desktop Entry]
+  Name=Cascoin Core
+  Comment=Cascoin cryptocurrency wallet
+  Icon=cascoin
+  Exec=/usr/bin/cascoin-qt-wrapper
+  Terminal=false
+  Type=Application
+  Categories=Office;Finance;
+  StartupWMClass=Cascoin-qt
+  EOF
+  
+  # Copy icon
+  if [[ -f share/pixmaps/bitcoin128.png ]]; then
+    cp share/pixmaps/bitcoin128.png ${DIST_DIR}/usr/share/pixmaps/cascoin.png
+  fi
+  
+  # Create installation scripts
+  cat > ${DIST_DIR}/install.sh << 'EOF'
+  #!/bin/bash
+  
+  if [[ $EUID -ne 0 ]]; then
+     echo "This script must be run as root (use sudo)"
+     exit 1
+  fi
+  
+  echo "Installing Cascoin Core Linux Distribution..."
+  
+  # Copy all files to system directories
+  cp -r usr/* /usr/
+  
+  # Update library cache
+  echo "/usr/lib/x86_64-linux-gnu" > /etc/ld.so.conf.d/cascoin.conf
+  ldconfig
+  
+  # Update desktop database
+  if command -v update-desktop-database >/dev/null 2>&1; then
+      update-desktop-database
+  fi
+  
+  echo "Installation complete!"
+  echo ""
+  echo "You can now run:"
+  echo "  cascoin-qt-wrapper    # GUI wallet"
+  echo "  cascoind-wrapper      # Daemon"
+  echo "  cascoin-cli           # CLI tool"
+  echo "  cascoin-tx            # Transaction tool"
+  EOF
+  
+  chmod +x ${DIST_DIR}/install.sh
+  
+  # Create README
+  cat > ${DIST_DIR}/README.md << 'EOF'
+  # Cascoin Core Linux Distribution Package
+  
+  This package contains a complete, self-contained installation of Cascoin Core
+  with all required libraries included. No additional package installation required.
+  
+  ## Installation
+  
+  ```bash
+  sudo ./install.sh
+  ```
+  
+  ## Usage
+  
+  After installation:
+  
+  ```bash
+  cascoin-qt-wrapper    # GUI wallet
+  cascoind-wrapper      # Daemon
+  cascoin-cli           # CLI tool
+  cascoin-tx            # Transaction tool
+  ```
+  
+  ## System Requirements
+  
+  - Linux x86_64
+  - GLIBC 2.31+ (Ubuntu 20.04+)
+  - X11 or Wayland display server (for GUI)
+  EOF
+  
+  # Get version for packaging
+  VERSION=$(git describe --tags --always --dirty 2>/dev/null || echo "unknown")
+  PACKAGE_NAME="cascoin-linux-x86_64-distribution-$VERSION"
+  
+  # Create final package
+  find ${DIST_DIR} -type f -executable -exec chmod +x {} \;
+  tar --sort=name --mtime="${REFERENCE_DATETIME}" --owner=0 --group=0 --numeric-owner -czf ${OUTDIR}/${PACKAGE_NAME}.tar.gz ${DIST_DIR}/
+  
+  # Create file list
+  find ${DIST_DIR} -type f -exec ls -la {} \; > ${OUTDIR}/${PACKAGE_NAME}-filelist.txt
+  
+  echo "Distribution package created: ${PACKAGE_NAME}.tar.gz"
