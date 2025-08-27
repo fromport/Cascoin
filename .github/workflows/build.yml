@@ -428,13 +428,7 @@ jobs:
             zip unzip cmake gperf \
             python3 bsdextrautils faketime libfaketime \
             rsync git \
-            qt6-tools-dev qt6-tools-dev-tools \
-            libevent-dev libboost-system-dev libboost-filesystem-dev libboost-chrono-dev \
-            libboost-test-dev libboost-thread-dev libboost-program-options-dev \
-            libssl-dev libzmq3-dev libminiupnpc-dev \
-            libprotobuf-dev protobuf-compiler \
-            libqrencode-dev libsqlite3-dev \
-            libdb-dev libdb++-dev
+            qt6-tools-dev qt6-tools-dev-tools
 
       - name: Prepare depends cache directories
         shell: bash
@@ -470,27 +464,10 @@ jobs:
       - name: Build depends (${{ env.HOST }})
         shell: bash
         run: |
-          echo "=== Building depends for ${HOST} ==="
-          make -C depends HOST=${HOST} -j"$(nproc)" || {
-            echo "=== Depends build failed! ==="
-            echo "Checking depends logs..."
-            find depends -name "*.log" -exec echo "=== {} ===" \; -exec cat {} \; || echo "No log files found"
-            exit 1
-          }
-          echo "=== Depends build completed successfully ==="
-          
+          make -C depends HOST=${HOST} -j"$(nproc)"
           # show whether native ccache was staged
-          echo "Native ccache:"
-          ls -lah depends/*/native/bin || echo "No native ccache found"
-          echo ""
-          echo "Depends structure:"
-          ls -lah depends/${HOST} || echo "Depends directory not found"
-          echo ""
-          echo "Depends libraries:"
-          ls -lah depends/${HOST}/lib/ || echo "No libraries found"
-          echo ""
-          echo "Depends include:"
-          ls -lah depends/${HOST}/include/ || echo "No include files found"
+          ls -lah depends/*/native/bin || true
+          ls -lah depends/${HOST}
 
       - name: Autogen
         shell: bash
@@ -499,21 +476,8 @@ jobs:
         shell: bash
         run: |
           export CONFIG_SITE="$PWD/depends/${HOST}/share/config.site"
-          echo "=== Debugging Information ==="
-          echo "CONFIG_SITE: $CONFIG_SITE"
-          echo "Depends directory structure:"
-          ls -la "$PWD/depends/${HOST}/" || echo "Depends directory not found"
-          echo ""
-          echo "Qt tools from depends:"
-          ls -la "$PWD/depends/${HOST}/native/libexec/" | head -10 || echo "Qt tools not found"
-          echo ""
-          echo "Depends libraries:"
-          ls -la "$PWD/depends/${HOST}/lib/" | head -10 || echo "Libraries not found"
-          echo ""
-          echo "Depends include:"
-          ls -la "$PWD/depends/${HOST}/include/" | head -10 || echo "Include directory not found"
-          echo "=== End Debugging Information ==="
-          
+          echo "Using Qt tools from depends:"
+          ls -la "$PWD/depends/${HOST}/native/libexec/" | head -10
           CFLAGS="-g -D_WIN32_WINNT=0x0601" CXXFLAGS="-g -D_WIN32_WINNT=0x0601" \
           CPPFLAGS="-I$PWD/depends/${HOST}/include" \
           LDFLAGS="-L$PWD/depends/${HOST}/lib" \
@@ -536,13 +500,7 @@ jobs:
             --with-incompatible-bdb \
             --enable-glibc-back-compat \
             --disable-bench \
-            --disable-tests || {
-            echo "=== Configure failed! ==="
-            echo "config.log contents:"
-            cat config.log || echo "config.log not found"
-            echo "=== End config.log ==="
-            exit 1
-          }
+            --disable-tests
 
       - name: Build (Windows ${HOST})
         shell: bash
