@@ -475,25 +475,20 @@ jobs:
       - name: Configure (Windows ${HOST}, Qt6 GUI, wallet, incompatible BDB)
         shell: bash
         run: |
-          export CONFIG_SITE="$PWD/depends/${HOST}/share/config.site"
-          echo "Using Qt tools from depends:"
-          ls -la "$PWD/depends/${HOST}/native/libexec/" | head -10
-          export PATH=/usr/lib/qt6/bin:$PATH && \
-          CPPFLAGS="-I$PWD/depends/${HOST}/include" \
-          LDFLAGS="-L$PWD/depends/${HOST}/lib" \
-          PKG_CONFIG_PATH="$PWD/depends/${HOST}/lib/pkgconfig" \
+          export PATH=/usr/lib/qt6/bin:$PATH
+          CPPFLAGS="-I$PWD/depends/x86_64-w64-mingw32/include"
+          LDFLAGS="-L$PWD/depends/x86_64-w64-mingw32/lib"
+          PKG_CONFIG_PATH="$PWD/depends/x86_64-w64-mingw32/lib/pkgconfig"
           ./configure \
-            --prefix=$PWD/depends/${HOST} \
-            --host=${HOST} \
-            --disable-tests \
-            --disable-bench \
-            --with-gui=qt6 \
-            --with-qt-incdir=$PWD/depends/${HOST}/include \
-            --with-qt-libdir=$PWD/depends/${HOST}/lib \
-            --with-qt-bindir=$PWD/depends/${HOST}/native/libexec:/usr/lib/qt6/bin \
-            --with-incompatible-bdb
-            --disable-bench \
-            --disable-tests
+          --prefix=$PWD/depends/x86_64-w64-mingw32 \
+          --host=x86_64-w64-mingw32 \
+          --disable-tests \
+          --disable-bench \
+          --with-gui=qt6 \
+          --with-qt-incdir=$PWD/depends/x86_64-w64-mingw32/include \
+          --with-qt-libdir=$PWD/depends/x86_64-w64-mingw32/lib \
+          --with-qt-bindir=$PWD/depends/x86_64-w64-mingw32/native/libexec:/usr/lib/qt6/bin \
+          --with-incompatible-bdb
 
       - name: Build (Windows ${HOST})
         shell: bash
