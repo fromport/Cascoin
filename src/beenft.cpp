@@ -444,3 +444,281 @@ CScript CreateBeeNFTTransferScript(const std::vector<BeeNFTTransfer>& transfers)
     
     return script;
 }
+
+// Generic NFT script creation
+std::vector<unsigned char> CreateGenericNFTScript(const std::vector<GenericNFT>& nfts) {
+    std::vector<unsigned char> script;
+    
+    // Add magic bytes
+    std::string magic = NFT_MAGIC_GENERIC;
+    script.insert(script.end(), magic.begin(), magic.end());
+    
+    // Add number of NFTs
+    script.push_back(nfts.size());
+    
+    for (const auto& nft : nfts) {
+        // Add NFT name length and data
+        script.push_back(nft.name.length());
+        script.insert(script.end(), nft.name.begin(), nft.name.end());
+        
+        // Add description length and data
+        script.push_back(nft.description.length());
+        script.insert(script.end(), nft.description.begin(), nft.description.end());
+        
+        // Add metadata length and data
+        script.push_back(nft.metadata.length());
+        script.insert(script.end(), nft.metadata.begin(), nft.metadata.end());
+        
+        // Add amount (8 bytes)
+        for (int i = 0; i < 8; i++) {
+            script.push_back((nft.amount >> (i * 8)) & 0xFF);
+        }
+        
+        // Add owner address length and data
+        script.push_back(nft.owner_address.length());
+        script.insert(script.end(), nft.owner_address.begin(), nft.owner_address.end());
+    }
+    
+    return script;
+}
+
+std::vector<unsigned char> CreateGenericNFTTransferScript(const std::vector<GenericNFTTransfer>& transfers) {
+    std::vector<unsigned char> script;
+    
+    // Add magic bytes
+    std::string magic = NFT_MAGIC_GENERIC_TRANSFER;
+    script.insert(script.end(), magic.begin(), magic.end());
+    
+    // Add number of transfers
+    script.push_back(transfers.size());
+    
+    for (const auto& transfer : transfers) {
+        // Add NFT TXID length and data
+        script.push_back(transfer.nft_txid.length());
+        script.insert(script.end(), transfer.nft_txid.begin(), transfer.nft_txid.end());
+        
+        // Add recipient address length and data
+        script.push_back(transfer.recipient_address.length());
+        script.insert(script.end(), transfer.recipient_address.begin(), transfer.recipient_address.end());
+        
+        // Add amount (8 bytes)
+        for (int i = 0; i < 8; i++) {
+            script.push_back((transfer.amount >> (i * 8)) & 0xFF);
+        }
+    }
+    
+    return script;
+}
+
+// Generic NFT validation
+bool IsValidGenericNFTTransaction(const CTransaction& tx, std::string& error) {
+    if (tx.vout.empty()) {
+        error = "No outputs in transaction";
+        return false;
+    }
+    
+    // Check for OP_RETURN output with generic NFT magic bytes
+    for (const auto& output : tx.vout) {
+        if (output.scriptPubKey[0] == OP_RETURN) {
+            std::vector<unsigned char> data(output.scriptPubKey.begin() + 2, output.scriptPubKey.end());
+            if (data.size() >= 6) {
+                std::string magic(data.begin(), data.begin() + 6);
+                if (magic == NFT_MAGIC_GENERIC) {
+                    return true;
+                }
+            }
+        }
+    }
+    
+    error = "No valid generic NFT output found";
+    return false;
+}
+
+bool ParseGenericNFTTransaction(const CTransaction& tx, std::vector<GenericNFT>& nfts, std::string& error) {
+    nfts.clear();
+    
+    for (const auto& output : tx.vout) {
+        if (output.scriptPubKey[0] == OP_RETURN) {
+            std::vector<unsigned char> data(output.scriptPubKey.begin() + 2, output.scriptPubKey.end());
+            if (data.size() >= 6) {
+                std::string magic(data.begin(), data.begin() + 6);
+                if (magic == NFT_MAGIC_GENERIC) {
+                    size_t pos = 6;
+                    
+                    if (pos >= data.size()) {
+                        error = "Invalid generic NFT data: missing NFT count";
+                        return false;
+                    }
+                    
+                    int nftCount = data[pos++];
+                    
+                    for (int i = 0; i < nftCount; i++) {
+                        if (pos >= data.size()) {
+                            error = "Invalid generic NFT data: incomplete NFT";
+                            return false;
+                        }
+                        
+                        // Read name
+                        int nameLen = data[pos++];
+                        if (pos + nameLen > data.size()) {
+                            error = "Invalid generic NFT data: name length error";
+                            return false;
+                        }
+                        std::string name(data.begin() + pos, data.begin() + pos + nameLen);
+                        pos += nameLen;
+                        
+                        // Read description
+                        if (pos >= data.size()) {
+                            error = "Invalid generic NFT data: missing description length";
+                            return false;
+                        }
+                        int descLen = data[pos++];
+                        if (pos + descLen > data.size()) {
+                            error = "Invalid generic NFT data: description length error";
+                            return false;
+                        }
+                        std::string description(data.begin() + pos, data.begin() + pos + descLen);
+                        pos += descLen;
+                        
+                        // Read metadata
+                        if (pos >= data.size()) {
+                            error = "Invalid generic NFT data: missing metadata length";
+                            return false;
+                        }
+                        int metaLen = data[pos++];
+                        if (pos + metaLen > data.size()) {
+                            error = "Invalid generic NFT data: metadata length error";
+                            return false;
+                        }
+                        std::string metadata(data.begin() + pos, data.begin() + pos + metaLen);
+                        pos += metaLen;
+                        
+                        // Read amount
+                        if (pos + 8 > data.size()) {
+                            error = "Invalid generic NFT data: amount length error";
+                            return false;
+                        }
+                        int64_t amount = 0;
+                        for (int j = 0; j < 8; j++) {
+                            amount |= ((int64_t)data[pos + j] << (j * 8));
+                        }
+                        pos += 8;
+                        
+                        // Read owner address
+                        if (pos >= data.size()) {
+                            error = "Invalid generic NFT data: missing owner address length";
+                            return false;
+                        }
+                        int ownerLen = data[pos++];
+                        if (pos + ownerLen > data.size()) {
+                            error = "Invalid generic NFT data: owner address length error";
+                            return false;
+                        }
+                        std::string owner(data.begin() + pos, data.begin() + pos + ownerLen);
+                        pos += ownerLen;
+                        
+                        nfts.emplace_back(name, description, metadata, amount, owner);
+                    }
+                    
+                    return true;
+                }
+            }
+        }
+    }
+    
+    error = "No generic NFT data found";
+    return false;
+}
+
+bool IsValidGenericNFTTransferTransaction(const CTransaction& tx, std::string& error) {
+    if (tx.vout.empty()) {
+        error = "No outputs in transaction";
+        return false;
+    }
+    
+    // Check for OP_RETURN output with generic NFT transfer magic bytes
+    for (const auto& output : tx.vout) {
+        if (output.scriptPubKey[0] == OP_RETURN) {
+            std::vector<unsigned char> data(output.scriptPubKey.begin() + 2, output.scriptPubKey.end());
+            if (data.size() >= 6) {
+                std::string magic(data.begin(), data.begin() + 6);
+                if (magic == NFT_MAGIC_GENERIC_TRANSFER) {
+                    return true;
+                }
+            }
+        }
+    }
+    
+    error = "No valid generic NFT transfer output found";
+    return false;
+}
+
+bool ParseGenericNFTTransferTransaction(const CTransaction& tx, std::vector<GenericNFTTransfer>& transfers, std::string& error) {
+    transfers.clear();
+    
+    for (const auto& output : tx.vout) {
+        if (output.scriptPubKey[0] == OP_RETURN) {
+            std::vector<unsigned char> data(output.scriptPubKey.begin() + 2, output.scriptPubKey.end());
+            if (data.size() >= 6) {
+                std::string magic(data.begin(), data.begin() + 6);
+                if (magic == NFT_MAGIC_GENERIC_TRANSFER) {
+                    size_t pos = 6;
+                    
+                    if (pos >= data.size()) {
+                        error = "Invalid generic NFT transfer data: missing transfer count";
+                        return false;
+                    }
+                    
+                    int transferCount = data[pos++];
+                    
+                    for (int i = 0; i < transferCount; i++) {
+                        if (pos >= data.size()) {
+                            error = "Invalid generic NFT transfer data: incomplete transfer";
+                            return false;
+                        }
+                        
+                        // Read NFT TXID
+                        int txidLen = data[pos++];
+                        if (pos + txidLen > data.size()) {
+                            error = "Invalid generic NFT transfer data: TXID length error";
+                            return false;
+                        }
+                        std::string nftTxid(data.begin() + pos, data.begin() + pos + txidLen);
+                        pos += txidLen;
+                        
+                        // Read recipient address
+                        if (pos >= data.size()) {
+                            error = "Invalid generic NFT transfer data: missing recipient length";
+                            return false;
+                        }
+                        int recipientLen = data[pos++];
+                        if (pos + recipientLen > data.size()) {
+                            error = "Invalid generic NFT transfer data: recipient length error";
+                            return false;
+                        }
+                        std::string recipient(data.begin() + pos, data.begin() + pos + recipientLen);
+                        pos += recipientLen;
+                        
+                        // Read amount
+                        if (pos + 8 > data.size()) {
+                            error = "Invalid generic NFT transfer data: amount length error";
+                            return false;
+                        }
+                        int64_t amount = 0;
+                        for (int j = 0; j < 8; j++) {
+                            amount |= ((int64_t)data[pos + j] << (j * 8));
+                        }
+                        pos += 8;
+                        
+                        transfers.emplace_back(nftTxid, recipient, amount);
+                    }
+                    
+                    return true;
+                }
+            }
+        }
+    }
+    
+    error = "No generic NFT transfer data found";
+    return false;
+}

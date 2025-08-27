@@ -203,56 +203,42 @@ bool CheckTransaction(const CTransaction& tx, CValidationState &state, bool fChe
                 return state.DoS(10, false, REJECT_INVALID, "bad-txns-prevout-null");
     }
 
-    // Cascoin: Mice NFT System: Validate NFT transactions (Soft Fork compatible)
-    // Only validate NFTs if we understand them - otherwise just accept as OP_RETURN data
-    bool hasNFTTokens = false;
-    bool hasNFTTransfers = false;
-    
-    for (const auto& txout : tx.vout) {
-        if (txout.scriptPubKey.size() >= 2 && 
-            txout.scriptPubKey[0] == OP_RETURN) {
-            
-            // Soft Fork: Only validate if we have NFT support enabled
-            // Old nodes will see this as standard OP_RETURN and accept it
-            
-            // Check for NFT token magic bytes "CASTOK" instead of opcode
-            if (txout.scriptPubKey.size() >= 8) {
-                std::vector<unsigned char> magicBytes(txout.scriptPubKey.begin() + 1, txout.scriptPubKey.begin() + 7);
-                std::vector<unsigned char> expectedMagic = {'C', 'A', 'S', 'T', 'O', 'K'};
-                if (magicBytes == expectedMagic) {
-                    hasNFTTokens = true;
-                    
-                    // Only validate NFT structure on upgraded nodes
-                    // This makes it a soft fork - old nodes just ignore the data
+    // Cascoin: Check for NFT transactions
+    for (const auto& output : tx.vout) {
+        if (output.scriptPubKey[0] == OP_RETURN) {
+            std::vector<unsigned char> data(output.scriptPubKey.begin() + 2, output.scriptPubKey.end());
+            if (data.size() >= 6) {
+                std::string magic(data.begin(), data.begin() + 6);
+                
+                // Check for Mice NFT magic bytes
+                if (magic == "CASTOK" || magic == "CASXFR") {
                     std::string error;
-                    if (!IsValidBeeNFTTokenTransaction(tx, error)) {
-                        // For soft fork compatibility: only reject if this node understands NFTs
-                        // Old nodes will treat this as valid OP_RETURN data
-                        return state.DoS(0, false, REJECT_NONSTANDARD, "bad-txns-invalid-nft-token", false, error);
+                    if (magic == "CASTOK") {
+                        if (!IsValidBeeNFTTokenTransaction(tx, error)) {
+                            return state.DoS(0, false, REJECT_NONSTANDARD, "invalid-bee-nft-token");
+                        }
+                    } else if (magic == "CASXFR") {
+                        if (!IsValidBeeNFTTransferTransaction(tx, error)) {
+                            return state.DoS(0, false, REJECT_NONSTANDARD, "invalid-bee-nft-transfer");
+                        }
                     }
                 }
-            }
-            
-            // Check for NFT transfer magic bytes "CASXFR" instead of opcode
-            if (txout.scriptPubKey.size() >= 8) {
-                std::vector<unsigned char> transferMagic(txout.scriptPubKey.begin() + 1, txout.scriptPubKey.begin() + 7);
-                std::vector<unsigned char> expectedTransfer = {'C', 'A', 'S', 'X', 'F', 'R'};
-                if (transferMagic == expectedTransfer) {
-                    hasNFTTransfers = true;
-                    
+                
+                // Check for Generic NFT magic bytes
+                if (magic == "CASNFT" || magic == "CASGEN") {
                     std::string error;
-                    if (!IsValidBeeNFTTransferTransaction(tx, error)) {
-                        // For soft fork compatibility: non-standard instead of invalid
-                        return state.DoS(0, false, REJECT_NONSTANDARD, "bad-txns-invalid-nft-transfer", false, error);
+                    if (magic == "CASNFT") {
+                        if (!IsValidGenericNFTTransaction(tx, error)) {
+                            return state.DoS(0, false, REJECT_NONSTANDARD, "invalid-generic-nft");
+                        }
+                    } else if (magic == "CASGEN") {
+                        if (!IsValidGenericNFTTransferTransaction(tx, error)) {
+                            return state.DoS(0, false, REJECT_NONSTANDARD, "invalid-generic-nft-transfer");
+                        }
                     }
                 }
             }
         }
-    }
-    
-    // Soft fork: Only reject mixed types on NFT-aware nodes
-    if (hasNFTTokens && hasNFTTransfers) {
-        return state.DoS(0, false, REJECT_NONSTANDARD, "bad-txns-mixed-nft-types");
     }
 
     return true;

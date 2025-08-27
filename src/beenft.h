@@ -42,7 +42,13 @@ Each bee NFT contains:
 */
 
 // Maximum data size for bee NFT transactions
-const int BEE_NFT_MAX_DATA_SIZE = 80;
+const int BEE_NFT_MAX_DATA_SIZE = 4096; // Increased from 80 to 4KB for larger metadata
+
+// Magic bytes for different NFT types
+#define NFT_MAGIC_MICE_TOKEN "CASTOK"
+#define NFT_MAGIC_MICE_TRANSFER "CASXFR"
+#define NFT_MAGIC_GENERIC "CASNFT"
+#define NFT_MAGIC_GENERIC_TRANSFER "CASGEN"
 
 // Bee NFT Token structure
 struct BeeNFTToken {
@@ -123,6 +129,29 @@ struct BeeNFTMiningRecord {
     }
 };
 
+// Generic NFT structures
+struct GenericNFT {
+    std::string name;
+    std::string description;
+    std::string metadata;
+    int64_t amount;
+    std::string owner_address;
+    
+    GenericNFT() : amount(0) {}
+    GenericNFT(const std::string& n, const std::string& desc, const std::string& meta, int64_t amt, const std::string& owner)
+        : name(n), description(desc), metadata(meta), amount(amt), owner_address(owner) {}
+};
+
+struct GenericNFTTransfer {
+    std::string nft_txid;
+    std::string recipient_address;
+    int64_t amount;
+    
+    GenericNFTTransfer() : amount(0) {}
+    GenericNFTTransfer(const std::string& txid, const std::string& recipient, int64_t amt)
+        : nft_txid(txid), recipient_address(recipient), amount(amt) {}
+};
+
 // Validation functions
 bool IsValidBeeNFTTokenTransaction(const CTransaction& tx, std::string& error);
 bool IsValidBeeNFTTransferTransaction(const CTransaction& tx, std::string& error);
@@ -143,5 +172,15 @@ CScript CreateBeeNFTTokenScript(const std::vector<BeeNFTToken>& tokens);
 
 // Create bee NFT transfer transaction script  
 CScript CreateBeeNFTTransferScript(const std::vector<BeeNFTTransfer>& transfers);
+
+// Generic NFT script creation functions
+std::vector<unsigned char> CreateGenericNFTScript(const std::vector<GenericNFT>& nfts);
+std::vector<unsigned char> CreateGenericNFTTransferScript(const std::vector<GenericNFTTransfer>& transfers);
+
+// Generic NFT parsing functions
+bool IsValidGenericNFTTransaction(const CTransaction& tx, std::string& error);
+bool ParseGenericNFTTransaction(const CTransaction& tx, std::vector<GenericNFT>& nfts, std::string& error);
+bool IsValidGenericNFTTransferTransaction(const CTransaction& tx, std::string& error);
+bool ParseGenericNFTTransferTransaction(const CTransaction& tx, std::vector<GenericNFTTransfer>& transfers, std::string& error);
 
 #endif // CASCOIN_BEENFT_H
