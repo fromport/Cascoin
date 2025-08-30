@@ -163,9 +163,12 @@ jobs:
             find /usr/lib/x86_64-linux-gnu -name "$boost_lib" 2>/dev/null | while read lib; do
               if [[ -f "$lib" ]]; then
                 lib_name=$(basename "$lib")
-                if [[ ! -f "$LIB_DIR/$lib_name" ]]; then
-                  echo "    Copying: $lib_name"
-                  cp "$lib" "$LIB_DIR/" 2>/dev/null || true
+                # Only copy versioned libraries (skip .so files without version numbers)
+                if [[ "$lib_name" =~ \.[0-9]+\. ]] || [[ "$lib_name" =~ \.[0-9]+$ ]]; then
+                  if [[ ! -f "$LIB_DIR/$lib_name" ]]; then
+                    echo "    Copying: $lib_name"
+                    cp "$lib" "$LIB_DIR/" 2>/dev/null || true
+                  fi
                 fi
               fi
             done
@@ -176,24 +179,17 @@ jobs:
           find /usr/lib/x86_64-linux-gnu -name "libdb_cxx-*.so*" -o -name "libdb-*.so*" 2>/dev/null | while read lib; do
             if [[ -f "$lib" ]]; then
               lib_name=$(basename "$lib")
-              if [[ ! -f "$LIB_DIR/$lib_name" ]]; then
-                echo "    Copying: $lib_name"
-                cp "$lib" "$LIB_DIR/" 2>/dev/null || true
+              # Only copy versioned libraries (skip .so files without version numbers)
+              if [[ "$lib_name" =~ \.[0-9]+\. ]] || [[ "$lib_name" =~ \.[0-9]+$ ]] || [[ "$lib_name" =~ -[0-9]+\. ]]; then
+                if [[ ! -f "$LIB_DIR/$lib_name" ]]; then
+                  echo "    Copying: $lib_name"
+                  cp "$lib" "$LIB_DIR/" 2>/dev/null || true
+                fi
               fi
             fi
           done
           
-          # Copy libcrypto (OpenSSL crypto only, not SSL)
-          echo "  Collecting libcrypto..."
-          find /usr/lib/x86_64-linux-gnu -name "libcrypto.so*" 2>/dev/null | while read lib; do
-            if [[ -f "$lib" ]]; then
-              lib_name=$(basename "$lib")
-              if [[ ! -f "$LIB_DIR/$lib_name" ]]; then
-                echo "    Copying: $lib_name"
-                cp "$lib" "$LIB_DIR/" 2>/dev/null || true
-              fi
-            fi
-          done
+          # OpenSSL libraries removed - not included in distribution
           
           # Copy exact libevent libraries needed
           echo "  Collecting libevent libraries..."
@@ -206,9 +202,12 @@ jobs:
             find /usr/lib/x86_64-linux-gnu -name "$event_lib" 2>/dev/null | while read lib; do
               if [[ -f "$lib" ]]; then
                 lib_name=$(basename "$lib")
-                if [[ ! -f "$LIB_DIR/$lib_name" ]]; then
-                  echo "    Copying: $lib_name"
-                  cp "$lib" "$LIB_DIR/" 2>/dev/null || true
+                # Only copy versioned libraries (skip .so files without version numbers)
+                if [[ "$lib_name" =~ \.[0-9]+\. ]] || [[ "$lib_name" =~ \.[0-9]+$ ]] || [[ "$lib_name" =~ -[0-9]+\. ]]; then
+                  if [[ ! -f "$LIB_DIR/$lib_name" ]]; then
+                    echo "    Copying: $lib_name"
+                    cp "$lib" "$LIB_DIR/" 2>/dev/null || true
+                  fi
                 fi
               fi
             done
@@ -227,9 +226,12 @@ jobs:
             find /usr/lib/x86_64-linux-gnu -name "$req_lib" 2>/dev/null | while read lib; do
               if [[ -f "$lib" ]]; then
                 lib_name=$(basename "$lib")
-                if [[ ! -f "$LIB_DIR/$lib_name" ]]; then
-                  echo "    Copying: $lib_name"
-                  cp "$lib" "$LIB_DIR/" 2>/dev/null || true
+                # Only copy versioned libraries (skip .so files without version numbers)
+                if [[ "$lib_name" =~ \.[0-9]+\. ]] || [[ "$lib_name" =~ \.[0-9]+$ ]]; then
+                  if [[ ! -f "$LIB_DIR/$lib_name" ]]; then
+                    echo "    Copying: $lib_name"
+                    cp "$lib" "$LIB_DIR/" 2>/dev/null || true
+                  fi
                 fi
               fi
             done
@@ -252,41 +254,7 @@ jobs:
           
 
           
-          # Create installation script
-          cat > "$DIST_DIR"/install.sh << 'EOF'
-          #!/bin/bash
-          
-          if [[ $EUID -ne 0 ]]; then
-             echo "This script must be run as root (use sudo)"
-             exit 1
-          fi
-          
-          echo "Installing Cascoin Core Linux Distribution..."
-          
-          # Create installation directory
-          mkdir -p /opt/cascoin
-          
-          # Copy all files to /opt/cascoin
-          cp -r bin lib /opt/cascoin/
-          
-          # Create symlinks in /usr/local/bin
-          ln -sf /opt/cascoin/bin/cascoin-qt-wrapper /usr/local/bin/cascoin-qt
-          ln -sf /opt/cascoin/bin/cascoind-wrapper /usr/local/bin/cascoind
-          ln -sf /opt/cascoin/bin/cascoin-cli /usr/local/bin/cascoin-cli
-          ln -sf /opt/cascoin/bin/cascoin-tx /usr/local/bin/cascoin-tx
-          
-
-          
-          echo "Installation complete!"
-          echo ""
-          echo "You can now run:"
-          echo "  cascoin-qt    # GUI wallet (requires Qt6)"
-          echo "  cascoind      # Daemon"
-          echo "  cascoin-cli   # CLI tool"
-          echo "  cascoin-tx    # Transaction tool"
-          EOF
-          
-          chmod +x "$DIST_DIR"/install.sh
+          # Installation script removed - manual installation preferred
           
           # Create README
           cat > "$DIST_DIR"/README.md << 'EOF'
@@ -310,10 +278,22 @@ jobs:
           sudo pacman -S qt6-base
           ```
           
-          ## Installation
+          ## Manual Installation
           
           ```bash
-          sudo ./install.sh
+          # Extract the distribution package
+          tar -xzf cascoin-linux-x86_64-distribution-*.tar.gz
+          cd cascoin-linux-distribution
+          
+          # Copy to system directories (optional)
+          sudo mkdir -p /opt/cascoin
+          sudo cp -r bin lib /opt/cascoin/
+          
+          # Create symlinks (optional)
+          sudo ln -sf /opt/cascoin/bin/cascoin-qt-wrapper /usr/local/bin/cascoin-qt
+          sudo ln -sf /opt/cascoin/bin/cascoind-wrapper /usr/local/bin/cascoind
+          sudo ln -sf /opt/cascoin/bin/cascoin-cli /usr/local/bin/cascoin-cli
+          sudo ln -sf /opt/cascoin/bin/cascoin-tx /usr/local/bin/cascoin-tx
           ```
           
           ## Usage
@@ -334,16 +314,17 @@ jobs:
           - Qt6 6.0+ (for GUI)
           - X11 or Wayland display server (for GUI)
           
-          ## Included Libraries (ONLY required ones)
+          ## Included Libraries (ONLY required ones, versioned only)
           
           - Boost (system, filesystem, chrono, thread, program_options)
           - Berkeley DB (C++ interface for wallet)
-          - libcrypto (OpenSSL crypto functions)
           - libevent + libevent_pthreads (networking)
           - libminiupnpc (UPnP support)
           - libprotobuf (serialization)
           - libqrencode (QR code generation)
           - libzmq (ZeroMQ messaging)
+          
+          Note: OpenSSL libraries are not included - use system libraries.
           
           Qt6 libraries are NOT included - install via package manager.
           EOF
@@ -354,8 +335,7 @@ jobs:
           ls -la "$LIB_DIR"/libboost_*.so* 2>/dev/null | head -10 || echo "    No Boost libraries found"
           echo "  Berkeley DB libraries:"
           ls -la "$LIB_DIR"/libdb*.so* 2>/dev/null || echo "    No Berkeley DB libraries found"
-          echo "  OpenSSL libraries:"
-          ls -la "$LIB_DIR"/libcrypto.so* 2>/dev/null || echo "    No libcrypto found"
+          echo "  OpenSSL libraries: (not included - use system libraries)"
           echo "  Qt6 libraries: (not included - installed via package manager)"
           echo "  Other required libraries:"
           ls -la "$LIB_DIR"/libevent*.so* "$LIB_DIR"/libprotobuf*.so* "$LIB_DIR"/libzmq*.so* "$LIB_DIR"/libminiupnpc*.so* "$LIB_DIR"/libqrencode*.so* 2>/dev/null || echo "    No other libraries found"
