@@ -250,6 +250,9 @@ private Q_SLOTS:
     /** When hideTrayIcon setting is changed in OptionsModel hide or show the icon accordingly. */
     void setTrayIconVisible(bool);
 
+    /** When showBCTView setting is changed in OptionsModel show or hide the BCT tab accordingly. */
+    void setBCTViewVisible(bool);
+
     /** Toggle networking */
     void toggleNetworkActive();
 

@@ -190,6 +190,9 @@ void OptionsDialog::setMapper()
 
     // Cascoin: MinotaurX+Hive1.2
     mapper->addMapping(ui->hiveContribCF, OptionsModel::HiveContribCF);
+    
+    // Cascoin: BCT view toggle
+    mapper->addMapping(ui->showBCTView, OptionsModel::ShowBCTView);
 
     /* Network */
     mapper->addMapping(ui->mapPortUpnp, OptionsModel::MapPortUPnP);
