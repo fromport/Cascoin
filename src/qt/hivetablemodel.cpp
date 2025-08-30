@@ -17,6 +17,8 @@
 
 #include <util.h>
 
+#include <thread>
+
 HiveTableModel::HiveTableModel(const PlatformStyle *_platformStyle, CWallet *wallet, WalletModel *parent) : platformStyle(_platformStyle), QAbstractTableModel(parent), walletModel(parent)
 {
     Q_UNUSED(wallet);
@@ -28,7 +30,8 @@ HiveTableModel::HiveTableModel(const PlatformStyle *_platformStyle, CWallet *wal
     sortColumn = 0;
 
     rewardsPaid = cost = profit = 0;
-    immature = mature = dead = blocksFound = 0; 
+    immature = mature = dead = blocksFound = 0;
+    updateInProgress = false; 
 }
 
 HiveTableModel::~HiveTableModel() {
@@ -36,41 +39,70 @@ HiveTableModel::~HiveTableModel() {
 }
 
 void HiveTableModel::updateBCTs(bool includeDeadBees) {
-    if (walletModel) {
-        // Clear existing
-        beginResetModel();
-        list.clear();
-        endResetModel();
-
-        // Load entries from wallet
-        std::vector<CBeeCreationTransactionInfo> vBeeCreationTransactions;
-        walletModel->getBCTs(vBeeCreationTransactions, includeDeadBees);
-        beginInsertRows(QModelIndex(), 0, 0);
-        immature = 0, mature = 0, dead = 0, blocksFound = 0;
-        cost = rewardsPaid = profit = 0;
-        for (const CBeeCreationTransactionInfo& bct : vBeeCreationTransactions) {
-            if (bct.beeStatus == "mature")
-                mature += bct.beeCount;
-            else if (bct.beeStatus == "immature")
-                immature += bct.beeCount;
-            else if (bct.beeStatus == "expired")
-                dead += bct.beeCount;
-
-            blocksFound += bct.blocksFound;
-            cost += bct.beeFeePaid;
-            rewardsPaid += bct.rewardsPaid;
-            profit += bct.profit;
-
-            list.prepend(bct);
-        }
-        endInsertRows();
-
-        // Maintain correct sorting
-        sort(sortColumn, sortOrder);
-
-        // Fire signal
-        QMetaObject::invokeMethod(walletModel, "newHiveSummaryAvailable", Qt::QueuedConnection);
+    if (!walletModel) {
+        return;
     }
+
+    // Prevent concurrent updates
+    if (updateInProgress) {
+        LogPrintf("Warning: BCT update already in progress, skipping duplicate request\n");
+        return;
+    }
+    updateInProgress = true;
+
+    // Move expensive wallet operations to background thread to prevent GUI hang
+    std::thread([=]() {
+        try {
+            // Load entries from wallet in background thread
+            std::vector<CBeeCreationTransactionInfo> vBeeCreationTransactions;
+            walletModel->getBCTs(vBeeCreationTransactions, includeDeadBees);
+            
+            // Update UI on main thread
+            QMetaObject::invokeMethod(this, [=]() {
+                // Clear existing
+                beginResetModel();
+                list.clear();
+                endResetModel();
+
+                beginInsertRows(QModelIndex(), 0, 0);
+                immature = 0, mature = 0, dead = 0, blocksFound = 0;
+                cost = rewardsPaid = profit = 0;
+                
+                for (const CBeeCreationTransactionInfo& bct : vBeeCreationTransactions) {
+                    if (bct.beeStatus == "mature")
+                        mature += bct.beeCount;
+                    else if (bct.beeStatus == "immature")
+                        immature += bct.beeCount;
+                    else if (bct.beeStatus == "expired")
+                        dead += bct.beeCount;
+
+                    blocksFound += bct.blocksFound;
+                    cost += bct.beeFeePaid;
+                    rewardsPaid += bct.rewardsPaid;
+                    profit += bct.profit;
+
+                    list.prepend(bct);
+                }
+                endInsertRows();
+
+                // Maintain correct sorting
+                sort(sortColumn, sortOrder);
+
+                // Fire signal
+                QMetaObject::invokeMethod(walletModel, "newHiveSummaryAvailable", Qt::QueuedConnection);
+                
+                // Reset update flag
+                updateInProgress = false;
+            }, Qt::QueuedConnection);
+            
+        } catch (const std::exception& e) {
+            QMetaObject::invokeMethod(this, [=]() {
+                LogPrintf("Error updating BCTs: %s\n", e.what());
+                // Reset update flag on error too
+                updateInProgress = false;
+            }, Qt::QueuedConnection);
+        }
+    }).detach();
 }
 
 void HiveTableModel::getSummaryValues(int &_immature, int &_mature, int &_dead, int &_blocksFound, CAmount &_cost, CAmount &_rewardsPaid, CAmount &_profit) {

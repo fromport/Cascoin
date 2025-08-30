@@ -194,7 +194,28 @@ void BeeNFTPage::setupUI()
     connect(tokenizeButton, SIGNAL(clicked()), this, SLOT(tokenizeBee()));
     connect(transferButton, SIGNAL(clicked()), this, SLOT(transferBeeNFT()));
     connect(generateAddressButton, SIGNAL(clicked()), this, SLOT(generateNewAddress()));
-    connect(showExpiredCheckBox, SIGNAL(toggled(bool)), this, SLOT(refreshBeeNFTs()));
+    
+    // Initialize debouncing timer for checkbox state changes
+    refreshTimer = new QTimer(this);
+    refreshTimer->setSingleShot(true);
+    refreshTimer->setInterval(300); // 300ms debounce delay
+    connect(refreshTimer, &QTimer::timeout, this, [this]() {
+        // Disable checkbox during refresh to provide visual feedback
+        showExpiredCheckBox->setEnabled(false);
+        showExpiredCheckBox->setText(tr("Show expired mice NFTs (updating...)"));
+        
+        refreshBeeNFTs();
+        
+        // Re-enable checkbox after refresh
+        showExpiredCheckBox->setEnabled(true);
+        showExpiredCheckBox->setText(tr("Show expired mice NFTs"));
+    });
+    
+    // Connect checkbox with debouncing
+    connect(showExpiredCheckBox, &QCheckBox::toggled, this, [this](bool) {
+        refreshTimer->stop();
+        refreshTimer->start();
+    });
     
     // Enable/disable buttons based on selection
     detailsButton->setEnabled(false);

@@ -71,6 +71,7 @@ private:
     Qt::SortOrder sortOrder;
     int immature, mature, dead, blocksFound;
     CAmount cost, rewardsPaid, profit;
+    bool updateInProgress;  // Flag to prevent concurrent updates
 };
 
 #endif // BITCOIN_QT_HIVETABLEMODEL_H

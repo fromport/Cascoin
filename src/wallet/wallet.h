@@ -1006,6 +1006,9 @@ public:
     // Cascoin: Hive: Return info for a single BCT known by this wallet, optionally scanning for blocks minted by bees from this BCT
     CBeeCreationTransactionInfo GetBCT(const CWalletTx& wtx, bool includeDead, bool scanRewards, const Consensus::Params& consensusParams, int minHoneyConfirmations);
 
+    // Cascoin: Hive: Optimized version of GetBCT that uses pre-built lookup map for rewards to avoid O(n²) complexity
+    CBeeCreationTransactionInfo GetBCTOptimized(const CWalletTx& wtx, bool includeDead, bool scanRewards, const Consensus::Params& consensusParams, int minHoneyConfirmations, const std::map<std::string, std::pair<int, CAmount>>& hiveCoinbaseMap);
+
     // Cascoin: Hive: Return all BCTs known by this wallet, optionally including dead bees and optionally scanning for blocks minted by bees from each BCT
     std::vector<CBeeCreationTransactionInfo> GetBCTs(bool includeDead, bool scanRewards, const Consensus::Params& consensusParams, int minHoneyConfirmations = 1);
 

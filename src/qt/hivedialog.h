@@ -15,6 +15,7 @@
 #include <QKeyEvent>
 #include <QMenu>
 #include <QPoint>
+#include <QTimer>
 #include <QVariant>
 
 #include <pow.h>
@@ -95,6 +96,7 @@ private:
     QCPItemTracer *graphTracerImmature;
     QCPItemLine *globalMarkerLine;
     QSharedPointer<QCPAxisTickerGI> giTicker;
+    QTimer *updateTimer;  // Timer for debouncing checkbox state changes
 
     void updateTotalCostDisplay();
     void initGraph();

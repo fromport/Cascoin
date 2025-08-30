@@ -664,8 +664,15 @@ void WalletModel::loadReceiveRequests(std::vector<std::string>& vReceiveRequests
 // Cascoin: Hive
 void WalletModel::getBCTs(std::vector<CBeeCreationTransactionInfo>& vBeeCreationTransactions, bool includeDeadBees) {
     if (wallet) {
-        LOCK(wallet->cs_wallet);
-        vBeeCreationTransactions = wallet->GetBCTs(includeDeadBees, true, Params().GetConsensus());
+        // Use TRY_LOCK with timeout to prevent indefinite hanging
+        TRY_LOCK(wallet->cs_wallet, lockWallet);
+        if (lockWallet) {
+            vBeeCreationTransactions = wallet->GetBCTs(includeDeadBees, true, Params().GetConsensus());
+        } else {
+            // If we can't get the lock immediately, return empty result to prevent hang
+            LogPrintf("Warning: Could not acquire wallet lock for BCT update, skipping to prevent GUI hang\n");
+            vBeeCreationTransactions.clear();
+        }
     }
 }
 
