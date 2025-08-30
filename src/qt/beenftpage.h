@@ -18,6 +18,7 @@
 #include <QSpinBox>
 #include <QCheckBox>
 #include <QProgressBar>
+#include <QTimer>
 
 #include <qt/bctdatabase.h>
 
@@ -67,6 +68,7 @@ private:
     QPushButton *refreshButton;
     QPushButton *detailsButton;
     QCheckBox *showExpiredCheckBox;
+    QTimer *refreshTimer;  // Timer for debouncing checkbox state changes
     
     // Tokenize Tab
     QWidget *tokenizeTab;

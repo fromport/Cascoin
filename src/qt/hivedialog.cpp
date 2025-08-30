@@ -18,6 +18,8 @@
 #include <qt/optionsmodel.h>
 #include <qt/platformstyle.h>
 #include <qt/receiverequestdialog.h>
+
+#include <thread>
 #include <qt/hivetablemodel.h>
 #include <qt/walletmodel.h>
 #include <qt/tinypie.h>
@@ -64,6 +66,22 @@ HiveDialog::HiveDialog(const PlatformStyle *_platformStyle, QWidget *parent) :
     ui->hiveWeightPie->foregroundCol = ui->hiveWeightPie->backgroundCol;
     ui->hiveWeightPie->backgroundCol = temp;
     ui->hiveWeightPie->borderCol = palette().color(backgroundRole());
+
+    // Initialize debouncing timer for checkbox state changes
+    updateTimer = new QTimer(this);
+    updateTimer->setSingleShot(true);
+    updateTimer->setInterval(300); // 300ms debounce delay
+    connect(updateTimer, &QTimer::timeout, this, [this]() {
+        // Disable checkbox during update to provide visual feedback
+        ui->includeDeadBeesCheckbox->setEnabled(false);
+        ui->includeDeadBeesCheckbox->setText(tr("Include expired mice (updating...)"));
+        
+        updateData();
+        
+        // Re-enable checkbox after update
+        ui->includeDeadBeesCheckbox->setEnabled(true);
+        ui->includeDeadBeesCheckbox->setText(tr("Include expired mice"));
+    });
 
     initGraph();
     ui->beePopGraph->hide();
@@ -296,7 +314,9 @@ void HiveDialog::on_beeCountSpinner_valueChanged(int i) {
 }
 
 void HiveDialog::on_includeDeadBeesCheckbox_stateChanged() {
-    updateData();
+    // Use debounced timer to prevent rapid toggling from causing multiple expensive operations
+    updateTimer->stop();
+    updateTimer->start();
 }
 
 void HiveDialog::on_showAdvancedStatsCheckbox_stateChanged() {
