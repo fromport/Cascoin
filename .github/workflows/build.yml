@@ -112,7 +112,7 @@ jobs:
           # Create distribution structure
           DIST_DIR="cascoin-linux-distribution"
           mkdir -p "$DIST_DIR"/bin
-          mkdir -p "$DIST_DIR"/lib
+          mkdir -p "$DIST_DIR"/lib/x86_64-linux-gnu
 
           
           # Copy binaries
@@ -147,7 +147,7 @@ jobs:
           
           # Copy ONLY the exact libraries that Cascoin needs (no extras)
           echo "Copying ONLY required Cascoin libraries..."
-          LIB_DIR="$DIST_DIR/lib"
+          LIB_DIR="$DIST_DIR/lib/x86_64-linux-gnu"
           
           # Copy exact Boost libraries needed by Cascoin
           echo "  Collecting required Boost libraries..."
@@ -238,13 +238,13 @@ jobs:
           # Create wrapper scripts
           cat > "$DIST_DIR"/bin/cascoin-qt-wrapper << 'EOF'
           #!/bin/bash
-          export LD_LIBRARY_PATH="$(dirname "$0")/../lib:$LD_LIBRARY_PATH"
+          export LD_LIBRARY_PATH="$(dirname "$0")/../lib/x86_64-linux-gnu:$LD_LIBRARY_PATH"
           exec "$(dirname "$0")/cascoin-qt" "$@"
           EOF
           
           cat > "$DIST_DIR"/bin/cascoind-wrapper << 'EOF'
           #!/bin/bash
-          export LD_LIBRARY_PATH="$(dirname "$0")/../lib:$LD_LIBRARY_PATH"
+          export LD_LIBRARY_PATH="$(dirname "$0")/../lib/x86_64-linux-gnu:$LD_LIBRARY_PATH"
           exec "$(dirname "$0")/cascoind" "$@"
           EOF
           
@@ -366,7 +366,7 @@ jobs:
           find "$DIST_DIR" -type d | sort
           echo ""
           echo "Libraries collected:"
-          ls -la "$DIST_DIR"/lib/ | head -10
+          ls -la "$DIST_DIR"/lib/x86_64-linux-gnu/ | head -10
           echo ""
           echo "Binaries:"
           ls -la "$DIST_DIR"/bin/
