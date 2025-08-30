@@ -133,6 +133,11 @@ void OptionsModel::Init(bool resetSettings)
     if (!settings.contains("fHiveContribCF"))
         settings.setValue("fHiveContribCF", DEFAULT_HIVE_CONTRIB_CF);
     fHiveContribCF = settings.value("fHiveContribCF").toBool();
+
+    // Cascoin: BCT view toggle - default to enabled for existing users
+    if (!settings.contains("fShowBCTView"))
+        settings.setValue("fShowBCTView", true);
+    fShowBCTView = settings.value("fShowBCTView").toBool();
 #endif
 
     // Network
@@ -305,6 +310,10 @@ QVariant OptionsModel::data(const QModelIndex & index, int role) const
         // Cascoin: MinotaurX+Hive1.2
         case HiveContribCF:
             return settings.value("fHiveContribCF");
+
+        // Cascoin: BCT view toggle
+        case ShowBCTView:
+            return fShowBCTView;
 #endif
         case DisplayUnit:
             return nDisplayUnit;
@@ -445,6 +454,13 @@ bool OptionsModel::setData(const QModelIndex & index, const QVariant & value, in
             fHiveContribCF = value.toBool();
             if (settings.value("fHiveContribCF") != value)
                 settings.setValue("fHiveContribCF", fHiveContribCF);
+            break;
+
+        // Cascoin: BCT view toggle
+        case ShowBCTView:
+            fShowBCTView = value.toBool();
+            settings.setValue("fShowBCTView", fShowBCTView);
+            Q_EMIT showBCTViewChanged(fShowBCTView);
             break;
 #endif
         case DisplayUnit:

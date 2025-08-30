@@ -751,28 +751,55 @@
        </item>
        <item>
         <layout class="QHBoxLayout" name="horizontalLayout_1_Hive_4">
-         <item>
-          <widget class="QCheckBox" name="hiveContribCF">
-           <property name="text">
-            <string>Send 15% of mouse fee to Community Fund (10% before Labyrinth 1.2 activation)</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <spacer name="horizontalSpacer_5">
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>40</width>
-             <height>20</height>
-            </size>
-           </property>
-          </spacer>
-         </item>
-        </layout>
-       </item>
+                   <item>
+           <widget class="QCheckBox" name="hiveContribCF">
+            <property name="text">
+             <string>Send 15% of mouse fee to Community Fund (10% before Labyrinth 1.2 activation)</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="horizontalSpacer_5">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_1_BCT">
+          <item>
+           <widget class="QCheckBox" name="showBCTView">
+            <property name="toolTip">
+             <string>Show or hide the BCT NFT view tab. This is a beta feature that may take time to adapt to the network.</string>
+            </property>
+            <property name="text">
+             <string>Show &amp;BCT NFT View (Beta)</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="horizontalSpacer_6">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </item>
        <item>
         <widget class="QLabel" name="label_5">
          <property name="text">
