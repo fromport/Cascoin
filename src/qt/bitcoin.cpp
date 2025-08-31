@@ -614,35 +614,15 @@ void BitcoinApplication::initializeResult(bool success)
         {
             window->show();
         }
-        // Keep splash until GUI is fully loaded and ready
-        // Wait for mice DB initialization
+        // Keep splash until mice DB init finished (original timing)
         if (!g_miceDbReady.load()) {
             QElapsedTimer timer; timer.start();
-            while (!g_miceDbReady.load() && timer.elapsed() < 15000) { // Increased timeout to 15 seconds
+            while (!g_miceDbReady.load() && timer.elapsed() < 10000) {
                 QThread::msleep(50);
                 QCoreApplication::processEvents(QEventLoop::AllEvents, 20);
             }
         }
-        
-        // Show final "GUI ready" message on splash
-        QMetaObject::invokeMethod(window, [this]() {
-            // Send final ready message to splash
-            std::string readyMessage = 
-                std::string("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n") +
-                "         CASCOIN BEREIT!\n" +
-                "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n" +
-                "✓ Wallet-Interface geladen\n" +
-                "✓ Alle Komponenten bereit\n" +
-                "✓ GUI vollständig initialisiert\n\n" +
-                "Das Wallet wird jetzt geöffnet...";
-                
-            uiInterface.InitMessage(readyMessage);
-            
-            // Additional delay to ensure GUI is fully rendered and user can read the message
-            QTimer::singleShot(1500, [this]() {
-                Q_EMIT splashFinished(window);
-            });
-        }, Qt::QueuedConnection);
+        Q_EMIT splashFinished(window);
 
 #ifdef ENABLE_WALLET
         // Now that initialization/startup is done, process any command-line
