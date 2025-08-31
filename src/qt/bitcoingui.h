@@ -126,6 +126,9 @@ private:
     /** Keep track of previous number of blocks, to detect progress */
     int prevBlocks;
     int spinnerFrame;
+    
+    /** Monitor GUI responsiveness */
+    ResponseMonitor *responseMonitor;
 
     const PlatformStyle *platformStyle;
 

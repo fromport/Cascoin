@@ -37,6 +37,13 @@
 #include <sync.h>           // Cascoin: Hive
 #include <boost/thread.hpp> // Cascoin: Hive: Mining optimisations
 #include <crypto/minotaurx/yespower/yespower.h>  // Cascoin: MinotaurX+Hive1.2
+#include <thread>  // For std::this_thread::yield()
+#include <qt/cpumanager.h>  // For CPU management utilities
+#ifdef _WIN32
+#include <windows.h>  // For SetThreadPriority
+#else
+#include <pthread.h>  // For pthread priority functions
+#endif
 
 
 static CCriticalSection cs_solution_vars;
@@ -684,6 +691,9 @@ void AbortWatchThread(int height) {
 
 // Cascoin: Hive: Mining optimisations: Thread to check a single bin
 void CheckBin(int threadID, std::vector<CBeeRange> bin, std::string deterministicRandString, arith_uint256 beeHashTarget) {
+    // Set lower priority for mining threads to preserve GUI responsiveness
+    CPUManager::SetThreadPriority(1); // Below normal priority
+    
     // Iterate over ranges in this bin
     int checkCount = 0;
     for (std::vector<CBeeRange>::const_iterator it = bin.begin(); it != bin.end(); it++) {
@@ -691,12 +701,14 @@ void CheckBin(int threadID, std::vector<CBeeRange> bin, std::string deterministi
         //LogPrintf("THREAD #%i: Checking %i-%i in %s\n", threadID, beeRange.offset, beeRange.offset + beeRange.count - 1, beeRange.txid);
         // Iterate over bees in this range
         for (int i = beeRange.offset; i < beeRange.offset + beeRange.count; i++) {
-            // Check abort conditions (Only every N bees. The atomic load is expensive, but much cheaper than a mutex - esp on Windows, see https://www.arangodb.com/2015/02/comparing-atomic-mutex-rwlocks/)
-            if(checkCount++ % 1000 == 0) {
+            // Check abort conditions and yield to OS more frequently for GUI responsiveness
+            if(checkCount++ % 500 == 0) { // Reduced from 1000 to 500 for more responsive checking
                 if (solutionFound.load() || earlyAbort.load()) {
                     //LogPrintf("THREAD #%i: Solution found elsewhere or early abort requested, ending early\n", threadID);
                     return;
                 }
+                // Yield CPU time to other threads (including GUI) more frequently
+                CPUManager::YieldToGUI();
             }
             // Hash the bee
             std::string hashHex = (CHashWriter(SER_GETHASH, 0) << deterministicRandString << beeRange.txid << i).GetHash().GetHex();
@@ -717,6 +729,9 @@ void CheckBin(int threadID, std::vector<CBeeRange> bin, std::string deterministi
 
 // Cascoin: MinotaurX+Hive1.2: Thread to check a single bee bin
 void CheckBinMinotaur(int threadID, std::vector<CBeeRange> bin, std::string deterministicRandString, arith_uint256 beeHashTarget) {
+    // Set lower priority for mining threads to preserve GUI responsiveness
+    CPUManager::SetThreadPriority(1); // Below normal priority
+    
     // Create yespower thread-local storage
     /*
     static __thread yespower_local_t local;
@@ -730,13 +745,15 @@ void CheckBinMinotaur(int threadID, std::vector<CBeeRange> bin, std::string dete
         //LogPrintf("THREAD #%i: Checking %i-%i in %s\n", threadID, beeRange.offset, beeRange.offset + beeRange.count - 1, beeRange.txid);
         // Iterate over bees in this range
         for (int i = beeRange.offset; i < beeRange.offset + beeRange.count; i++) {
-            // Check abort conditions (Only every N bees. The atomic load is expensive, but much cheaper than a mutex - esp on Windows, see https://www.arangodb.com/2015/02/comparing-atomic-mutex-rwlocks/)
-            if(checkCount++ % 1000 == 0) {
+            // Check abort conditions and yield more frequently for GUI responsiveness
+            if(checkCount++ % 500 == 0) { // Reduced from 1000 to 500 for more responsive checking
                 if (solutionFound.load() || earlyAbort.load()) {
                     //LogPrintf("THREAD #%i: Solution found elsewhere or early abort requested, ending early\n", threadID);
                     //yespower_free_local(&local);
                     return;
                 }
+                // Yield CPU time to other threads (including GUI) more frequently
+                CPUManager::YieldToGUI();
             }
 
             // Hash the bee
@@ -760,7 +777,7 @@ void CheckBinMinotaur(int threadID, std::vector<CBeeRange> bin, std::string dete
                 return;
             }
 
-            boost::this_thread::yield();
+            CPUManager::YieldToGUI();
         }
     }
     //LogPrintf("THREAD #%i: Out of tasks\n", threadID);
@@ -856,14 +873,11 @@ bool BusyBees(const Consensus::Params& consensusParams, int height) {
         return false;
     }
 
+    // Use CPU manager to get recommended thread count that preserves GUI responsiveness
+    int threadCount = CPUManager::GetRecommendedWorkerThreads(1); // Reserve 1 core for GUI
     int coreCount = GetNumVirtualCores();
-    int threadCount = gArgs.GetArg("-hivecheckthreads", DEFAULT_HIVE_THREADS);
-    if (threadCount == -2)
-        threadCount = std::max(1, coreCount - 1);
-    else if (threadCount < 0 || threadCount > coreCount)
-        threadCount = coreCount;
-    else if (threadCount == 0)
-        threadCount = 1;
+    
+    LogPrintf("BusyBees: Using %d threads (of %d cores) to preserve GUI responsiveness\n", threadCount, coreCount);
 
     int beesPerBin = ceil(totalBees / (float)threadCount);  // We want to check this many bees per thread
 
