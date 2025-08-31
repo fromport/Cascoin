@@ -272,8 +272,9 @@ BitcoinGUI::BitcoinGUI(const PlatformStyle *_platformStyle, const NetworkStyle *
 
     modalOverlay = new ModalOverlay(this->centralWidget());
     if (centralWidget()) {
-        // Ensure overlay covers the central area using child coordinates
-        modalOverlay->setGeometry(centralWidget()->rect());
+        // Ensure overlay covers the central area and is properly sized
+        modalOverlay->resize(centralWidget()->size());
+        modalOverlay->move(0, 0);
     }
 #ifdef ENABLE_WALLET
     if(enableWallet) {
@@ -968,8 +969,11 @@ void BitcoinGUI::setNumBlocks(int count, const QDateTime& blockDate, double nVer
         if(walletFrame)
         {
             walletFrame->showOutOfSyncWarning(true);
-            // Ensure modal overlay is properly shown and sized
-            modalOverlay->setGeometry(centralWidget()->geometry());
+            // Ensure modal overlay is properly shown and positioned
+            if (centralWidget()) {
+                modalOverlay->resize(centralWidget()->size());
+                modalOverlay->move(0, 0);
+            }
             modalOverlay->showHide(false, false);
             modalOverlay->raise();
         }
