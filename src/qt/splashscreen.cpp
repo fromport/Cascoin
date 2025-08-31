@@ -215,8 +215,15 @@ static void InitMessage(SplashScreen *splash, const std::string &message)
         simpleMessage = std::string("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n") +
                        "          CASCOIN BEREIT!\n" +
                        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n" +
-                       "Das Wallet wird geöffnet...\n" +
+                       "GUI wird geladen...\n" +
+                       "Wallet-Interface wird initialisiert...\n" +
                        "BCTs und Mice NFTs werden geladen.";
+    } else if (message.find("Loading") != std::string::npos) {
+        simpleMessage = std::string("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n") +
+                       "        CASCOIN LÄDT\n" +
+                       "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n" +
+                       "Wallet-Datenbank wird geladen...\n" +
+                       "Bitte warten Sie einen Moment.";
     } else {
         simpleMessage = std::string("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n") +
                        "        CASCOIN STARTET\n" +
@@ -267,6 +274,10 @@ static void ShowProgress(SplashScreen *splash, const std::string &title, int nPr
         statusMessage = "ÜBERPRÜFE BLOCKCHAIN";
     } else if (title.find("Rescanning") != std::string::npos) {
         statusMessage = "SCANNE TRANSAKTIONEN";
+    } else if (title.find("GUI") != std::string::npos || title.find("Interface") != std::string::npos) {
+        statusMessage = "LADE BENUTZEROBERFLÄCHE";
+    } else if (nProgress >= 95) {
+        statusMessage = "FINALISIERE WALLET";
     } else {
         statusMessage = "INITIALISIERE CASCOIN";
     }
@@ -285,8 +296,10 @@ static void ShowProgress(SplashScreen *splash, const std::string &title, int nPr
         finalMessage += "Dies ist normal beim ersten Start\n";
     } else if (nProgress < 70) {
         finalMessage += "Synchronisation läuft...\n";
-    } else {
+    } else if (nProgress < 95) {
         finalMessage += "Fast bereit!\n";
+    } else {
+        finalMessage += "GUI wird geladen...\n";
     }
     
     finalMessage += "\n(Drücke 'q' zum Beenden)";
