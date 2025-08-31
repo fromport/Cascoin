@@ -388,9 +388,10 @@ BitcoinApplication::BitcoinApplication(int &argc, char **argv):
         "QToolBar QToolButton:pressed { background: #38a169; }\n"
         // Status bar
         "QStatusBar { background: #2d3748; color: #cbd5e0; border-top: 1px solid #4a5568; }\n"
-        // Cards and frames - modern card design
-        "QFrame { background: #2d3748; border: 1px solid #4a5568; border-radius: 12px; padding: 16px; }\n"
+        // Cards and frames - modern card design with specific padding only for certain frames
+        "QFrame { background: #2d3748; border: 1px solid #4a5568; border-radius: 12px; }\n"
         "QFrame[frameShape=\"4\"] { background: #2d3748; border: 1px solid #4a5568; border-radius: 12px; }\n"
+        "QFrame.card { padding: 16px; }\n" /* Only apply padding to frames with 'card' class */
         // Buttons - modern green accent
         "QPushButton { background: #48bb78; color: #ffffff; border: none; border-radius: 8px; padding: 12px 24px; font-weight: bold; }\n"
         "QPushButton:hover { background: #38a169; }\n"
@@ -422,14 +423,16 @@ BitcoinApplication::BitcoinApplication(int &argc, char **argv):
         "QRadioButton::indicator:hover { border-color: #48bb78; background: #718096; }\n"
         "QRadioButton::indicator:checked { background: #48bb78; border-color: #48bb78; }\n"
         "QRadioButton::indicator:checked::before { content: ''; width: 8px; height: 8px; border-radius: 4px; background: #ffffff; margin: 3px; }\n"
-        // Tables and lists - modern design with proper contrast
-        "QHeaderView::section { background: #2d3748; color: #e2e8f0; padding: 12px; border: none; border-bottom: 1px solid #4a5568; font-weight: bold; }\n"
-        "QTableView, QListView { background: #1e1e1e; color: #ffffff; border: none; alternate-background-color: #2d3748; gridline-color: #4a5568; }\n"
-        "QTableView::item, QListView::item { padding: 8px; border-bottom: 1px solid #4a5568; color: #ffffff; }\n"
+        // Tables and lists - modern design with proper contrast and visibility
+        "QHeaderView::section { background: #2d3748; color: #e2e8f0; padding: 8px 12px; border: none; border-bottom: 1px solid #4a5568; font-weight: bold; min-height: 20px; }\n"
+        "QTableView, QListView { background: #1e1e1e; color: #ffffff; border: none; alternate-background-color: #2d3748; gridline-color: #4a5568; outline: none; }\n"
+        "QTableView::item, QListView::item { padding: 6px 8px; border-bottom: 1px solid #4a5568; color: #ffffff; min-height: 18px; }\n"
         "QTableView::item:selected, QListView::item:selected { background: #48bb78; color: #ffffff; }\n"
         "QTableView::item:hover, QListView::item:hover { background: #4a5568; color: #ffffff; }\n"
         "QTableView#transactionView { background: #1e1e1e; color: #ffffff; }\n"
         "QTableView#transactionView::item { color: #ffffff; }\n"
+        "QTableView#recentRequestsView { background: #1e1e1e; color: #ffffff; }\n"
+        "QTableView#recentRequestsView::item { color: #ffffff; min-height: 22px; }\n"
         // Combo boxes - enhanced to match input fields
         "QComboBox { background: #718096; color: #ffffff; border: 2px solid #a0aec0; border-radius: 8px; padding: 10px 14px; font-size: 14px; min-width: 120px; }\n"
         "QComboBox:hover { border-color: #cbd5e0; }\n"
