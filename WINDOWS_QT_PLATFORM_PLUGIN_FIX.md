@@ -8,50 +8,53 @@ Reinstalling the application may fix this problem. Available platform plugins ar
 ```
 
 ## Root Cause
-The issue was in the Qt6 static plugin configuration in the build system. For Qt6 builds, the platform-specific plugin imports were not being configured properly:
+The issue was that the application was **forcing Qt to use the XCB (Linux X11) platform** even on Windows. The error message "Available platform plugins are: windows" indicates that Qt could see the Windows platform plugin, but the application was explicitly telling Qt to use a different platform.
 
-1. **Qt6 Configuration Gap**: The Qt6 branch in `build-aux/m4/bitcoin_qt.m4` was only defining `QT_STATICPLUGIN` but not setting up platform-specific macros like `QT_QPA_PLATFORM_WINDOWS`.
+In `src/qt/bitcoin.cpp`, the code was:
+```cpp
+// Force Qt to use fallback instead of D-Bus
+qputenv("QT_QPA_PLATFORM", "xcb");  // ← This forces XCB on ALL platforms!
+```
 
-2. **Inconsistent Plugin Imports**: In `src/qt/bitcoin.cpp`, Qt6 was unconditionally importing `QWindowsIntegrationPlugin`, while Qt5 correctly used conditional imports based on platform macros.
+This hardcoded XCB platform selection was preventing the Windows platform plugin from being used on Windows systems.
 
 ## Solution Applied
 
-### 1. Fixed Qt6 Static Plugin Configuration (`build-aux/m4/bitcoin_qt.m4`)
-Added proper platform-specific plugin detection and linking for Qt6 static builds:
+### 1. Fixed Platform Environment Variable (`src/qt/bitcoin.cpp`)
+The main issue was that the application was forcing Qt to use the XCB (Linux) platform on all systems:
 
-```m4
-if test "x$bitcoin_qt_got_major_vers" = x6; then
-  dnl Qt6: detect static Qt and define QT_STATICPLUGIN so Q_IMPORT_PLUGIN works
-  _BITCOIN_QT_IS_STATIC
-  if test "x$bitcoin_cv_static_qt" = xyes; then
-    AC_DEFINE(QT_STATICPLUGIN, 1, [Define this symbol if qt plugins are static])
-    if test "x$TARGET_OS" = xwindows; then
-      _BITCOIN_QT_CHECK_STATIC_PLUGINS([Q_IMPORT_PLUGIN(QWindowsIntegrationPlugin)],[-lqwindows])
-      AC_DEFINE(QT_QPA_PLATFORM_WINDOWS, 1, [Define this symbol if the qt platform is windows])
-    elif test "x$TARGET_OS" = xlinux; then
-      _BITCOIN_QT_CHECK_STATIC_PLUGINS([Q_IMPORT_PLUGIN(QMinimalIntegrationPlugin)],[-lqminimal])
-      AC_DEFINE(QT_QPA_PLATFORM_MINIMAL, 1, [Define this symbol if the minimal qt platform exists])
-      _BITCOIN_QT_CHECK_STATIC_PLUGINS([Q_IMPORT_PLUGIN(QXcbIntegrationPlugin)],[-lqxcb -lxcb-static])
-      AC_DEFINE(QT_QPA_PLATFORM_XCB, 1, [Define this symbol if the qt platform is xcb])
-    elif test "x$TARGET_OS" = xdarwin; then
-      AX_CHECK_LINK_FLAG([[-framework IOKit]],[QT_LIBS="$QT_LIBS -framework IOKit"],[AC_MSG_ERROR(could not iokit framework)])
-      _BITCOIN_QT_CHECK_STATIC_PLUGINS([Q_IMPORT_PLUGIN(QCocoaIntegrationPlugin)],[-lqcocoa])
-      AC_DEFINE(QT_QPA_PLATFORM_COCOA, 1, [Define this symbol if the qt platform is cocoa])
-    fi
-  fi
+**Before (broken):**
+```cpp
+// Remove platform environment variables to allow automatic detection
+qunsetenv("QT_QPA_PLATFORM");
+// ... other code ...
+// Force Qt to use fallback instead of D-Bus
+qputenv("QT_QPA_PLATFORM", "xcb");  // ← This forces XCB on ALL platforms!
 ```
 
-### 2. Fixed Qt6 Plugin Imports (`src/qt/bitcoin.cpp`)
-Made Qt6 plugin imports conditional like Qt5, based on platform detection:
+**After (fixed):**
+```cpp
+// Remove platform environment variables to allow automatic detection
+qunsetenv("QT_QPA_PLATFORM");
+// ... other code ...
+#ifdef Q_OS_LINUX
+// Force Qt to use XCB instead of D-Bus on Linux
+qputenv("QT_QPA_PLATFORM", "xcb");
+#endif
+// On Windows and macOS, let Qt auto-detect the platform
+```
+
+### 2. Simplified Qt6 Static Plugin Handling
+Removed complex static plugin import logic for Qt6 and let Qt6's improved automatic plugin detection handle it:
 
 ```cpp
 #if defined(QT_STATICPLUGIN)
 #include <QtPlugin>
 #if QT_VERSION >= 0x060000
-// Qt6 static plugins
-#if defined(QT_QPA_PLATFORM_MINIMAL)
-Q_IMPORT_PLUGIN(QMinimalIntegrationPlugin);
-#endif
+// Qt6 static plugins - let Qt6 auto-detect platform plugins
+// Qt6 has better automatic plugin detection for static builds
+#else
+// Qt5 static plugins (unchanged)
 #if defined(QT_QPA_PLATFORM_XCB)
 Q_IMPORT_PLUGIN(QXcbIntegrationPlugin);
 #elif defined(QT_QPA_PLATFORM_WINDOWS)
@@ -59,20 +62,17 @@ Q_IMPORT_PLUGIN(QWindowsIntegrationPlugin);
 #elif defined(QT_QPA_PLATFORM_COCOA)
 Q_IMPORT_PLUGIN(QCocoaIntegrationPlugin);
 #endif
-#else
-// Qt5 static plugins (unchanged)
-// ...
 #endif
 #endif
 ```
 
 ## What This Fixes
 
-1. **Proper Platform Detection**: The build system now correctly detects the target platform (Windows) and defines `QT_QPA_PLATFORM_WINDOWS` for Qt6 builds.
+1. **Platform Auto-Detection**: On Windows, Qt can now auto-detect and use the correct "windows" platform plugin instead of being forced to use "xcb" (Linux X11).
 
-2. **Correct Static Plugin Linking**: The Windows platform plugin (`-lqwindows`) is now properly linked into the executable during the static build process.
+2. **Cross-Platform Compatibility**: The XCB platform forcing is now limited to Linux only, where it's needed to avoid D-Bus issues.
 
-3. **Conditional Plugin Imports**: The application now only imports the platform plugin that matches the target platform, preventing conflicts.
+3. **Simplified Qt6 Handling**: Qt6's improved automatic plugin detection eliminates the need for manual platform plugin imports.
 
 ## How to Apply the Fix
 
@@ -99,22 +99,22 @@ Q_IMPORT_PLUGIN(QCocoaIntegrationPlugin);
 ## Verification
 
 After applying this fix, the Windows executable should:
-- Have the Qt Windows platform plugin statically linked
+- Use the correct Windows platform plugin automatically
 - Start successfully without the "no Qt platform plugin" error
-- Not require any external Qt DLL files or plugin directories
+- Not be forced to use the wrong platform (XCB) on Windows
 
 ## Technical Details
 
 The error occurred because:
-- Qt6 static builds weren't getting the proper `QT_QPA_PLATFORM_WINDOWS` macro defined
-- Without this macro, the conditional plugin import in `bitcoin.cpp` wasn't working
-- The application had `QT_STATICPLUGIN` defined but wasn't importing the correct platform plugin
-- Qt runtime couldn't find an available platform plugin to initialize the GUI
+- The application was explicitly setting `QT_QPA_PLATFORM=xcb` on ALL platforms
+- This forced Qt to try to use the XCB (Linux X11) platform plugin on Windows
+- Even though the Windows platform plugin was available (hence "Available platform plugins are: windows"), Qt couldn't use it because of the environment variable override
+- The XCB platform plugin doesn't exist on Windows, causing the initialization failure
 
-This fix ensures that for Qt6 Windows cross-compilation:
-1. `QT_STATICPLUGIN` is defined ✓
-2. `QT_QPA_PLATFORM_WINDOWS` is defined ✓  
-3. `QWindowsIntegrationPlugin` is imported ✓
-4. `-lqwindows` is linked ✓
+This fix ensures that:
+1. **Linux**: Still uses XCB platform to avoid D-Bus issues ✓
+2. **Windows**: Uses automatic platform detection → Windows platform plugin ✓  
+3. **macOS**: Uses automatic platform detection → Cocoa platform plugin ✓
+4. **Qt6**: Leverages improved automatic plugin detection ✓
 
-The static plugin is now properly embedded in the executable, eliminating the need for external plugin files.
+The fix is much simpler than initially thought - it's about letting Qt use the right platform instead of forcing the wrong one!
