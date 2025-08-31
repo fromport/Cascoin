@@ -44,25 +44,38 @@ qputenv("QT_QPA_PLATFORM", "xcb");
 // On Windows and macOS, let Qt auto-detect the platform
 ```
 
-### 2. Simplified Qt6 Static Plugin Handling
-Removed complex static plugin import logic for Qt6 and let Qt6's improved automatic plugin detection handle it:
+### 2. Fixed Qt6 Static Plugin Imports
+Updated Qt6 to use runtime platform detection instead of build-time macros:
 
 ```cpp
 #if defined(QT_STATICPLUGIN)
 #include <QtPlugin>
 #if QT_VERSION >= 0x060000
-// Qt6 static plugins - let Qt6 auto-detect platform plugins
-// Qt6 has better automatic plugin detection for static builds
-#else
-// Qt5 static plugins (unchanged)
-#if defined(QT_QPA_PLATFORM_XCB)
-Q_IMPORT_PLUGIN(QXcbIntegrationPlugin);
-#elif defined(QT_QPA_PLATFORM_WINDOWS)
+// Qt6 static plugins
+#ifdef Q_OS_WIN
 Q_IMPORT_PLUGIN(QWindowsIntegrationPlugin);
-#elif defined(QT_QPA_PLATFORM_COCOA)
+#elif defined(Q_OS_LINUX)
+Q_IMPORT_PLUGIN(QXcbIntegrationPlugin);
+#elif defined(Q_OS_MACOS)
 Q_IMPORT_PLUGIN(QCocoaIntegrationPlugin);
 #endif
+#else
+// Qt5 static plugins (unchanged)
+// ...
 #endif
+#endif
+```
+
+### 3. Explicit Windows Platform Selection
+Added explicit platform selection for Windows to ensure the correct plugin is used:
+
+```cpp
+#ifdef Q_OS_LINUX
+// Force Qt to use XCB instead of D-Bus on Linux
+qputenv("QT_QPA_PLATFORM", "xcb");
+#elif defined(Q_OS_WIN)
+// On Windows, explicitly set the platform to ensure correct plugin is used
+qputenv("QT_QPA_PLATFORM", "windows");
 #endif
 ```
 
