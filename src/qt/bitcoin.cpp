@@ -405,12 +405,14 @@ BitcoinApplication::BitcoinApplication(int &argc, char **argv):
         // Input fields
         "QLineEdit, QTextEdit, QPlainTextEdit, QSpinBox, QDoubleSpinBox { background: #4a5568; color: #ffffff; border: 1px solid #718096; border-radius: 8px; padding: 8px 12px; }\n"
         "QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus { border-color: #48bb78; }\n"
-        // Tables and lists - modern design
+        // Tables and lists - modern design with proper contrast
         "QHeaderView::section { background: #2d3748; color: #e2e8f0; padding: 12px; border: none; border-bottom: 1px solid #4a5568; font-weight: bold; }\n"
         "QTableView, QListView { background: #1e1e1e; color: #ffffff; border: none; alternate-background-color: #2d3748; gridline-color: #4a5568; }\n"
-        "QTableView::item, QListView::item { padding: 8px; border-bottom: 1px solid #4a5568; }\n"
+        "QTableView::item, QListView::item { padding: 8px; border-bottom: 1px solid #4a5568; color: #ffffff; }\n"
         "QTableView::item:selected, QListView::item:selected { background: #48bb78; color: #ffffff; }\n"
-        "QTableView::item:hover, QListView::item:hover { background: #4a5568; }\n"
+        "QTableView::item:hover, QListView::item:hover { background: #4a5568; color: #ffffff; }\n"
+        "QTableView#transactionView { background: #1e1e1e; color: #ffffff; }\n"
+        "QTableView#transactionView::item { color: #ffffff; }\n"
         // Combo boxes
         "QComboBox { background: #4a5568; color: #ffffff; border: 1px solid #718096; border-radius: 8px; padding: 8px 12px; }\n"
         "QComboBox::drop-down { border: none; }\n"

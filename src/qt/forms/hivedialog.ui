@@ -115,7 +115,7 @@
       <string notr="true">#createBeesForm{background:url(:/icons/hive_background_flash);
 background-repeat:no-repeat;
 background-position:bottom right;
-background-color:white; color:black;}</string>
+background-color:#2d3748; color:#ffffff;}</string>
      </property>
      <property name="frameShape">
       <enum>QFrame::StyledPanel</enum>
@@ -464,7 +464,7 @@ background-color:white; color:black;}</string>
    <item>
     <widget class="QFrame" name="globalHiveSummary">
      <property name="styleSheet">
-      <string notr="true">#globalHiveSummary {background-color:white; color:black;}</string>
+      <string notr="true">#globalHiveSummary {background-color:#2d3748; color:#ffffff;}</string>
      </property>
      <property name="frameShape">
       <enum>QFrame::StyledPanel</enum>
@@ -782,7 +782,7 @@ background-color:white; color:black;}</string>
     <widget class="QFrame" name="globalHiveSummaryError">
      <property name="styleSheet">
       <string notr="true">#globalHiveSummaryError {
-background-color:white; color:black;
+background-color:#2d3748; color:#ffffff;
 }</string>
      </property>
      <property name="frameShape">

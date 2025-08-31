@@ -90,12 +90,19 @@ PlatformStyle::PlatformStyle(const QString &_name, bool _imagesOnButtons, bool _
         else
             colorbase = colorHighlightFg;
         singleColor = colorbase;
-        // Ensure sufficient lightness for readability across themes
-        if (singleColor.lightness() < 120) {
-            QColor hsl = singleColor.toHsl();
-            // Raise lightness while preserving hue/saturation
-            hsl.setHsl(hsl.hue(), hsl.saturation(), 160, hsl.alpha());
-            singleColor = hsl.toRgb();
+        // Ensure sufficient contrast for dark theme
+        if (colorText.lightness() > 128) {
+            // Light theme - use darker icons
+            if (singleColor.lightness() < 120) {
+                QColor hsl = singleColor.toHsl();
+                hsl.setHsl(hsl.hue(), hsl.saturation(), 160, hsl.alpha());
+                singleColor = hsl.toRgb();
+            }
+        } else {
+            // Dark theme - use lighter icons for better visibility
+            if (singleColor.lightness() < 180) {
+                singleColor = QColor("#cbd5e0"); // Light grey for dark theme
+            }
         }
     }
     // Determine text color
