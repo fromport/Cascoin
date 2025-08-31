@@ -34,7 +34,7 @@ public:
     /**
      * Check if system is currently under high load
      */
-    bool isHighLoad() const { return highLoadDetected.load(); }
+    bool isHighLoad() const { return highLoadState.load(); }
     
     /**
      * Get current response time in milliseconds
@@ -58,7 +58,7 @@ private Q_SLOTS:
 private:
     QTimer* monitorTimer;
     QElapsedTimer responseTimer;
-    std::atomic<bool> highLoadDetected{false};
+    std::atomic<bool> highLoadState{false};
     std::atomic<int> lastResponseTime{0};
     
     static const int MONITOR_INTERVAL_MS = 500;  // Check every 500ms

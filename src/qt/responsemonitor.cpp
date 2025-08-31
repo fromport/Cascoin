@@ -47,17 +47,17 @@ void ResponseMonitor::checkResponseTime()
     int responseDelay = elapsed - MONITOR_INTERVAL_MS;
     lastResponseTime.store(responseDelay);
     
-    bool wasHighLoad = highLoadDetected.load();
+    bool wasHighLoad = highLoadState.load();
     
     if (responseDelay > HIGH_LOAD_THRESHOLD_MS && !wasHighLoad) {
-        highLoadDetected.store(true);
+        highLoadState.store(true);
         qDebug() << "ResponseMonitor: High load detected (response delay:" << responseDelay << "ms)";
         Q_EMIT highLoadDetected();
     } else if (responseDelay < NORMAL_LOAD_THRESHOLD_MS && wasHighLoad) {
-        highLoadDetected.store(false);
+        highLoadState.store(false);
         qDebug() << "ResponseMonitor: Normal load restored (response delay:" << responseDelay << "ms)";
         Q_EMIT normalLoadRestored();
     }
 }
 
-#include <qt/responsemonitor.moc>
+#include <qt/moc_responsemonitor.cpp>

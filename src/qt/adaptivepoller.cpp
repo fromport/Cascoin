@@ -57,4 +57,4 @@ void AdaptivePoller::onTimerTimeout()
     Q_EMIT timeout();
 }
 
-#include <qt/adaptivepoller.moc>
+#include <qt/moc_adaptivepoller.cpp>

@@ -12,6 +12,7 @@
 #include <QPushButton>
 #include <QDialogButtonBox>
 #include <QApplication>
+#include <QSettings>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -151,4 +152,4 @@ int CPUSettingsDialog::getSystemCoreCount()
 #endif
 }
 
-#include <qt/cpusettingsdialog.moc>
+#include <qt/moc_cpusettingsdialog.cpp>

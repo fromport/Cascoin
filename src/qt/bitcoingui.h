@@ -23,6 +23,7 @@ class NetworkStyle;
 class Notificator;
 class OptionsModel;
 class PlatformStyle;
+class ResponseMonitor;
 class RPCConsole;
 class SendCoinsRecipient;
 class UnitDisplayStatusBarControl;

@@ -5,6 +5,8 @@
 #include <qt/walletmodel.h>
 
 #include <qt/addresstablemodel.h>
+#include <QProgressDialog>
+#include <QCoreApplication>
 #include <consensus/validation.h>
 #include <qt/guiconstants.h>
 #include <qt/guiutil.h>
