@@ -107,8 +107,8 @@ static QString GetLangTerritory()
 {
     QSettings settings;
     // Get desired locale (e.g. "de_DE")
-    // 1) System default language
-    QString lang_territory = QLocale::system().name();
+    // 1) Default to English instead of system locale to ensure English on English systems
+    QString lang_territory = "en";
     // 2) Language from QSettings
     QString lang_territory_qsettings = settings.value("language", "").toString();
     if(!lang_territory_qsettings.isEmpty())
@@ -128,7 +128,7 @@ static void initTranslations(QTranslator &qtTranslatorBase, QTranslator &qtTrans
     QApplication::removeTranslator(&translator);
 
     // Get desired locale (e.g. "de_DE")
-    // 1) System default language
+    // 1) Default language (English unless overridden)
     QString lang_territory = GetLangTerritory();
 
     // Convert to "de" only by truncating "_DE"
