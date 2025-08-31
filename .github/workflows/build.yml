@@ -478,49 +478,49 @@ jobs:
         shell: bash
         run: make -j"$(nproc)"
 
-#      - name: Strip Windows binaries (non-fatal) and keep debug symbols
-#        shell: bash
-#        run: |
-#          shopt -s nullglob
-#          bins=(src/*.exe src/qt/*.exe)
-#          for b in "${bins[@]}"; do
-#            if [[ -f "$b" ]]; then
-#              echo "Processing $b"
-#              if command -v ${HOST}-objcopy >/dev/null 2>&1; then
-#                ${HOST}-objcopy --only-keep-debug "$b" "$b".debug || true
-#              fi
-#              if command -v ${HOST}-strip >/dev/null 2>&1; then
-#                ${HOST}-strip --strip-unneeded "$b" || true
-#              fi
-#              if command -v ${HOST}-objcopy >/dev/null 2>&1; then
-#                ${HOST}-objcopy --add-gnu-debuglink="$b".debug "$b" || true
-#              fi
-#            fi
-#          done
+      - name: Strip Windows binaries (non-fatal) and keep debug symbols
+        shell: bash
+        run: |
+          shopt -s nullglob
+          bins=(src/*.exe src/qt/*.exe)
+          for b in "${bins[@]}"; do
+            if [[ -f "$b" ]]; then
+              echo "Processing $b"
+              if command -v ${HOST}-objcopy >/dev/null 2>&1; then
+                ${HOST}-objcopy --only-keep-debug "$b" "$b".debug || true
+              fi
+              if command -v ${HOST}-strip >/dev/null 2>&1; then
+                ${HOST}-strip --strip-unneeded "$b" || true
+              fi
+              if command -v ${HOST}-objcopy >/dev/null 2>&1; then
+                ${HOST}-objcopy --add-gnu-debuglink="$b".debug "$b" || true
+              fi
+            fi
+          done
 
-#      - name: List built Windows binaries
-#        shell: bash
-#        run: |
-#          ls -lah src || true
-#          ls -lah src/qt || true
+      - name: List built Windows binaries
+        shell: bash
+        run: |
+          ls -lah src || true
+          ls -lah src/qt || true
 
-#      - name: Upload Windows artifacts
-#        if: always()
-#        uses: actions/upload-artifact@v4
-#        with:
-#          name: cascoin-windows-${{ env.HOST }}-build
-#          path: |
-#            src/*.exe
-#            src/qt/*.exe
-#          if-no-files-found: warn
+      - name: Upload Windows artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cascoin-windows-${{ env.HOST }}-build
+          path: |
+            src/*.exe
+            src/qt/*.exe
+          if-no-files-found: warn
 
-#      - name: Upload Windows debug symbols
-#        if: always()
-#        uses: actions/upload-artifact@v4
-#        with:
-#          name: cascoin-windows-${{ env.HOST }}-debug
-#          path: |
-#            src/*.exe.debug
-#            src/qt/*.exe.debug
-#          if-no-files-found: ignore
+      - name: Upload Windows debug symbols
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cascoin-windows-${{ env.HOST }}-debug
+          path: |
+            src/*.exe.debug
+            src/qt/*.exe.debug
+          if-no-files-found: ignore
 
