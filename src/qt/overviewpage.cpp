@@ -293,19 +293,19 @@ void OverviewPage::updateHiveSummary() {
             + BitcoinUnits::shortName(walletModel->getOptionsModel()->getDisplayUnit())
         );
         // Update the single mice status label with clean formatting using proper terminology
-        QString miceText = QString("(%1 ruhende Mäuse, %2 Abenteuer-Mäuse")
+        QString miceText = QString("(%1 resting mice, %2 adventure mice")
             .arg(HiveDialog::formatLargeNoLocale(immature))
             .arg(HiveDialog::formatLargeNoLocale(mature));
         
         if (dead > 0) {
-            miceText += QString(", %1 verstorbene").arg(HiveDialog::formatLargeNoLocale(dead));
+            miceText += QString(", %1 deceased").arg(HiveDialog::formatLargeNoLocale(dead));
         }
         miceText += ")";
         
         ui->miceStatusLabel->setText(miceText);
         
         // Update the blocks found status label with proper terminology
-        QString blocksText = QString("(%1 Käse-Blöcke im Labyrinth gefunden)")
+        QString blocksText = QString("(%1 cheese blocks found in labyrinth)")
             .arg(HiveDialog::formatLargeNoLocale(blocksFound));
         ui->blocksFoundStatusLabel->setText(blocksText);
     }
