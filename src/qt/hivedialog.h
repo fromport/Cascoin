@@ -70,6 +70,7 @@ public:
 
 public Q_SLOTS:
     void updateData(bool forceGlobalSummaryUpdate = false);
+    void updateHiveSummary();
     void setBalance(const CAmount& balance, const CAmount& unconfirmedBalance, const CAmount& immatureBalance,
                     const CAmount& watchOnlyBalance, const CAmount& watchUnconfBalance, const CAmount& watchImmatureBalance);
     void setEncryptionStatus(int status);
@@ -109,6 +110,7 @@ private Q_SLOTS:
     void on_createBeesButton_clicked();
     void on_beeCountSpinner_valueChanged(int i);
     void on_includeDeadBeesCheckbox_stateChanged();
+    void onUpdateTimerTimeout();
     void on_showAdvancedStatsCheckbox_stateChanged();
     void updateDisplayUnit();
     void on_retryGlobalSummaryButton_clicked();

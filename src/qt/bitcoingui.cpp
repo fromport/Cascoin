@@ -270,16 +270,35 @@ BitcoinGUI::BitcoinGUI(const PlatformStyle *_platformStyle, const NetworkStyle *
     connect(hiveStatusIcon, SIGNAL(clicked(QPoint)), this, SLOT(gotoHivePage()));
 
     modalOverlay = new ModalOverlay(this->centralWidget());
+    if (centralWidget()) {
+        // Ensure overlay covers the central area using child coordinates
+        modalOverlay->setGeometry(centralWidget()->rect());
+    }
 #ifdef ENABLE_WALLET
     if(enableWallet) {
         connect(walletFrame, SIGNAL(requestedSyncWarningInfo()), this, SLOT(showModalOverlay()));
         connect(labelBlocksIcon, SIGNAL(clicked(QPoint)), this, SLOT(showModalOverlay()));
         connect(progressBar, SIGNAL(clicked(QPoint)), this, SLOT(showModalOverlay()));
         
-        // Ensure modal overlay is visible during initial sync
-        modalOverlay->setVisible(true);
-        modalOverlay->showHide(false, false);
-        modalOverlay->raise(); // Bring to front
+        // Ensure modal overlay is visible during initial sync but defer until first frame is painted
+        QTimer::singleShot(0, this, [this]() {
+            if (!modalOverlay) return;
+            if (centralWidget()) {
+                modalOverlay->setGeometry(centralWidget()->rect());
+            }
+            modalOverlay->setVisible(true);
+            modalOverlay->showHide(false, false);
+            modalOverlay->raise(); // Bring to front
+
+            // Force a paint so the window doesn't appear black while overlay initializes
+            this->update();
+            this->repaint();
+            if (centralWidget()) {
+                centralWidget()->update();
+                centralWidget()->repaint();
+            }
+            QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents, 50);
+        });
     }
 #endif
 

@@ -71,17 +71,7 @@ HiveDialog::HiveDialog(const PlatformStyle *_platformStyle, QWidget *parent) :
     updateTimer = new QTimer(this);
     updateTimer->setSingleShot(true);
     updateTimer->setInterval(300); // 300ms debounce delay
-    connect(updateTimer, &QTimer::timeout, this, [this]() {
-        // Disable checkbox during update to provide visual feedback
-        ui->includeDeadBeesCheckbox->setEnabled(false);
-        ui->includeDeadBeesCheckbox->setText(tr("Include expired mice (updating...)"));
-        
-        updateData();
-        
-        // Re-enable checkbox after update
-        ui->includeDeadBeesCheckbox->setEnabled(true);
-        ui->includeDeadBeesCheckbox->setText(tr("Include expired mice"));
-    });
+    connect(updateTimer, SIGNAL(timeout()), this, SLOT(onUpdateTimerTimeout()));
 
     initGraph();
     ui->beePopGraph->hide();
@@ -132,8 +122,13 @@ void HiveDialog::setModel(WalletModel *_model) {
         //columnResizingFixer = new GUIUtil::TableViewLastColumnResizingFixer(tableView, PROFIT_COLUMN_WIDTH, HIVE_COL_MIN_WIDTH, this);
         columnResizingFixer = new GUIUtil::TableViewLastColumnResizingFixer(tableView, REWARDS_COLUMN_WIDTH, HIVE_COL_MIN_WIDTH, this);
 
-        // Populate initial data
-        updateData(true);
+        // Connect signal to update local summary like OverviewPage
+        connect(_model, SIGNAL(newHiveSummaryAvailable()), this, SLOT(updateHiveSummary()));
+
+        // Populate initial data: trigger background load
+        if (_model->getHiveTableModel()) {
+            _model->getHiveTableModel()->updateBCTs(ui->includeDeadBeesCheckbox->isChecked());
+        }
     }
 }
 
@@ -180,69 +175,22 @@ QString HiveDialog::formatLargeNoLocale(int i) {
 }
 
 void HiveDialog::updateData(bool forceGlobalSummaryUpdate) {
+    const Consensus::Params& consensusParams = Params().GetConsensus();
+
+    // Always ensure local summary UI reflects latest cached values
+    updateHiveSummary();
+
+    // Update cost-related UI regardless of sync
+    beeCost = GetBeeCost(chainActive.Tip()->nHeight, consensusParams);
+    setAmountField(ui->beeCostLabel, beeCost);
+    updateTotalCostDisplay();
+
+    // Global summary only when not IBD
     if(IsInitialBlockDownload() || chainActive.Height() == 0) {
         ui->globalHiveSummary->hide();
         ui->globalHiveSummaryError->show();
         return;
     }
-    
-    const Consensus::Params& consensusParams = Params().GetConsensus();
-
-    if(model && model->getHiveTableModel()) {
-        model->getHiveTableModel()->updateBCTs(ui->includeDeadBeesCheckbox->isChecked());
-        model->getHiveTableModel()->getSummaryValues(immature, mature, dead, blocksFound, cost, rewardsPaid, profit);
-        
-        // Update labels
-        setAmountField(ui->rewardsPaidLabel, rewardsPaid);
-        setAmountField(ui->costLabel, cost);
-        setAmountField(ui->profitLabel, profit);
-        ui->matureLabel->setText(formatLargeNoLocale(mature));
-        ui->immatureLabel->setText(formatLargeNoLocale(immature));
-        ui->blocksFoundLabel->setText(QString::number(blocksFound));
-
-        if(dead == 0) {
-            ui->deadLabel->hide();
-            ui->deadTitleLabel->hide();
-            ui->deadLabelSpacer->changeSize(0, 0, QSizePolicy::Fixed, QSizePolicy::Fixed);
-        } else {
-            ui->deadLabel->setText(formatLargeNoLocale(dead));
-            ui->deadLabel->show();
-            ui->deadTitleLabel->show();
-            ui->deadLabelSpacer->changeSize(ui->immatureLabelSpacer->geometry().width(), 0, QSizePolicy::Fixed, QSizePolicy::Fixed);
-        }
-
-        // Set icon and tooltip for tray icon
-        QString tooltip, icon;
-        if (clientModel && clientModel->getNumConnections() == 0) {
-            tooltip = "Cascoin is not connected";
-            icon = ":/icons/hivestatus_disabled";
-        } else if (!model->isHiveEnabled()) {
-            tooltip = "The Labyrinth is not enabled on the network";
-            icon = ":/icons/hivestatus_disabled";
-        } else {
-            if (mature + immature == 0) {
-                tooltip = "No live mice currently in wallet";
-                icon = ":/icons/hivestatus_clear";
-            } else if (mature == 0) {
-                tooltip = "Only immature mice currently in wallet";
-                icon = ":/icons/hivestatus_orange";
-            } else {
-                if (model->getEncryptionStatus() == WalletModel::Locked) {
-                    tooltip = "WARNING: Mice mature but not mining because wallet is locked";
-                    icon = ":/icons/hivestatus_red";
-                } else {
-                    tooltip = "Mice mature and mining";
-                    icon = ":/icons/hivestatus_green";
-                }
-            }
-        }
-        // Now update bitcoingui
-        Q_EMIT hiveStatusIconChanged(icon, tooltip);
-    }
-
-    beeCost = GetBeeCost(chainActive.Tip()->nHeight, consensusParams);
-    setAmountField(ui->beeCostLabel, beeCost);
-    updateTotalCostDisplay();
 
     if (forceGlobalSummaryUpdate || chainActive.Tip()->nHeight >= lastGlobalCheckHeight + 10) { // Don't update global summary every block
         int globalImmatureBees, globalImmatureBCTs, globalMatureBees, globalMatureBCTs;
@@ -267,8 +215,8 @@ void HiveDialog::updateData(bool forceGlobalSummaryUpdate) {
 
         setAmountField(ui->potentialRewardsLabel, potentialRewards);
 
-        double hiveWeight = mature / (double)globalMatureBees;
-        ui->localHiveWeightLabel->setText((mature == 0 || globalMatureBees == 0) ? "0" : QString::number(hiveWeight, 'f', 3));
+        double hiveWeight = (globalMatureBees == 0) ? 0.0 : mature / (double)globalMatureBees;
+        ui->localHiveWeightLabel->setText(QString::number(hiveWeight, 'f', 3));
         ui->hiveWeightPie->setValue(hiveWeight);
 
         beePopIndex = ((beeCost * globalMatureBees) / (double)potentialRewards) * 100.0;
@@ -280,6 +228,58 @@ void HiveDialog::updateData(bool forceGlobalSummaryUpdate) {
     }
 
     ui->blocksTillGlobalRefresh->setText(QString::number(10 - (chainActive.Tip()->nHeight - lastGlobalCheckHeight)));
+}
+
+void HiveDialog::updateHiveSummary() {
+    if(!(model && model->getHiveTableModel())) return;
+
+    model->getHiveTableModel()->getSummaryValues(immature, mature, dead, blocksFound, cost, rewardsPaid, profit);
+
+    // Update labels
+    setAmountField(ui->rewardsPaidLabel, rewardsPaid);
+    setAmountField(ui->costLabel, cost);
+    setAmountField(ui->profitLabel, profit);
+    ui->matureLabel->setText(formatLargeNoLocale(mature));
+    ui->immatureLabel->setText(formatLargeNoLocale(immature));
+    ui->blocksFoundLabel->setText(QString::number(blocksFound));
+
+    if(dead == 0) {
+        ui->deadLabel->hide();
+        ui->deadTitleLabel->hide();
+        ui->deadLabelSpacer->changeSize(0, 0, QSizePolicy::Fixed, QSizePolicy::Fixed);
+    } else {
+        ui->deadLabel->setText(formatLargeNoLocale(dead));
+        ui->deadLabel->show();
+        ui->deadTitleLabel->show();
+        ui->deadLabelSpacer->changeSize(ui->immatureLabelSpacer->geometry().width(), 0, QSizePolicy::Fixed, QSizePolicy::Fixed);
+    }
+
+    // Status icon
+    QString tooltip, icon;
+    if (clientModel && clientModel->getNumConnections() == 0) {
+        tooltip = "Cascoin is not connected";
+        icon = ":/icons/hivestatus_disabled";
+    } else if (!model->isHiveEnabled()) {
+        tooltip = "The Labyrinth is not enabled on the network";
+        icon = ":/icons/hivestatus_disabled";
+    } else {
+        if (mature + immature == 0) {
+            tooltip = "No live mice currently in wallet";
+            icon = ":/icons/hivestatus_clear";
+        } else if (mature == 0) {
+            tooltip = "Only immature mice currently in wallet";
+            icon = ":/icons/hivestatus_orange";
+        } else {
+            if (model->getEncryptionStatus() == WalletModel::Locked) {
+                tooltip = "WARNING: Mice mature but not mining because wallet is locked";
+                icon = ":/icons/hivestatus_red";
+            } else {
+                tooltip = "Mice mature and mining";
+                icon = ":/icons/hivestatus_green";
+            }
+        }
+    }
+    Q_EMIT hiveStatusIconChanged(icon, tooltip);
 }
 
 void HiveDialog::updateDisplayUnit() {
@@ -317,6 +317,20 @@ void HiveDialog::on_includeDeadBeesCheckbox_stateChanged() {
     // Use debounced timer to prevent rapid toggling from causing multiple expensive operations
     updateTimer->stop();
     updateTimer->start();
+}
+
+void HiveDialog::onUpdateTimerTimeout() {
+    // Disable checkbox during update to provide visual feedback
+    ui->includeDeadBeesCheckbox->setEnabled(false);
+    ui->includeDeadBeesCheckbox->setText(tr("Include expired mice (updating...)"));
+
+    if(model && model->getHiveTableModel()) {
+        model->getHiveTableModel()->updateBCTs(ui->includeDeadBeesCheckbox->isChecked());
+    }
+
+    // Re-enable checkbox after update
+    ui->includeDeadBeesCheckbox->setEnabled(true);
+    ui->includeDeadBeesCheckbox->setText(tr("Include expired mice"));
 }
 
 void HiveDialog::on_showAdvancedStatsCheckbox_stateChanged() {
