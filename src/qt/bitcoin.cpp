@@ -365,11 +365,12 @@ BitcoinApplication::BitcoinApplication(int &argc, char **argv):
     appPalette.setColor(QPalette::Text, QColor("#ffffff"));            // white text
     QApplication::setPalette(appPalette);
 
-    // Apply modern dark theme stylesheet inspired by the mockup
+    // Apply modern dark theme stylesheet - optimized for faster loading
     const QString appStyle =
-        // Main window and background
+        // Main window and background - simplified for performance
         "QMainWindow { background-color: #1e1e1e; color: #ffffff; }\n"
         "QWidget { background-color: #1e1e1e; color: #ffffff; }\n"
+        "QFrame { background-color: #1e1e1e; color: #ffffff; }\n"
         // Menu bar - dark header style
         "QMenuBar { background: #2d3748; color: #ffffff; border-bottom: 1px solid #4a5568; padding: 4px; }\n"
         "QMenuBar::item { background: transparent; padding: 8px 12px; border-radius: 4px; }\n"
@@ -467,6 +468,15 @@ void BitcoinApplication::createOptionsModel(bool resetSettings)
 void BitcoinApplication::createWindow(const NetworkStyle *networkStyle)
 {
     window = new BitcoinGUI(platformStyle, networkStyle, 0);
+    
+    // Ensure the window inherits the dark theme properly
+    window->setAttribute(Qt::WA_OpaquePaintEvent, false);
+    window->setAttribute(Qt::WA_NoSystemBackground, false);
+    
+    // Force immediate style application to prevent black screen
+    window->style()->unpolish(window);
+    window->style()->polish(window);
+    window->update();
 
     pollShutdownTimer = new QTimer(window);
     connect(pollShutdownTimer, SIGNAL(timeout()), window, SLOT(detectShutdown()));
@@ -605,16 +615,7 @@ void BitcoinApplication::initializeResult(bool success)
         }
 #endif
 
-        // If -min option passed, start window minimized.
-        if(gArgs.GetBoolArg("-min", false))
-        {
-            window->showMinimized();
-        }
-        else
-        {
-            window->show();
-        }
-        // Keep splash until mice DB init finished (original timing)
+        // Keep splash until mice DB init finished, THEN show window
         if (!g_miceDbReady.load()) {
             QElapsedTimer timer; timer.start();
             while (!g_miceDbReady.load() && timer.elapsed() < 10000) {
@@ -622,6 +623,23 @@ void BitcoinApplication::initializeResult(bool success)
                 QCoreApplication::processEvents(QEventLoop::AllEvents, 20);
             }
         }
+        
+        // Ensure all widgets are properly initialized before showing
+        QCoreApplication::processEvents(QEventLoop::AllEvents, 100);
+        
+        // Show window
+        if(gArgs.GetBoolArg("-min", false))
+        {
+            window->showMinimized();
+        }
+        else
+        {
+            window->show();
+            window->raise();
+            window->activateWindow();
+        }
+        
+        // Immediately close splash - let window render naturally
         Q_EMIT splashFinished(window);
 
 #ifdef ENABLE_WALLET
