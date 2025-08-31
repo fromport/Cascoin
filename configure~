@@ -29237,6 +29237,236 @@ printf "%s\n" "#define QT_STATICPLUGIN 1" >>confdefs.h
 
 printf "%s\n" "#define QT_STATICPLUGIN 1" >>confdefs.h
 
+      if test "x$TARGET_OS" = xwindows; then
+
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for static Qt plugins: -lqwindows" >&5
+printf %s "checking for static Qt plugins: -lqwindows... " >&6; }
+  CHECK_STATIC_PLUGINS_TEMP_LIBS="$LIBS"
+  LIBS="-lqwindows $QT_LIBS $LIBS"
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+    #define QT_STATICPLUGIN
+    #include <QtPlugin>
+    Q_IMPORT_PLUGIN(QWindowsIntegrationPlugin)
+int
+main (void)
+{
+return 0;
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"
+then :
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+printf "%s\n" "yes" >&6; }; QT_LIBS="-lqwindows $QT_LIBS"
+else case e in #(
+  e) { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; };
+  if test "x$bitcoin_qt_want_version" = xauto && test "x$bitcoin_qt_force" != xyes; then
+    if test "x$bitcoin_enable_qt" != xno; then
+      { printf "%s\n" "$as_me:${as_lineno-$LINENO}: WARNING: Could not resolve: -lqwindows; cascoin-qt frontend will not be built" >&5
+printf "%s\n" "$as_me: WARNING: Could not resolve: -lqwindows; cascoin-qt frontend will not be built" >&2;}
+    fi
+    bitcoin_enable_qt=no
+    bitcoin_enable_qt_test=no
+  else
+    as_fn_error $? "Could not resolve: -lqwindows" "$LINENO" 5
+  fi
+ ;;
+esac
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam \
+    conftest$ac_exeext conftest.$ac_ext
+  LIBS="$CHECK_STATIC_PLUGINS_TEMP_LIBS"
+
+
+printf "%s\n" "#define QT_QPA_PLATFORM_WINDOWS 1" >>confdefs.h
+
+      elif test "x$TARGET_OS" = xlinux; then
+
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for static Qt plugins: -lqminimal" >&5
+printf %s "checking for static Qt plugins: -lqminimal... " >&6; }
+  CHECK_STATIC_PLUGINS_TEMP_LIBS="$LIBS"
+  LIBS="-lqminimal $QT_LIBS $LIBS"
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+    #define QT_STATICPLUGIN
+    #include <QtPlugin>
+    Q_IMPORT_PLUGIN(QMinimalIntegrationPlugin)
+int
+main (void)
+{
+return 0;
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"
+then :
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+printf "%s\n" "yes" >&6; }; QT_LIBS="-lqminimal $QT_LIBS"
+else case e in #(
+  e) { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; };
+  if test "x$bitcoin_qt_want_version" = xauto && test "x$bitcoin_qt_force" != xyes; then
+    if test "x$bitcoin_enable_qt" != xno; then
+      { printf "%s\n" "$as_me:${as_lineno-$LINENO}: WARNING: Could not resolve: -lqminimal; cascoin-qt frontend will not be built" >&5
+printf "%s\n" "$as_me: WARNING: Could not resolve: -lqminimal; cascoin-qt frontend will not be built" >&2;}
+    fi
+    bitcoin_enable_qt=no
+    bitcoin_enable_qt_test=no
+  else
+    as_fn_error $? "Could not resolve: -lqminimal" "$LINENO" 5
+  fi
+ ;;
+esac
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam \
+    conftest$ac_exeext conftest.$ac_ext
+  LIBS="$CHECK_STATIC_PLUGINS_TEMP_LIBS"
+
+
+printf "%s\n" "#define QT_QPA_PLATFORM_MINIMAL 1" >>confdefs.h
+
+
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for static Qt plugins: -lqxcb -lxcb-static" >&5
+printf %s "checking for static Qt plugins: -lqxcb -lxcb-static... " >&6; }
+  CHECK_STATIC_PLUGINS_TEMP_LIBS="$LIBS"
+  LIBS="-lqxcb -lxcb-static $QT_LIBS $LIBS"
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+    #define QT_STATICPLUGIN
+    #include <QtPlugin>
+    Q_IMPORT_PLUGIN(QXcbIntegrationPlugin)
+int
+main (void)
+{
+return 0;
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"
+then :
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+printf "%s\n" "yes" >&6; }; QT_LIBS="-lqxcb -lxcb-static $QT_LIBS"
+else case e in #(
+  e) { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; };
+  if test "x$bitcoin_qt_want_version" = xauto && test "x$bitcoin_qt_force" != xyes; then
+    if test "x$bitcoin_enable_qt" != xno; then
+      { printf "%s\n" "$as_me:${as_lineno-$LINENO}: WARNING: Could not resolve: -lqxcb -lxcb-static; cascoin-qt frontend will not be built" >&5
+printf "%s\n" "$as_me: WARNING: Could not resolve: -lqxcb -lxcb-static; cascoin-qt frontend will not be built" >&2;}
+    fi
+    bitcoin_enable_qt=no
+    bitcoin_enable_qt_test=no
+  else
+    as_fn_error $? "Could not resolve: -lqxcb -lxcb-static" "$LINENO" 5
+  fi
+ ;;
+esac
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam \
+    conftest$ac_exeext conftest.$ac_ext
+  LIBS="$CHECK_STATIC_PLUGINS_TEMP_LIBS"
+
+
+printf "%s\n" "#define QT_QPA_PLATFORM_XCB 1" >>confdefs.h
+
+      elif test "x$TARGET_OS" = xdarwin; then
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking whether the linker accepts -framework IOKit" >&5
+printf %s "checking whether the linker accepts -framework IOKit... " >&6; }
+if test ${ax_cv_check_ldflags___framework_IOKit+y}
+then :
+  printf %s "(cached) " >&6
+else case e in #(
+  e)
+  ax_check_save_flags=$LDFLAGS
+  LDFLAGS="$LDFLAGS  -framework IOKit"
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+int
+main (void)
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"
+then :
+  ax_cv_check_ldflags___framework_IOKit=yes
+else case e in #(
+  e) ax_cv_check_ldflags___framework_IOKit=no ;;
+esac
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam \
+    conftest$ac_exeext conftest.$ac_ext
+  LDFLAGS=$ax_check_save_flags ;;
+esac
+fi
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ax_cv_check_ldflags___framework_IOKit" >&5
+printf "%s\n" "$ax_cv_check_ldflags___framework_IOKit" >&6; }
+if test "x$ax_cv_check_ldflags___framework_IOKit" = xyes
+then :
+  QT_LIBS="$QT_LIBS -framework IOKit"
+else case e in #(
+  e) as_fn_error $? "could not iokit framework" "$LINENO" 5 ;;
+esac
+fi
+
+
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for static Qt plugins: -lqcocoa" >&5
+printf %s "checking for static Qt plugins: -lqcocoa... " >&6; }
+  CHECK_STATIC_PLUGINS_TEMP_LIBS="$LIBS"
+  LIBS="-lqcocoa $QT_LIBS $LIBS"
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+    #define QT_STATICPLUGIN
+    #include <QtPlugin>
+    Q_IMPORT_PLUGIN(QCocoaIntegrationPlugin)
+int
+main (void)
+{
+return 0;
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"
+then :
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+printf "%s\n" "yes" >&6; }; QT_LIBS="-lqcocoa $QT_LIBS"
+else case e in #(
+  e) { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; };
+  if test "x$bitcoin_qt_want_version" = xauto && test "x$bitcoin_qt_force" != xyes; then
+    if test "x$bitcoin_enable_qt" != xno; then
+      { printf "%s\n" "$as_me:${as_lineno-$LINENO}: WARNING: Could not resolve: -lqcocoa; cascoin-qt frontend will not be built" >&5
+printf "%s\n" "$as_me: WARNING: Could not resolve: -lqcocoa; cascoin-qt frontend will not be built" >&2;}
+    fi
+    bitcoin_enable_qt=no
+    bitcoin_enable_qt_test=no
+  else
+    as_fn_error $? "Could not resolve: -lqcocoa" "$LINENO" 5
+  fi
+ ;;
+esac
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam \
+    conftest$ac_exeext conftest.$ac_ext
+  LIBS="$CHECK_STATIC_PLUGINS_TEMP_LIBS"
+
+
+printf "%s\n" "#define QT_QPA_PLATFORM_COCOA 1" >>confdefs.h
+
+      fi
     fi
   elif test "x$bitcoin_qt_got_major_vers" = x5; then
 
