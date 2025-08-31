@@ -486,8 +486,13 @@ jobs:
         shell: bash
         run: |
           export CONFIG_SITE="$PWD/depends/${HOST}/share/config.site"
-          echo "Using Qt tools from depends:"
+          echo "=== Checking Qt6 tools from depends ==="
           ls -la "$PWD/depends/${HOST}/native/libexec/" | head -10
+          echo "=== Checking Qt6 libraries ==="
+          ls -la "$PWD/depends/x86_64-w64-mingw32/lib/" | grep -i qt || echo "No Qt libraries found"
+          echo "=== Checking Qt6 includes ==="
+          ls -la "$PWD/depends/x86_64-w64-mingw32/include/" | grep -i qt || echo "No Qt includes found"
+          echo "=== Running configure ==="
           CFLAGS="-g -D_WIN32_WINNT=0x0601" CXXFLAGS="-g -D_WIN32_WINNT=0x0601" \
           export PATH=/usr/lib/qt6/bin:$PATH
           CPPFLAGS="-I$PWD/depends/x86_64-w64-mingw32/include" \
@@ -503,9 +508,22 @@ jobs:
             --with-qt-libdir=$PWD/depends/x86_64-w64-mingw32/lib \
             --with-qt-bindir=$PWD/depends/x86_64-w64-mingw32/native/libexec:/usr/lib/qt6/bin \
             --with-incompatible-bdb
+          echo "=== Configure completed, checking config.log for Qt6 detection ==="
+          grep -A 5 -B 5 "checking for Qt" config.log || echo "Qt check not found in config.log"
+          grep -A 5 -B 5 "GUI.*qt" config.log || echo "GUI check not found in config.log"
       - name: Build (Windows ${HOST})
         shell: bash
-        run: make -j"$(nproc)"
+        run: |
+          echo "=== Starting build ==="
+          echo "Available make targets:"
+          make help | head -20 || true
+          echo "=== Building all targets ==="
+          make -j"$(nproc)"
+          echo "=== Build completed, checking what was built ==="
+          echo "Files in src/:"
+          ls -la src/ | head -20 || true
+          echo "Files in src/qt/:"
+          ls -la src/qt/ || true
 
       - name: Strip Windows binaries (non-fatal) and keep debug symbols
         shell: bash
@@ -530,8 +548,16 @@ jobs:
       - name: List built Windows binaries
         shell: bash
         run: |
+          echo "=== Listing all built binaries ==="
           ls -lah src || true
+          echo "=== Listing Qt GUI binaries ==="
           ls -lah src/qt || true
+          echo "=== Looking for specific executables ==="
+          find src -name "*.exe" -type f | head -20 || true
+          echo "=== Checking for cascoin-qt.exe specifically ==="
+          ls -lah src/qt/cascoin-qt.exe || echo "cascoin-qt.exe not found"
+          echo "=== All .exe files in src and subdirectories ==="
+          find src -name "*.exe" -exec ls -lah {} \; || true
 
       - name: Upload Windows artifacts
         if: always()
@@ -539,6 +565,10 @@ jobs:
         with:
           name: cascoin-windows-${{ env.HOST }}-build
           path: |
+            src/cascoind.exe
+            src/cascoin-cli.exe
+            src/cascoin-tx.exe
+            src/qt/cascoin-qt.exe
             src/*.exe
             src/qt/*.exe
           if-no-files-found: warn
