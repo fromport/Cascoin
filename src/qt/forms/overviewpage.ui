@@ -122,9 +122,9 @@ margin: 8px;
            </layout>
           </item>
           <item>
-           <layout class="QGridLayout" name="gridLayout">
+           <layout class="QVBoxLayout" name="balanceLayout">
             <property name="spacing">
-             <number>12</number>
+             <number>24</number>
             </property>
             <item row="2" column="2">
              <widget class="QLabel" name="labelWatchPending">
@@ -229,6 +229,9 @@ margin: 8px;
             </item>
             <item row="5" column="0">
              <widget class="QLabel" name="labelTotalText">
+              <property name="styleSheet">
+               <string notr="true">QLabel { color: #e2e8f0; font-size: 16px; font-weight: bold; margin-right: 16px; }</string>
+              </property>
               <property name="text">
                <string>Total:</string>
               </property>
@@ -274,6 +277,9 @@ margin: 8px;
             </item>
             <item row="3" column="0">
              <widget class="QLabel" name="labelImmatureText">
+              <property name="styleSheet">
+               <string notr="true">QLabel { color: #a0aec0; font-size: 14px; font-weight: bold; margin-right: 16px; }</string>
+              </property>
               <property name="text">
                <string>Resting mice:</string>
               </property>
@@ -341,6 +347,9 @@ margin: 8px;
             </item>
             <item row="1" column="0">
              <widget class="QLabel" name="labelBalanceText">
+              <property name="styleSheet">
+               <string notr="true">QLabel { color: #a0aec0; font-size: 14px; font-weight: bold; margin-right: 16px; }</string>
+              </property>
               <property name="text">
                <string>Available:</string>
               </property>
@@ -361,7 +370,15 @@ margin: 8px;
                <string>Your current spendable balance</string>
               </property>
               <property name="styleSheet">
-               <string notr="true">QLabel { color: #48bb78; font-weight: bold; margin: 16px 0; }</string>
+               <string notr="true">QLabel { 
+color: #48bb78; 
+font-weight: bold; 
+margin: 16px 0; 
+background: rgba(72, 187, 120, 0.15); 
+padding: 16px; 
+border-radius: 12px;
+border: 2px solid rgba(72, 187, 120, 0.3);
+}</string>
               </property>
               <property name="text">
                <string notr="true">0.000 000 00 CAS</string>
@@ -401,6 +418,9 @@ margin: 8px;
             </item>
             <item row="2" column="0">
              <widget class="QLabel" name="labelPendingText">
+              <property name="styleSheet">
+               <string notr="true">QLabel { color: #a0aec0; font-size: 14px; font-weight: bold; margin-right: 16px; }</string>
+              </property>
               <property name="text">
                <string>Pending:</string>
               </property>
@@ -499,7 +519,7 @@ margin: 8px;
           <item>
            <layout class="QGridLayout" name="gridLayout_2">
             <property name="spacing">
-             <number>12</number>
+             <number>20</number>
             </property>
             <item row="2" column="0">
              <widget class="QLabel" name="profitLabel_2">
