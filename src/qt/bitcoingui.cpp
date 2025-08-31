@@ -275,6 +275,11 @@ BitcoinGUI::BitcoinGUI(const PlatformStyle *_platformStyle, const NetworkStyle *
         connect(walletFrame, SIGNAL(requestedSyncWarningInfo()), this, SLOT(showModalOverlay()));
         connect(labelBlocksIcon, SIGNAL(clicked(QPoint)), this, SLOT(showModalOverlay()));
         connect(progressBar, SIGNAL(clicked(QPoint)), this, SLOT(showModalOverlay()));
+        
+        // Ensure modal overlay is visible during initial sync
+        modalOverlay->setVisible(true);
+        modalOverlay->showHide(false, false);
+        modalOverlay->raise(); // Bring to front
     }
 #endif
 
@@ -953,7 +958,10 @@ void BitcoinGUI::setNumBlocks(int count, const QDateTime& blockDate, double nVer
         if(walletFrame)
         {
             walletFrame->showOutOfSyncWarning(true);
-            modalOverlay->showHide();
+            // Ensure modal overlay is properly shown and sized
+            modalOverlay->setGeometry(centralWidget()->geometry());
+            modalOverlay->showHide(false, false);
+            modalOverlay->raise();
         }
 #endif // ENABLE_WALLET
 
