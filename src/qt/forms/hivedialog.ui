@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>824</width>
-    <height>500</height>
+    <width>900</width>
+    <height>600</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -18,7 +18,7 @@
   </property>
   <property name="minimumSize">
    <size>
-    <width>0</width>
+    <width>800</width>
     <height>500</height>
    </size>
   </property>
@@ -83,7 +83,6 @@
       <widget class="QLabel" name="warningLabel2">
        <property name="font">
         <font>
-         
          <bold>true</bold>
         </font>
        </property>
@@ -115,7 +114,7 @@
       <string notr="true">#createBeesForm{background:url(:/icons/hive_background_flash);
 background-repeat:no-repeat;
 background-position:bottom right;
-background-color:white; color:black;}</string>
+background-color:#2d3748; color:#ffffff;}</string>
      </property>
      <property name="frameShape">
       <enum>QFrame::StyledPanel</enum>
@@ -129,6 +128,11 @@ background-color:white; color:black;}</string>
       </property>
       <item row="0" column="0">
        <widget class="QLabel" name="currentBeeCostLabel_2">
+        <property name="font">
+         <font>
+          <pointsize>9</pointsize>
+         </font>
+        </property>
         <property name="text">
          <string>Current mouse cost:</string>
         </property>
@@ -139,6 +143,11 @@ background-color:white; color:black;}</string>
       </item>
       <item row="1" column="0">
        <widget class="QLabel" name="currentBeeCostLabel_21">
+        <property name="font">
+         <font>
+          <pointsize>9</pointsize>
+         </font>
+        </property>
         <property name="text">
          <string>Available balance:</string>
         </property>
@@ -179,6 +188,11 @@ background-color:white; color:black;}</string>
       </item>
       <item row="2" column="0">
        <widget class="QLabel" name="beesToCreateLabel_2">
+        <property name="font">
+         <font>
+          <pointsize>9</pointsize>
+         </font>
+        </property>
         <property name="text">
          <string>Mice to create:</string>
         </property>
@@ -193,9 +207,14 @@ background-color:white; color:black;}</string>
          <widget class="QSpinBox" name="beeCountSpinner">
           <property name="minimumSize">
            <size>
-            <width>80</width>
-            <height>20</height>
+            <width>100</width>
+            <height>25</height>
            </size>
+          </property>
+          <property name="font">
+           <font>
+            <pointsize>9</pointsize>
+           </font>
           </property>
           <property name="minimum">
            <number>1</number>
@@ -222,6 +241,11 @@ background-color:white; color:black;}</string>
       </item>
       <item row="3" column="0">
        <widget class="QLabel" name="totalCostLabel_3">
+        <property name="font">
+         <font>
+          <pointsize>9</pointsize>
+         </font>
+        </property>
         <property name="text">
          <string>Total cost:</string>
         </property>
@@ -273,8 +297,8 @@ background-color:white; color:black;}</string>
          <widget class="QPushButton" name="createBeesButton">
           <property name="minimumSize">
            <size>
-            <width>100</width>
-            <height>0</height>
+            <width>120</width>
+            <height>30</height>
            </size>
           </property>
           <property name="toolTip">
@@ -293,8 +317,8 @@ background-color:white; color:black;}</string>
          <widget class="QPushButton" name="releaseSwarmButton">
           <property name="minimumSize">
            <size>
-            <width>100</width>
-            <height>0</height>
+            <width>300</width>
+            <height>30</height>
            </size>
           </property>
           <property name="font">
@@ -323,8 +347,8 @@ background-color:white; color:black;}</string>
          <widget class="QPushButton" name="showHiveOptionsButton">
           <property name="minimumSize">
            <size>
-            <width>100</width>
-            <height>0</height>
+            <width>180</width>
+            <height>30</height>
            </size>
           </property>
           <property name="toolTip">
@@ -464,7 +488,7 @@ background-color:white; color:black;}</string>
    <item>
     <widget class="QFrame" name="globalHiveSummary">
      <property name="styleSheet">
-      <string notr="true">#globalHiveSummary {background-color:white; color:black;}</string>
+      <string notr="true">#globalHiveSummary {background-color:#2d3748; color:#ffffff;}</string>
      </property>
      <property name="frameShape">
       <enum>QFrame::StyledPanel</enum>
@@ -740,8 +764,8 @@ background-color:white; color:black;}</string>
           <widget class="QPushButton" name="refreshGlobalSummaryButton">
            <property name="minimumSize">
             <size>
-             <width>75</width>
-             <height>0</height>
+             <width>100</width>
+             <height>25</height>
             </size>
            </property>
            <property name="toolTip">
@@ -782,7 +806,7 @@ background-color:white; color:black;}</string>
     <widget class="QFrame" name="globalHiveSummaryError">
      <property name="styleSheet">
       <string notr="true">#globalHiveSummaryError {
-background-color:white; color:black;
+background-color:#2d3748; color:#ffffff;
 }</string>
      </property>
      <property name="frameShape">
@@ -812,8 +836,8 @@ background-color:white; color:black;
        <widget class="QPushButton" name="retryGlobalSummaryButton">
         <property name="minimumSize">
          <size>
-          <width>75</width>
-          <height>0</height>
+          <width>120</width>
+          <height>25</height>
          </size>
         </property>
         <property name="toolTip">
@@ -939,8 +963,8 @@ background-color:white; color:black;
        <widget class="QTableView" name="currentHiveView">
         <property name="minimumSize">
          <size>
-          <width>0</width>
-          <height>0</height>
+          <width>600</width>
+          <height>200</height>
          </size>
         </property>
         <property name="contextMenuPolicy">
@@ -952,16 +976,33 @@ background-color:white; color:black;
         <property name="sortingEnabled">
          <bool>true</bool>
         </property>
+        <property name="alternatingRowColors">
+         <bool>true</bool>
+        </property>
+        <property name="selectionBehavior">
+         <enum>QAbstractItemView::SelectRows</enum>
+        </property>
+        <property name="gridStyle">
+         <enum>Qt::SolidLine</enum>
+        </property>
+        <property name="wordWrap">
+         <bool>false</bool>
+        </property>
        </widget>
       </item>
       <item>
        <layout class="QHBoxLayout" name="yourHiveSummary">
         <item>
          <widget class="QLabel" name="label_14">
+          <property name="font">
+           <font>
+            <pointsize>9</pointsize>
+           </font>
+          </property>
           <property name="toolTip">
            <string>Labyrinth weight = your mouse population / global mouse population. 
- This represents how much of the global labyrinth you control as well as
- your chance of mining any given labyrinth-mineable block.</string>
+This represents how much of the global labyrinth you control as well as
+your chance of mining any given labyrinth-mineable block.</string>
           </property>
           <property name="text">
            <string>Labyrinth weight:</string>
@@ -973,13 +1014,24 @@ background-color:white; color:black;
         </item>
         <item>
          <widget class="QLabel" name="localHiveWeightLabel">
+          <property name="minimumSize">
+           <size>
+            <width>60</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="font">
+           <font>
+            <pointsize>9</pointsize>
+           </font>
+          </property>
           <property name="toolTip">
            <string>Labyrinth weight = your mouse population / global mouse population. 
- This represents how much of the global labyrinth you control as well as
- your chance of mining any given labyrinth-mineable block.</string>
+This represents how much of the global labyrinth you control as well as
+your chance of mining any given labyrinth-mineable block.</string>
           </property>
           <property name="text">
-           <string>0</string>
+           <string>0.000</string>
           </property>
          </widget>
         </item>

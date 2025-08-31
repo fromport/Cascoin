@@ -134,9 +134,9 @@ void OptionsModel::Init(bool resetSettings)
         settings.setValue("fHiveContribCF", DEFAULT_HIVE_CONTRIB_CF);
     fHiveContribCF = settings.value("fHiveContribCF").toBool();
 
-    // Cascoin: BCT view toggle - default to enabled for existing users
+    // Cascoin: BCT view toggle - default to disabled for existing users
     if (!settings.contains("fShowBCTView"))
-        settings.setValue("fShowBCTView", true);
+        settings.setValue("fShowBCTView", false);
     fShowBCTView = settings.value("fShowBCTView").toBool();
 #endif
 

@@ -20,7 +20,7 @@
       <bool>false</bool>
      </property>
      <property name="styleSheet">
-      <string notr="true">QLabel { background-color: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 0, stop:0 #F0D0A0, stop:1 #F8D488); color:#000000; }</string>
+      <string notr="true">QLabel { background-color: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 0, stop:0 #d69e2e, stop:1 #f6ad55); color:#ffffff; border-radius: 8px; padding: 8px; }</string>
      </property>
      <property name="wordWrap">
       <bool>true</bool>
@@ -40,9 +40,13 @@
        <item>
         <widget class="QFrame" name="frame">
          <property name="styleSheet">
-          <string notr="true">#frame {background:url(:/icons/presentationlogofade);
-background-repeat:no-repeat;
-background-position:bottom right;}</string>
+          <string notr="true">#frame { 
+background: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 1, stop: 0 #2d3748, stop: 1 #1a202c);
+border: 1px solid #4a5568;
+border-radius: 16px;
+padding: 24px;
+margin: 8px;
+}</string>
          </property>
          <property name="frameShape">
           <enum>QFrame::StyledPanel</enum>
@@ -57,12 +61,15 @@ background-position:bottom right;}</string>
              <widget class="QLabel" name="label_5">
               <property name="font">
                <font>
-                
+                <pointsize>18</pointsize>
                 <bold>true</bold>
                </font>
               </property>
+              <property name="styleSheet">
+               <string notr="true">QLabel { color: #e2e8f0; margin-bottom: 16px; }</string>
+              </property>
               <property name="text">
-               <string>Balances</string>
+               <string>Kontostände</string>
               </property>
              </widget>
             </item>
@@ -117,6 +124,12 @@ background-position:bottom right;}</string>
           <item>
            <layout class="QGridLayout" name="gridLayout">
             <property name="spacing">
+             <number>16</number>
+            </property>
+            <property name="horizontalSpacing">
+             <number>24</number>
+            </property>
+            <property name="verticalSpacing">
              <number>12</number>
             </property>
             <item row="2" column="2">
@@ -222,8 +235,11 @@ background-position:bottom right;}</string>
             </item>
             <item row="5" column="0">
              <widget class="QLabel" name="labelTotalText">
+              <property name="styleSheet">
+               <string notr="true">QLabel { color: #e2e8f0; font-size: 16px; font-weight: bold; margin-right: 16px; }</string>
+              </property>
               <property name="text">
-               <string>Total:</string>
+               <string>Gesamt-Käse:</string>
               </property>
              </widget>
             </item>
@@ -267,8 +283,11 @@ background-position:bottom right;}</string>
             </item>
             <item row="3" column="0">
              <widget class="QLabel" name="labelImmatureText">
+              <property name="styleSheet">
+               <string notr="true">QLabel { color: #a0aec0; font-size: 14px; font-weight: bold; margin-right: 16px; }</string>
+              </property>
               <property name="text">
-               <string>Resting mice:</string>
+               <string>Reifender Käse:</string>
               </property>
              </widget>
             </item>
@@ -325,7 +344,7 @@ background-position:bottom right;}</string>
             <item row="0" column="2">
              <widget class="QLabel" name="labelWatchonly">
               <property name="text">
-               <string>Watch-only:</string>
+               <string>Katzen-Beobachtung:</string>
               </property>
               <property name="alignment">
                <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -334,8 +353,11 @@ background-position:bottom right;}</string>
             </item>
             <item row="1" column="0">
              <widget class="QLabel" name="labelBalanceText">
+              <property name="styleSheet">
+               <string notr="true">QLabel { color: #a0aec0; font-size: 14px; font-weight: bold; margin-right: 16px; }</string>
+              </property>
               <property name="text">
-               <string>Available:</string>
+               <string>Verfügbarer Käse:</string>
               </property>
              </widget>
             </item>
@@ -343,7 +365,7 @@ background-position:bottom right;}</string>
              <widget class="QLabel" name="labelBalance">
               <property name="font">
                <font>
-                
+                <pointsize>32</pointsize>
                 <bold>true</bold>
                </font>
               </property>
@@ -352,6 +374,16 @@ background-position:bottom right;}</string>
               </property>
               <property name="toolTip">
                <string>Your current spendable balance</string>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">QLabel { 
+color: #48bb78; 
+font-weight: bold; 
+margin: 8px 0; 
+padding: 8px 16px; 
+background: rgba(72, 187, 120, 0.1); 
+border-radius: 8px;
+}</string>
               </property>
               <property name="text">
                <string notr="true">0.000 000 00 CAS</string>
@@ -391,15 +423,18 @@ background-position:bottom right;}</string>
             </item>
             <item row="2" column="0">
              <widget class="QLabel" name="labelPendingText">
+              <property name="styleSheet">
+               <string notr="true">QLabel { color: #a0aec0; font-size: 14px; font-weight: bold; margin-right: 16px; }</string>
+              </property>
               <property name="text">
-               <string>Pending:</string>
+               <string>Ausstehender Käse:</string>
               </property>
              </widget>
             </item>
             <item row="0" column="1">
              <widget class="QLabel" name="labelSpendable">
               <property name="text">
-               <string>Spendable:</string>
+               <string>Verwendbarer Käse:</string>
               </property>
               <property name="alignment">
                <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -435,7 +470,7 @@ background-position:bottom right;}</string>
                </font>
               </property>
               <property name="text">
-               <string>Your Current Labyrinth</string>
+               <string>Ihr aktuelles Katzen-Labyrinth</string>
               </property>
              </widget>
             </item>
@@ -489,19 +524,19 @@ background-position:bottom right;}</string>
           <item>
            <layout class="QGridLayout" name="gridLayout_2">
             <property name="spacing">
-             <number>12</number>
+             <number>20</number>
             </property>
             <item row="2" column="0">
              <widget class="QLabel" name="profitLabel_2">
               <property name="text">
-               <string>Profit:</string>
+               <string>Katzen-Profit:</string>
               </property>
              </widget>
             </item>
             <item row="1" column="0">
              <widget class="QLabel" name="rewardsLabel">
               <property name="text">
-               <string>Rewards:</string>
+               <string>Käse-Belohnungen:</string>
               </property>
              </widget>
             </item>
@@ -556,177 +591,47 @@ background-position:bottom right;}</string>
             <item row="0" column="0">
              <widget class="QLabel" name="costLabel_2">
               <property name="text">
-               <string>Mouse cost:</string>
+               <string>Mäuse-Kosten:</string>
               </property>
              </widget>
             </item>
             <item row="0" column="2">
-             <layout class="QHBoxLayout" name="horizontalLayout_11">
-              <property name="spacing">
-               <number>0</number>
+             <widget class="QLabel" name="miceStatusLabel">
+              <property name="styleSheet">
+               <string notr="true">QLabel { 
+color: #cbd5e0; 
+font-size: 14px; 
+padding: 8px 12px; 
+background: rgba(203, 213, 224, 0.1); 
+border-radius: 6px;
+}</string>
               </property>
-              <item>
-               <widget class="QLabel" name="blocksFoundRowLabel_3">
-                <property name="font">
-                 <font>
-                  <kerning>true</kerning>
-                 </font>
-                </property>
-                <property name="text">
-                 <string>(</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QLabel" name="immatureLabel">
-                <property name="text">
-                 <string>0</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QLabel" name="label_14">
-                <property name="text">
-                 <string> resting mice, </string>
-                </property>
-                <property name="alignment">
-                 <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QLabel" name="matureLabel">
-                <property name="text">
-                 <string>0</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QLabel" name="blocksFoundRowLabel_2">
-                <property name="font">
-                 <font>
-                  <kerning>true</kerning>
-                 </font>
-                </property>
-                <property name="text">
-                 <string> adventure mice</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QLabel" name="deadPreLabel">
-                <property name="font">
-                 <font>
-                  <kerning>true</kerning>
-                 </font>
-                </property>
-                <property name="text">
-                 <string>, </string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QLabel" name="deadLabel">
-                <property name="font">
-                 <font>
-                  <kerning>true</kerning>
-                 </font>
-                </property>
-                <property name="text">
-                 <string>0</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QLabel" name="deadPostLabel">
-                <property name="font">
-                 <font>
-                  <kerning>true</kerning>
-                 </font>
-                </property>
-                <property name="text">
-                 <string> dead</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QLabel" name="blocksFoundRowLabel_6">
-                <property name="font">
-                 <font>
-                  <kerning>true</kerning>
-                 </font>
-                </property>
-                <property name="text">
-                 <string>)</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <spacer name="horizontalSpacer_14">
-                <property name="orientation">
-                 <enum>Qt::Horizontal</enum>
-                </property>
-                <property name="sizeHint" stdset="0">
-                 <size>
-                  <width>40</width>
-                  <height>20</height>
-                 </size>
-                </property>
-               </spacer>
-              </item>
-             </layout>
+              <property name="text">
+               <string>(0 ruhende Mäuse, 0 Abenteuer-Mäuse)</string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignLeft|Qt::AlignVCenter</set>
+              </property>
+             </widget>
             </item>
             <item row="1" column="2">
-             <layout class="QHBoxLayout" name="horizontalLayout_12">
-              <property name="spacing">
-               <number>0</number>
+             <widget class="QLabel" name="blocksFoundStatusLabel">
+              <property name="styleSheet">
+               <string notr="true">QLabel { 
+color: #cbd5e0; 
+font-size: 14px; 
+padding: 8px 12px; 
+background: rgba(203, 213, 224, 0.1); 
+border-radius: 6px;
+}</string>
               </property>
-              <item>
-               <widget class="QLabel" name="blocksFoundRowLabel_4">
-                <property name="font">
-                 <font>
-                  <kerning>true</kerning>
-                 </font>
-                </property>
-                <property name="text">
-                 <string>(</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QLabel" name="blocksFoundLabel">
-                <property name="text">
-                 <string>0</string>
-                </property>
-                <property name="alignment">
-                 <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QLabel" name="label_15">
-                <property name="text">
-                 <string> blocks labyrinth-mined)</string>
-                </property>
-                <property name="alignment">
-                 <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <spacer name="horizontalSpacer_15">
-                <property name="orientation">
-                 <enum>Qt::Horizontal</enum>
-                </property>
-                <property name="sizeHint" stdset="0">
-                 <size>
-                  <width>40</width>
-                  <height>20</height>
-                 </size>
-                </property>
-               </spacer>
-              </item>
-             </layout>
+              <property name="text">
+               <string>(0 Käse-Blöcke im Labyrinth gefunden)</string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignLeft|Qt::AlignVCenter</set>
+              </property>
+             </widget>
             </item>
            </layout>
           </item>
@@ -752,7 +657,22 @@ background-position:bottom right;}</string>
  still fully unlock it to send funds.</string>
          </property>
          <property name="styleSheet">
-          <string notr="true">color:red;</string>
+          <string notr="true">
+QPushButton { 
+  background: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 0, stop: 0 #e53e3e, stop: 1 #c53030);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-weight: bold;
+}
+QPushButton:hover { 
+  background: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 0, stop: 0 #c53030, stop: 1 #9c2626);
+}
+QPushButton:pressed { 
+  background: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 0, stop: 0 #9c2626, stop: 1 #822727);
+}
+          </string>
          </property>
          <property name="text">
           <string>WALLET IS LOCKED: Unlock for Rialto and Labyrinth</string>
@@ -782,6 +702,15 @@ background-position:bottom right;}</string>
       <layout class="QVBoxLayout" name="verticalLayout_3">
        <item>
         <widget class="QFrame" name="frame_2">
+         <property name="styleSheet">
+          <string notr="true">#frame_2 { 
+background: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 1, stop: 0 #2d3748, stop: 1 #1a202c);
+border: 1px solid #4a5568;
+border-radius: 16px;
+padding: 24px;
+margin: 8px;
+}</string>
+         </property>
          <property name="frameShape">
           <enum>QFrame::StyledPanel</enum>
          </property>
@@ -795,9 +724,12 @@ background-position:bottom right;}</string>
              <widget class="QLabel" name="label_4">
               <property name="font">
                <font>
-                
+                <pointsize>18</pointsize>
                 <bold>true</bold>
                </font>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">QLabel { color: #e2e8f0; margin-bottom: 16px; }</string>
               </property>
               <property name="text">
                <string>Recent transactions</string>

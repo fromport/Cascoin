@@ -129,6 +129,7 @@ BitcoinGUI::BitcoinGUI(const PlatformStyle *_platformStyle, const NetworkStyle *
     modalOverlay(0),
     prevBlocks(0),
     spinnerFrame(0),
+    m_numBlocksChangedConnected(false),
     platformStyle(_platformStyle)
 {
     QSettings settings;
@@ -270,15 +271,31 @@ BitcoinGUI::BitcoinGUI(const PlatformStyle *_platformStyle, const NetworkStyle *
     connect(hiveStatusIcon, SIGNAL(clicked(QPoint)), this, SLOT(gotoHivePage()));
 
     modalOverlay = new ModalOverlay(this->centralWidget());
+    if (centralWidget()) {
+        // Ensure overlay covers the central area and is properly sized
+        modalOverlay->resize(centralWidget()->size());
+        modalOverlay->move(0, 0);
+    }
 #ifdef ENABLE_WALLET
     if(enableWallet) {
         connect(walletFrame, SIGNAL(requestedSyncWarningInfo()), this, SLOT(showModalOverlay()));
         connect(labelBlocksIcon, SIGNAL(clicked(QPoint)), this, SLOT(showModalOverlay()));
         connect(progressBar, SIGNAL(clicked(QPoint)), this, SLOT(showModalOverlay()));
+        
+        // Do not force-show the overlay at startup; setNumBlocks() logic will manage visibility
     }
 #endif
 
     updateHiveStatusIcon(":/icons/hivestatus_disabled", "The Labyrinth is not enabled on the network");
+    
+    // Allow free window resizing - remove minimum size constraints
+    setMinimumSize(200, 150); // Very small minimum size to allow maximum flexibility
+    
+    // Set size policies to allow compression of the central widget
+    if (centralWidget()) {
+        centralWidget()->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+        centralWidget()->setMinimumSize(200, 150);
+    }
 }
 
 BitcoinGUI::~BitcoinGUI()
@@ -904,7 +921,8 @@ void BitcoinGUI::setNumBlocks(int count, const QDateTime& blockDate, double nVer
     tooltip = tr("Processed %n block(s) of transaction history.", "", count);
 
     // Set icon state: spinning if catching up, tick otherwise
-    if(secs < 90*60)
+    // Reduced threshold to 30 minutes to keep overlay visible longer
+    if(secs < 30*60)
     {
         tooltip = tr("Up to date") + QString(".<br>") + tooltip;
         labelBlocksIcon->setPixmap(platformStyle->SingleColorIcon(":/icons/synced").pixmap(STATUSBAR_ICONSIZE, STATUSBAR_ICONSIZE));
@@ -914,6 +932,13 @@ void BitcoinGUI::setNumBlocks(int count, const QDateTime& blockDate, double nVer
         {
             walletFrame->showOutOfSyncWarning(false);
             modalOverlay->showHide(true, true);
+            
+            // Ensure main window is properly visible when overlay is hidden
+            this->update();
+            this->repaint();
+            centralWidget()->update();
+            centralWidget()->repaint();
+            QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents, 50);
         }
 #endif // ENABLE_WALLET
 
@@ -944,7 +969,13 @@ void BitcoinGUI::setNumBlocks(int count, const QDateTime& blockDate, double nVer
         if(walletFrame)
         {
             walletFrame->showOutOfSyncWarning(true);
-            modalOverlay->showHide();
+            // Ensure modal overlay is properly shown and positioned
+            if (centralWidget()) {
+                modalOverlay->resize(centralWidget()->size());
+                modalOverlay->move(0, 0);
+            }
+            modalOverlay->showHide(false, false);
+            modalOverlay->raise();
         }
 #endif // ENABLE_WALLET
 
@@ -1063,12 +1094,18 @@ void BitcoinGUI::closeEvent(QCloseEvent *event)
 #endif
 }
 
-void BitcoinGUI::showEvent(QShowEvent *event)
-{
-    // enable the debug window when the main window shows up
-    openRPCConsoleAction->setEnabled(true);
-    aboutAction->setEnabled(true);
-    optionsAction->setEnabled(true);
+void BitcoinGUI::showEvent(QShowEvent *event) {
+    QMainWindow::showEvent(event);
+
+    if (clientModel && !m_numBlocksChangedConnected)
+    {
+        // Connect signal now that GUI is shown, to avoid race conditions with UI updates
+        connect(clientModel, SIGNAL(numBlocksChanged(int,QDateTime,double,bool)), this, SLOT(setNumBlocks(int,QDateTime,double,bool)));
+        m_numBlocksChangedConnected = true;
+
+        // First-time update to ensure correct initial state
+        setNumBlocks(clientModel->getNumBlocks(), clientModel->getLastBlockDate(), clientModel->getVerificationProgress(nullptr), false);
+    }
 }
 
 #ifdef ENABLE_WALLET

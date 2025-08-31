@@ -21,9 +21,27 @@ layerIsVisible(false),
 userClosed(false)
 {
     ui->setupUi(this);
+    // Ensure stylesheet-based backgrounds render correctly on all platforms
+    setAttribute(Qt::WA_StyledBackground, true);
+    
+    // Make the modal responsive and properly sized
+    setMinimumSize(400, 300);
+    
+    if (ui->bgWidget) {
+        ui->bgWidget->setAttribute(Qt::WA_StyledBackground, true);
+        ui->bgWidget->setAutoFillBackground(false);
+        // Start without dim background to avoid fully black first frame
+        ui->bgWidget->setVisible(false);
+    }
+    if (ui->contentWidget) {
+        ui->contentWidget->setAttribute(Qt::WA_StyledBackground, true);
+        ui->contentWidget->setAutoFillBackground(false);
+    }
     connect(ui->closeButton, SIGNAL(clicked()), this, SLOT(closeClicked()));
     if (parent) {
         parent->installEventFilter(this);
+        // Ensure proper initial positioning
+        setGeometry(parent->rect());
         raise();
     }
 
@@ -41,9 +59,10 @@ bool ModalOverlay::eventFilter(QObject * obj, QEvent * ev) {
         if (ev->type() == QEvent::Resize) {
             QResizeEvent * rev = static_cast<QResizeEvent*>(ev);
             resize(rev->size());
-            if (!layerIsVisible)
-                setGeometry(0, height(), width(), height());
-
+            if (!layerIsVisible) {
+                // Position modal to cover the entire parent widget
+                setGeometry(0, 0, width(), height());
+            }
         }
         else if (ev->type() == QEvent::ChildAdded) {
             raise();
@@ -81,6 +100,22 @@ void ModalOverlay::tipUpdate(int count, const QDateTime& blockDate, double nVeri
     // keep a vector of samples of verification progress at height
     blockProcessTime.push_front(qMakePair(currentDate.toMSecsSinceEpoch(), nVerificationProgress));
 
+    // Always show the last block date - this ensures the value is displayed
+    if (blockDate.isValid()) {
+        ui->newestBlockDate->setText(blockDate.toString("dd.MM.yyyy hh:mm:ss"));
+    } else {
+        ui->newestBlockDate->setText(tr("Unknown..."));
+    }
+
+    // Always show the percentage done according to nVerificationProgress
+    if (nVerificationProgress >= 0 && nVerificationProgress <= 1) {
+        ui->percentageProgress->setText(QString::number(nVerificationProgress*100, 'f', 2)+"%");
+        ui->progressBar->setValue(nVerificationProgress*100);
+    } else {
+        ui->percentageProgress->setText("0.00%");
+        ui->progressBar->setValue(0);
+    }
+
     // show progress speed if we have more then one sample
     if (blockProcessTime.size() >= 2) {
         double progressDelta = 0;
@@ -101,31 +136,34 @@ void ModalOverlay::tipUpdate(int count, const QDateTime& blockDate, double nVeri
             }
         }
         // show progress increase per hour
-        ui->progressIncreasePerH->setText(QString::number(progressPerHour * 100, 'f', 2)+"%");
+        if (progressPerHour > 0) {
+            ui->progressIncreasePerH->setText(QString::number(progressPerHour * 100, 'f', 2)+"%");
+        } else {
+            ui->progressIncreasePerH->setText(tr("calculating..."));
+        }
 
         // show expected remaining time
         if(remainingMSecs >= 0) {	
             ui->expectedTimeLeft->setText(GUIUtil::formatNiceTimeOffset(remainingMSecs / 1000.0));
         } else {
-            ui->expectedTimeLeft->setText(QObject::tr("unknown"));
+            ui->expectedTimeLeft->setText(QObject::tr("calculating..."));
         }
 
         static const int MAX_SAMPLES = 5000;
         if (blockProcessTime.count() > MAX_SAMPLES) {
             blockProcessTime.remove(MAX_SAMPLES, blockProcessTime.count() - MAX_SAMPLES);
         }
+    } else {
+        // Not enough samples yet
+        ui->progressIncreasePerH->setText(tr("calculating..."));
+        ui->expectedTimeLeft->setText(tr("calculating..."));
     }
 
-    // show the last block date
-    ui->newestBlockDate->setText(blockDate.toString());
-
-    // show the percentage done according to nVerificationProgress
-    ui->percentageProgress->setText(QString::number(nVerificationProgress*100, 'f', 2)+"%");
-    ui->progressBar->setValue(nVerificationProgress*100);
-
-    if (!bestHeaderDate.isValid())
-        // not syncing
+    if (!bestHeaderDate.isValid()) {
+        // not syncing - show basic info
+        ui->numberOfBlocksLeft->setText(tr("Unknown..."));
         return;
+    }
 
     // estimate the number of headers left based on nPowTargetSpacing
     // and check if the gui is not aware of the best header (happens rarely)
@@ -133,11 +171,13 @@ void ModalOverlay::tipUpdate(int count, const QDateTime& blockDate, double nVeri
     bool hasBestHeader = bestHeaderHeight >= count;
 
     // show remaining number of blocks
-    if (estimateNumHeadersLeft < HEADER_HEIGHT_DELTA_SYNC && hasBestHeader) {
+    if (estimateNumHeadersLeft < HEADER_HEIGHT_DELTA_SYNC && hasBestHeader && bestHeaderHeight > count) {
         ui->numberOfBlocksLeft->setText(QString::number(bestHeaderHeight - count));
-    } else {
+    } else if (bestHeaderHeight > 0) {
         ui->numberOfBlocksLeft->setText(tr("Unknown. Syncing Headers (%1)...").arg(bestHeaderHeight));
-        ui->expectedTimeLeft->setText(tr("Unknown..."));
+        ui->expectedTimeLeft->setText(tr("calculating..."));
+    } else {
+        ui->numberOfBlocksLeft->setText(tr("Unknown..."));
     }
 }
 
@@ -153,17 +193,39 @@ void ModalOverlay::showHide(bool hide, bool userRequested)
     if ( (layerIsVisible && !hide) || (!layerIsVisible && hide) || (!hide && userClosed && !userRequested))
         return;
 
-    if (!isVisible() && !hide)
+    if (!isVisible() && !hide) {
+        // First show: avoid animation to prevent black frame on some systems
+        if (parent()) {
+            setGeometry(static_cast<QWidget*>(parent())->rect());
+        }
         setVisible(true);
+        move(0, 0);
+        if (ui->bgWidget) ui->bgWidget->setVisible(true);
+        layerIsVisible = true;
+        return;
+    }
 
-    setGeometry(0, hide ? 0 : height(), width(), height());
+    // Keep modal properly positioned at the center of parent
+    if (parent()) {
+        setGeometry(static_cast<QWidget*>(parent())->rect());
+    }
 
-    QPropertyAnimation* animation = new QPropertyAnimation(this, "pos");
+    QPropertyAnimation* animation = new QPropertyAnimation(this, "geometry");
     animation->setDuration(300);
-    animation->setStartValue(QPoint(0, hide ? 0 : this->height()));
-    animation->setEndValue(QPoint(0, hide ? this->height() : 0));
+    
+    QRect parentRect = parent() ? static_cast<QWidget*>(parent())->rect() : this->rect();
+    QRect startRect = hide ? parentRect : QRect(parentRect.x(), parentRect.y() + parentRect.height(), parentRect.width(), parentRect.height());
+    QRect endRect = hide ? QRect(parentRect.x(), parentRect.y() + parentRect.height(), parentRect.width(), parentRect.height()) : parentRect;
+    
+    animation->setStartValue(startRect);
+    animation->setEndValue(endRect);
     animation->setEasingCurve(QEasingCurve::OutQuad);
     animation->start(QAbstractAnimation::DeleteWhenStopped);
+    
+    if (!hide && ui->bgWidget) {
+        ui->bgWidget->setVisible(true);
+    }
+    
     layerIsVisible = !hide;
 }
 
