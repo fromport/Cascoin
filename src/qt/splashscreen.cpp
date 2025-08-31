@@ -197,117 +197,22 @@ void SplashScreen::slotFinish(QWidget *mainWin)
 
 static void InitMessage(SplashScreen *splash, const std::string &message)
 {
-    // Only show InitMessage if it's not a progress update
-    if (message.find("━━━") != std::string::npos) {
-        // This is already a formatted progress message, show as-is
-        QMetaObject::invokeMethod(splash, "showMessage",
-            Qt::QueuedConnection,
-            Q_ARG(QString, QString::fromStdString(message)),
-            Q_ARG(int, Qt::AlignBottom|Qt::AlignHCenter),
-            Q_ARG(QColor, QColor(55,55,55)));
-        return;
-    }
-    
-    // Simple startup messages only
-    std::string simpleMessage;
-    
-    if (message.find("Done") != std::string::npos) {
-        simpleMessage = std::string("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n") +
-                       "          CASCOIN BEREIT!\n" +
-                       "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n" +
-                       "GUI wird geladen...\n" +
-                       "Wallet-Interface wird initialisiert...\n" +
-                       "BCTs und Mice NFTs werden geladen.";
-    } else if (message.find("Loading") != std::string::npos) {
-        simpleMessage = std::string("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n") +
-                       "        CASCOIN LÄDT\n" +
-                       "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n" +
-                       "Wallet-Datenbank wird geladen...\n" +
-                       "Bitte warten Sie einen Moment.";
-    } else {
-        simpleMessage = std::string("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n") +
-                       "        CASCOIN STARTET\n" +
-                       "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n" +
-                       "Initialisierung läuft...\n" +
-                       "Bitte warten Sie einen Moment.";
-    }
-    
+    // Simplified message display to prevent freezing
     QMetaObject::invokeMethod(splash, "showMessage",
         Qt::QueuedConnection,
-        Q_ARG(QString, QString::fromStdString(simpleMessage)),
+        Q_ARG(QString, QString::fromStdString(message)),
         Q_ARG(int, Qt::AlignBottom|Qt::AlignHCenter),
         Q_ARG(QColor, QColor(55,55,55)));
 }
 
 static void ShowProgress(SplashScreen *splash, const std::string &title, int nProgress, bool resume_possible)
 {
-    // Calculate elapsed time
-    QDateTime currentTime = QDateTime::currentDateTime();
-    qint64 elapsedSeconds = splash->startTime.secsTo(currentTime);
+    // Simple progress display - avoid complex calculations that could cause freezing
+    std::string simpleMessage = title + " (" + strprintf("%d", nProgress) + "%)";
     
-    // Estimate remaining time
-    std::string timeInfo;
-    if (nProgress >= 1 && elapsedSeconds >= 1) {
-        qint64 estimatedTotalSeconds = (elapsedSeconds * 100) / nProgress;
-        qint64 remainingSeconds = estimatedTotalSeconds - elapsedSeconds;
-        
-        if (remainingSeconds > 60) {
-            int remainingMinutes = remainingSeconds / 60;
-            timeInfo = strprintf("Noch ca. %d Minute(n)", remainingMinutes);
-        } else if (remainingSeconds > 0) {
-            timeInfo = strprintf("Noch ca. %d Sekunde(n)", (int)remainingSeconds);
-        } else {
-            timeInfo = "Fast fertig!";
-        }
-    } else {
-        timeInfo = "Berechne Restzeit...";
-    }
-    
-    // Create single, clear status message
-    std::string statusMessage;
-    
-    if (title.find("Mice") != std::string::npos || title.find("MICE") != std::string::npos) {
-        statusMessage = "INITIALISIERE MICE-DATENBANK";
-    } else if (title.find("Loading") != std::string::npos) {
-        statusMessage = "LADE BLOCKCHAIN-DATENBANK";
-    } else if (title.find("Verifying") != std::string::npos) {
-        statusMessage = "ÜBERPRÜFE BLOCKCHAIN";
-    } else if (title.find("Rescanning") != std::string::npos) {
-        statusMessage = "SCANNE TRANSAKTIONEN";
-    } else if (title.find("GUI") != std::string::npos || title.find("Interface") != std::string::npos) {
-        statusMessage = "LADE BENUTZEROBERFLÄCHE";
-    } else if (nProgress >= 95) {
-        statusMessage = "FINALISIERE WALLET";
-    } else {
-        statusMessage = "INITIALISIERE CASCOIN";
-    }
-    
-    // Format single, clear message
-    std::string finalMessage = 
-        std::string("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n") +
-        "            " + statusMessage + "\n" +
-        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n" +
-        "Status: " + title + "\n\n" +
-        "FORTSCHRITT: " + strprintf("%d", nProgress) + "%\n" +
-        "ZEIT: " + strprintf("%d", (int)elapsedSeconds) + " Sekunden\n" +
-        "VERBLEIBEND: " + timeInfo + "\n\n";
-    
-    if (nProgress < 30) {
-        finalMessage += "Dies ist normal beim ersten Start\n";
-    } else if (nProgress < 70) {
-        finalMessage += "Synchronisation läuft...\n";
-    } else if (nProgress < 95) {
-        finalMessage += "Fast bereit!\n";
-    } else {
-        finalMessage += "GUI wird geladen...\n";
-    }
-    
-    finalMessage += "\n(Drücke 'q' zum Beenden)";
-    
-    // Use direct message display instead of InitMessage to avoid confusion
     QMetaObject::invokeMethod(splash, "showMessage",
         Qt::QueuedConnection,
-        Q_ARG(QString, QString::fromStdString(finalMessage)),
+        Q_ARG(QString, QString::fromStdString(simpleMessage)),
         Q_ARG(int, Qt::AlignBottom|Qt::AlignHCenter),
         Q_ARG(QColor, QColor(55,55,55)));
 }
