@@ -134,11 +134,11 @@ static void initTranslations(QTranslator &qtTranslatorBase, QTranslator &qtTrans
     // - Then load the more specific locale translator
 
     // Load e.g. qt_de.qm
-    if (qtTranslatorBase.load("qt_" + lang, QLibraryInfo::location(QLibraryInfo::TranslationsPath)))
+    if (qtTranslatorBase.load("qt_" + lang, QLibraryInfo::path(QLibraryInfo::TranslationsPath)))
         QApplication::installTranslator(&qtTranslatorBase);
 
     // Load e.g. qt_de_DE.qm
-    if (qtTranslator.load("qt_" + lang_territory, QLibraryInfo::location(QLibraryInfo::TranslationsPath)))
+    if (qtTranslator.load("qt_" + lang_territory, QLibraryInfo::path(QLibraryInfo::TranslationsPath)))
         QApplication::installTranslator(&qtTranslator);
 
     // Load e.g. bitcoin_de.qm (shortcut "de" needs to be defined in bitcoin.qrc)
@@ -625,7 +625,7 @@ void BitcoinApplication::initializeResult(bool success)
         }
         
         // Show final "GUI ready" message on splash
-        QMetaObject::invokeMethod(window, [this, window]() {
+        QMetaObject::invokeMethod(window, [this]() {
             // Send final ready message to splash
             std::string readyMessage = 
                 std::string("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n") +
@@ -639,7 +639,7 @@ void BitcoinApplication::initializeResult(bool success)
             uiInterface.InitMessage(readyMessage);
             
             // Additional delay to ensure GUI is fully rendered and user can read the message
-            QTimer::singleShot(1500, [this, window]() {
+            QTimer::singleShot(1500, [this]() {
                 Q_EMIT splashFinished(window);
             });
         }, Qt::QueuedConnection);
@@ -731,8 +731,8 @@ int main(int argc, char *argv[])
     qputenv("QT_QPA_PLATFORM", "xcb");
     
     BitcoinApplication app(argc, argv);
-#if QT_VERSION > 0x050100
-    // Generate high-dpi pixmaps
+#if QT_VERSION > 0x050100 && QT_VERSION < 0x060000
+    // Generate high-dpi pixmaps (deprecated in Qt6, always enabled)
     QApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
 #endif
 #if QT_VERSION >= 0x050600 && QT_VERSION < 0x060000
