@@ -449,43 +449,34 @@ jobs:
           ls -lah depends/*/native/bin || true
           ls -lah depends/${HOST}
 
-#      - name: Autogen
-#        shell: bash
-#        run: ./autogen.sh
+      - name: Autogen
+        shell: bash
+        run: ./autogen.sh
 
-#      - name: Configure (Windows ${HOST}, Qt6 GUI, wallet, incompatible BDB)
-#        shell: bash
-#        run: |
-#          export CONFIG_SITE="$PWD/depends/${HOST}/share/config.site"
-#          echo "Using Qt tools from depends:"
-#          ls -la "$PWD/depends/${HOST}/native/libexec/" | head -10
-#          CFLAGS="-g -D_WIN32_WINNT=0x0601" CXXFLAGS="-g -D_WIN32_WINNT=0x0601" \
-#          CPPFLAGS="-I$PWD/depends/${HOST}/include" \
-#          LDFLAGS="-L$PWD/depends/${HOST}/lib" \
-#          PKG_CONFIG_PATH="$PWD/depends/${HOST}/lib/pkgconfig" \
-#          MOC="$PWD/depends/${HOST}/native/libexec/moc" \
-#          UIC="$PWD/depends/${HOST}/native/libexec/uic" \
-#          RCC="$PWD/depends/${HOST}/native/libexec/rcc" \
-#          QMAKE="$PWD/depends/${HOST}/native/bin/qmake" \
-#          LRELEASE="/usr/lib/qt6/bin/lrelease" \
-#          LUPDATE="/usr/lib/qt6/bin/lupdate" \
-#          ./configure \
-#            --prefix="$PWD/depends/${HOST}" \
-#            --host=${HOST} \
-#            --disable-tests \
-#            --disable-bench \
-#            --with-gui=qt6 \
-#            --with-qt-incdir="$PWD/depends/${HOST}/include" \
-#            --with-qt-libdir="$PWD/depends/${HOST}/lib" \
-#            --enable-wallet \
-#            --with-incompatible-bdb \
-#            --enable-glibc-back-compat \
-#            --disable-bench \
-#            --disable-tests
-
-#      - name: Build (Windows ${HOST})
-#        shell: bash
-#        run: make -j"$(nproc)"
+      - name: Configure (Windows ${HOST}, Qt6 GUI, wallet, incompatible BDB)
+        shell: bash
+        run: |
+          export CONFIG_SITE="$PWD/depends/${HOST}/share/config.site"
+          echo "Using Qt tools from depends:"
+          ls -la "$PWD/depends/${HOST}/native/libexec/" | head -10
+          CFLAGS="-g -D_WIN32_WINNT=0x0601" CXXFLAGS="-g -D_WIN32_WINNT=0x0601" \
+          export PATH=/usr/lib/qt6/bin:$PATH
+          CPPFLAGS="-I$PWD/depends/x86_64-w64-mingw32/include" \
+          LDFLAGS="-L$PWD/depends/x86_64-w64-mingw32/lib" \
+          PKG_CONFIG_PATH="$PWD/depends/x86_64-w64-mingw32/lib/pkgconfig" \
+          ./configure \
+            --prefix=$PWD/depends/x86_64-w64-mingw32 \
+            --host=x86_64-w64-mingw32 \
+            --disable-tests \
+            --disable-bench \
+            --with-gui=qt6 \
+            --with-qt-incdir=$PWD/depends/x86_64-w64-mingw32/include \
+            --with-qt-libdir=$PWD/depends/x86_64-w64-mingw32/lib \
+            --with-qt-bindir=$PWD/depends/x86_64-w64-mingw32/native/libexec:/usr/lib/qt6/bin \
+            --with-incompatible-bdb
+      - name: Build (Windows ${HOST})
+        shell: bash
+        run: make -j"$(nproc)"
 
 #      - name: Strip Windows binaries (non-fatal) and keep debug symbols
 #        shell: bash
