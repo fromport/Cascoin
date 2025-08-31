@@ -53,6 +53,7 @@ public:
         HiveCheckThreads,       // Cascoin: Hive: Mining optimisations (int)
         HiveCheckEarlyOut,      // Cascoin: Hive: Mining optimisations (bool)
         HiveContribCF,          // Cascoin: MinotaurX+Hive1.2
+        ShowBCTView,            // Cascoin: Show/hide BCT NFT view (bool)
         OptionIDRowCount,
     };
 
@@ -75,6 +76,7 @@ public:
     bool getCoinControlFeatures() const { return fCoinControlFeatures; }
     const QString& getOverriddenByCommandLine() { return strOverriddenByCommandLine; }
     bool getHiveContribCF() const { return fHiveContribCF; }    // Cascoin: MinotaurX+Hive1.2
+    bool getShowBCTView() const { return fShowBCTView; }       // Cascoin: BCT view toggle
 
     /* Restart flag helper */
     void setRestartRequired(bool fRequired);
@@ -86,6 +88,7 @@ private:
     bool fMinimizeToTray;
     bool fMinimizeOnClose;
     bool fHiveContribCF;    // Cascoin: MinotaurX+Hive1.2
+    bool fShowBCTView;      // Cascoin: BCT view toggle
 
     QString language;
     int nDisplayUnit;
@@ -103,6 +106,7 @@ Q_SIGNALS:
     void displayUnitChanged(int unit);
     void coinControlFeaturesChanged(bool);
     void hideTrayIconChanged(bool);
+    void showBCTViewChanged(bool);  // Cascoin: BCT view toggle signal
 };
 
 #endif // BITCOIN_QT_OPTIONSMODEL_H

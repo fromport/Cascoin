@@ -558,9 +558,15 @@ void BitcoinGUI::setClientModel(ClientModel *_clientModel)
         {
             // be aware of the tray icon disable state change reported by the OptionsModel object.
             connect(optionsModel,SIGNAL(hideTrayIconChanged(bool)),this,SLOT(setTrayIconVisible(bool)));
+            
+            // be aware of the BCT view show/hide state change reported by the OptionsModel object.
+            connect(optionsModel,SIGNAL(showBCTViewChanged(bool)),this,SLOT(setBCTViewVisible(bool)));
         
             // initialize the disable state of the tray icon with the current value in the model.
             setTrayIconVisible(optionsModel->getHideTrayIcon());
+            
+            // initialize the BCT view visibility with the current value in the model.
+            setBCTViewVisible(optionsModel->getShowBCTView());
         }
     } else {
         // Disable possibility to show main window via action
@@ -624,6 +630,7 @@ void BitcoinGUI::setWalletActionsEnabled(bool enabled)
     usedReceivingAddressesAction->setEnabled(enabled);
     openAction->setEnabled(enabled);
     hiveAction->setEnabled(enabled);                // Cascoin: Hive page
+    beeNFTAction->setEnabled(enabled);              // Cascoin: Bee NFT page
     importPrivateKeyAction->setEnabled(enabled);    // Cascoin: Key import helper
 }
 
@@ -750,8 +757,14 @@ void BitcoinGUI::gotoHivePage()
 
 void BitcoinGUI::gotoBeeNFTPage()
 {
-    beeNFTAction->setChecked(true);
-    if (walletFrame) walletFrame->gotoBeeNFTPage();
+    // Only navigate to BCT page if it's enabled in settings
+    if (clientModel && clientModel->getOptionsModel() && clientModel->getOptionsModel()->getShowBCTView()) {
+        beeNFTAction->setChecked(true);
+        if (walletFrame) walletFrame->gotoBeeNFTPage();
+    } else {
+        // If BCT view is disabled, go to overview page instead
+        gotoOverviewPage();
+    }
 }
 
 void BitcoinGUI::gotoHistoryPage()
@@ -1225,6 +1238,14 @@ void BitcoinGUI::setTrayIconVisible(bool fHideTrayIcon)
     if (trayIcon)
     {
         trayIcon->setVisible(!fHideTrayIcon);
+    }
+}
+
+void BitcoinGUI::setBCTViewVisible(bool fShowBCTView)
+{
+    if (beeNFTAction)
+    {
+        beeNFTAction->setVisible(fShowBCTView);
     }
 }
 
