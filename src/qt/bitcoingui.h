@@ -127,6 +127,8 @@ private:
     int prevBlocks;
     int spinnerFrame;
 
+    bool m_numBlocksChangedConnected; // Flag to ensure we only connect the signal once
+
     const PlatformStyle *platformStyle;
 
     /** Create the main UI actions. */

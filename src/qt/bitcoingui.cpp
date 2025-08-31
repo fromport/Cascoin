@@ -129,6 +129,7 @@ BitcoinGUI::BitcoinGUI(const PlatformStyle *_platformStyle, const NetworkStyle *
     modalOverlay(0),
     prevBlocks(0),
     spinnerFrame(0),
+    m_numBlocksChangedConnected(false),
     platformStyle(_platformStyle)
 {
     QSettings settings;
@@ -280,25 +281,7 @@ BitcoinGUI::BitcoinGUI(const PlatformStyle *_platformStyle, const NetworkStyle *
         connect(labelBlocksIcon, SIGNAL(clicked(QPoint)), this, SLOT(showModalOverlay()));
         connect(progressBar, SIGNAL(clicked(QPoint)), this, SLOT(showModalOverlay()));
         
-        // Ensure modal overlay is visible during initial sync but defer until first frame is painted
-        QTimer::singleShot(0, this, [this]() {
-            if (!modalOverlay) return;
-            if (centralWidget()) {
-                modalOverlay->setGeometry(centralWidget()->rect());
-            }
-            modalOverlay->setVisible(true);
-            modalOverlay->showHide(false, false);
-            modalOverlay->raise(); // Bring to front
-
-            // Force a paint so the window doesn't appear black while overlay initializes
-            this->update();
-            this->repaint();
-            if (centralWidget()) {
-                centralWidget()->update();
-                centralWidget()->repaint();
-            }
-            QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents, 50);
-        });
+        // Do not force-show the overlay at startup; setNumBlocks() logic will manage visibility
     }
 #endif
 
@@ -1107,12 +1090,18 @@ void BitcoinGUI::closeEvent(QCloseEvent *event)
 #endif
 }
 
-void BitcoinGUI::showEvent(QShowEvent *event)
-{
-    // enable the debug window when the main window shows up
-    openRPCConsoleAction->setEnabled(true);
-    aboutAction->setEnabled(true);
-    optionsAction->setEnabled(true);
+void BitcoinGUI::showEvent(QShowEvent *event) {
+    QMainWindow::showEvent(event);
+
+    if (clientModel && !m_numBlocksChangedConnected)
+    {
+        // Connect signal now that GUI is shown, to avoid race conditions with UI updates
+        connect(clientModel, SIGNAL(numBlocksChanged(int,QDateTime,double,bool)), this, SLOT(setNumBlocks(int,QDateTime,double,bool)));
+        m_numBlocksChangedConnected = true;
+
+        // First-time update to ensure correct initial state
+        setNumBlocks(clientModel->getNumBlocks(), clientModel->getLastBlockDate(), clientModel->getVerificationProgress(nullptr), false);
+    }
 }
 
 #ifdef ENABLE_WALLET

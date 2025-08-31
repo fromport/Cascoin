@@ -21,6 +21,18 @@ layerIsVisible(false),
 userClosed(false)
 {
     ui->setupUi(this);
+    // Ensure stylesheet-based backgrounds render correctly on all platforms
+    setAttribute(Qt::WA_StyledBackground, true);
+    if (ui->bgWidget) {
+        ui->bgWidget->setAttribute(Qt::WA_StyledBackground, true);
+        ui->bgWidget->setAutoFillBackground(false);
+        // Start without dim background to avoid fully black first frame
+        ui->bgWidget->setVisible(false);
+    }
+    if (ui->contentWidget) {
+        ui->contentWidget->setAttribute(Qt::WA_StyledBackground, true);
+        ui->contentWidget->setAutoFillBackground(false);
+    }
     connect(ui->closeButton, SIGNAL(clicked()), this, SLOT(closeClicked()));
     if (parent) {
         parent->installEventFilter(this);
@@ -153,8 +165,17 @@ void ModalOverlay::showHide(bool hide, bool userRequested)
     if ( (layerIsVisible && !hide) || (!layerIsVisible && hide) || (!hide && userClosed && !userRequested))
         return;
 
-    if (!isVisible() && !hide)
+    if (!isVisible() && !hide) {
+        // First show: avoid animation to prevent black frame on some systems
+        if (parent()) {
+            setGeometry(static_cast<QWidget*>(parent())->rect());
+        }
         setVisible(true);
+        move(0, 0);
+        if (ui->bgWidget) ui->bgWidget->setVisible(false);
+        layerIsVisible = true;
+        return;
+    }
 
     setGeometry(0, hide ? 0 : height(), width(), height());
 
