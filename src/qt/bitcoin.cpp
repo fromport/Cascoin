@@ -60,7 +60,13 @@
 #include <QtPlugin>
 #if QT_VERSION >= 0x060000
 // Qt6 static plugins
+#ifdef Q_OS_WIN
 Q_IMPORT_PLUGIN(QWindowsIntegrationPlugin);
+#elif defined(Q_OS_LINUX)
+Q_IMPORT_PLUGIN(QXcbIntegrationPlugin);
+#elif defined(Q_OS_MACOS)
+Q_IMPORT_PLUGIN(QCocoaIntegrationPlugin);
+#endif
 #else
 // Qt5 static plugins
 #if defined(QT_QPA_PLATFORM_XCB)
@@ -749,8 +755,15 @@ int main(int argc, char *argv[])
     qputenv("QT_QPA_PLATFORMTHEME", "");
     qputenv("DBUS_SESSION_BUS_ADDRESS", "disabled");
     qputenv("QT_DBUS_NO_ACTIVATION", "1");
-    // Force Qt to use fallback instead of D-Bus
+    
+#ifdef Q_OS_LINUX
+    // Force Qt to use XCB instead of D-Bus on Linux
     qputenv("QT_QPA_PLATFORM", "xcb");
+#elif defined(Q_OS_WIN)
+    // On Windows, explicitly set the platform to ensure correct plugin is used
+    qputenv("QT_QPA_PLATFORM", "windows");
+#endif
+    // On macOS, let Qt auto-detect the platform
     
     BitcoinApplication app(argc, argv);
 #if QT_VERSION > 0x050100 && QT_VERSION < 0x060000
