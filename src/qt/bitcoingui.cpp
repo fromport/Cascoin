@@ -279,6 +279,15 @@ BitcoinGUI::BitcoinGUI(const PlatformStyle *_platformStyle, const NetworkStyle *
 #endif
 
     updateHiveStatusIcon(":/icons/hivestatus_disabled", "The Labyrinth is not enabled on the network");
+    
+    // Allow free window resizing - remove minimum size constraints
+    setMinimumSize(200, 150); // Very small minimum size to allow maximum flexibility
+    
+    // Set size policies to allow compression of the central widget
+    if (centralWidget()) {
+        centralWidget()->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+        centralWidget()->setMinimumSize(200, 150);
+    }
 }
 
 BitcoinGUI::~BitcoinGUI()
