@@ -365,69 +365,25 @@ BitcoinApplication::BitcoinApplication(int &argc, char **argv):
     appPalette.setColor(QPalette::Text, QColor("#ffffff"));            // white text
     QApplication::setPalette(appPalette);
 
-    // Apply modern dark theme stylesheet - optimized for faster loading
+    // Minimal dark theme to prevent freezing while maintaining functionality
     const QString appStyle =
-        // Main window and background - simplified for performance
         "QMainWindow { background-color: #1e1e1e; color: #ffffff; }\n"
         "QWidget { background-color: #1e1e1e; color: #ffffff; }\n"
-        "QFrame { background-color: #1e1e1e; color: #ffffff; }\n"
-        // Menu bar - dark header style
-        "QMenuBar { background: #2d3748; color: #ffffff; border-bottom: 1px solid #4a5568; padding: 4px; }\n"
-        "QMenuBar::item { background: transparent; padding: 8px 12px; border-radius: 4px; }\n"
-        "QMenuBar::item:selected { background: #4a5568; }\n"
-        "QMenuBar::item:pressed { background: #2d3748; }\n"
-        "QMenu { background: #2d3748; color: #ffffff; border: 1px solid #4a5568; border-radius: 8px; padding: 4px; }\n"
-        "QMenu::item { padding: 8px 16px; border-radius: 4px; }\n"
-        "QMenu::item:selected { background: #4a5568; }\n"
-        "QMenu::separator { height: 1px; background: #4a5568; margin: 4px 8px; }\n"
-        // Toolbars - modern sidebar style
-        "QToolBar { background: #2d3748; border: none; spacing: 8px; padding: 8px; }\n"
-        "QToolBar QToolButton { background: transparent; color: #cbd5e0; border: none; border-radius: 8px; padding: 12px; min-width: 48px; min-height: 48px; }\n"
-        "QToolBar QToolButton:hover { background: #4a5568; color: #ffffff; }\n"
-        "QToolBar QToolButton:checked { background: #48bb78; color: #ffffff; }\n"
-        "QToolBar QToolButton:pressed { background: #38a169; }\n"
-        // Status bar
-        "QStatusBar { background: #2d3748; color: #cbd5e0; border-top: 1px solid #4a5568; }\n"
-        // Cards and frames - modern card design
-        "QFrame { background: #2d3748; border: 1px solid #4a5568; border-radius: 12px; padding: 16px; }\n"
-        "QFrame[frameShape=\"4\"] { background: #2d3748; border: 1px solid #4a5568; border-radius: 12px; }\n"
-        // Buttons - modern green accent
-        "QPushButton { background: #48bb78; color: #ffffff; border: none; border-radius: 8px; padding: 12px 24px; font-weight: bold; }\n"
-        "QPushButton:hover { background: #38a169; }\n"
-        "QPushButton:pressed { background: #2f855a; }\n"
-        "QPushButton:disabled { background: #4a5568; color: #a0aec0; }\n"
-        "QPushButton[flat=\"true\"] { background: transparent; border: none; }\n"
-        "QPushButton[flat=\"true\"]:hover { background: #4a5568; border-radius: 4px; }\n"
-        // Labels - enhanced typography
         "QLabel { color: #ffffff; }\n"
-        "QLabel[styleClass=\"title\"] { font-size: 24px; font-weight: bold; color: #ffffff; }\n"
-        "QLabel[styleClass=\"balance\"] { font-size: 32px; font-weight: bold; color: #48bb78; }\n"
-        "QLabel[styleClass=\"section-header\"] { font-size: 18px; font-weight: bold; color: #e2e8f0; margin: 16px 0 8px 0; }\n"
-        // Input fields
-        "QLineEdit, QTextEdit, QPlainTextEdit, QSpinBox, QDoubleSpinBox { background: #4a5568; color: #ffffff; border: 1px solid #718096; border-radius: 8px; padding: 8px 12px; }\n"
-        "QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus { border-color: #48bb78; }\n"
-        // Tables and lists - modern design with proper contrast
-        "QHeaderView::section { background: #2d3748; color: #e2e8f0; padding: 12px; border: none; border-bottom: 1px solid #4a5568; font-weight: bold; }\n"
-        "QTableView, QListView { background: #1e1e1e; color: #ffffff; border: none; alternate-background-color: #2d3748; gridline-color: #4a5568; }\n"
-        "QTableView::item, QListView::item { padding: 8px; border-bottom: 1px solid #4a5568; color: #ffffff; }\n"
-        "QTableView::item:selected, QListView::item:selected { background: #48bb78; color: #ffffff; }\n"
-        "QTableView::item:hover, QListView::item:hover { background: #4a5568; color: #ffffff; }\n"
-        "QTableView#transactionView { background: #1e1e1e; color: #ffffff; }\n"
-        "QTableView#transactionView::item { color: #ffffff; }\n"
-        // Combo boxes
-        "QComboBox { background: #4a5568; color: #ffffff; border: 1px solid #718096; border-radius: 8px; padding: 8px 12px; }\n"
-        "QComboBox::drop-down { border: none; }\n"
-        "QComboBox::down-arrow { image: url(:/icons/dropdown_arrow); width: 12px; height: 12px; }\n"
-        "QComboBox QAbstractItemView { background: #2d3748; color: #ffffff; selection-background-color: #48bb78; border: 1px solid #4a5568; border-radius: 8px; }\n"
-        // Scrollbars - modern thin scrollbars
-        "QScrollBar:vertical { background: #2d3748; width: 8px; border-radius: 4px; }\n"
-        "QScrollBar::handle:vertical { background: #4a5568; border-radius: 4px; min-height: 20px; }\n"
-        "QScrollBar::handle:vertical:hover { background: #718096; }\n"
-        "QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { border: none; background: none; }\n"
-        "QScrollBar:horizontal { background: #2d3748; height: 8px; border-radius: 4px; }\n"
-        "QScrollBar::handle:horizontal { background: #4a5568; border-radius: 4px; min-width: 20px; }\n"
-        "QScrollBar::handle:horizontal:hover { background: #718096; }\n"
-        "QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { border: none; background: none; }\n";
+        "QPushButton { background: #48bb78; color: #ffffff; border: none; border-radius: 4px; padding: 8px 16px; }\n"
+        "QPushButton:hover { background: #38a169; }\n"
+        "QPushButton:disabled { background: #4a5568; color: #a0aec0; }\n"
+        "QMenuBar { background: #2d3748; color: #ffffff; }\n"
+        "QToolBar { background: #2d3748; }\n"
+        "QToolBar QToolButton { color: #cbd5e0; }\n"
+        "QToolBar QToolButton:checked { background: #48bb78; color: #ffffff; }\n"
+        "QTableView { background: #1e1e1e; color: #ffffff; alternate-background-color: #2d3748; }\n"
+        "QTableView::item { color: #ffffff; }\n"
+        "QTableView::item:selected { background: #48bb78; color: #ffffff; }\n"
+        "QHeaderView::section { background: #2d3748; color: #e2e8f0; }\n"
+        "QLineEdit { background: #4a5568; color: #ffffff; border: 1px solid #718096; }\n"
+        "QTextEdit { background: #4a5568; color: #ffffff; border: 1px solid #718096; }\n"
+        "QComboBox { background: #4a5568; color: #ffffff; }\n";
     this->setStyleSheet(appStyle);
 }
 
