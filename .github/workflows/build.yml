@@ -633,8 +633,13 @@ jobs:
             NOTES_FILE="$CANDIDATE_3"
           fi
           if [[ -n "$NOTES_FILE" ]]; then
-            BODY=$(sed -e 's/%/%25/g' -e 's/\r/%0D/g' -e 's/\n/%0A/g' "$NOTES_FILE")
-            echo "body=$BODY" >> $GITHUB_OUTPUT
+            # Read the file and properly escape for GitHub Actions output
+            # Use a more robust approach to handle multiline content
+            {
+              echo "body<<EOF"
+              cat "$NOTES_FILE"
+              echo "EOF"
+            } >> $GITHUB_OUTPUT
           else
             echo "body=Release-Draft. Bitte Release Notes ergänzen." >> $GITHUB_OUTPUT
           fi
