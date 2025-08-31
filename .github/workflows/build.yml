@@ -3,7 +3,18 @@ name: Build Cascoin (Qt6 GUI + Wallet)
 on:
   push:
     branches: [ master, main ]
+    tags:
+      - 'v*'
   pull_request:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Release-Draft sofort veröffentlichen?'
+        required: false
+        default: 'false'
+      tag:
+        description: 'Tag-Name (bei manueller Ausführung)'
+        required: false
 
 jobs:
   build-linux:
@@ -524,3 +535,134 @@ jobs:
             src/qt/*.exe.debug
           if-no-files-found: ignore
 
+
+  release:
+    runs-on: self-hosted
+    needs:
+      - build-linux
+      - build-windows
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Determine tag
+        id: tag
+        shell: bash
+        run: |
+          TAG=""
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            TAG="${GITHUB_REF_NAME}"
+          elif [[ -n "${{ inputs.tag }}" ]]; then
+            TAG="${{ inputs.tag }}"
+          else
+            echo "Kein Tag übergeben. Breche ab." >&2
+            exit 1
+          fi
+          echo "value=${TAG}" >> $GITHUB_OUTPUT
+          # Strip leading 'v' for versioned filenames
+          VERSION="${TAG#v}"
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Download Linux distribution artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: cascoin-linux-x86_64-distribution
+          path: release/linux
+
+      - name: Normalize Linux artifact filename
+        shell: bash
+        run: |
+          shopt -s nullglob
+          files=(release/linux/*.tar.gz)
+          if (( ${#files[@]} )); then
+            mv "${files[0]}" "release/cascoin-linux-x86_64-distribution-${{ steps.tag.outputs.value }}.tar.gz"
+          else
+            echo "Warnung: Kein Linux-Archiv gefunden." >&2
+          fi
+
+      - name: Download Windows build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: cascoin-windows-x86_64-w64-mingw32-build
+          path: release/windows
+
+      - name: Package Windows ZIP
+        shell: bash
+        run: |
+          mkdir -p release
+          if compgen -G "release/windows/*.exe" > /dev/null; then
+            (cd release/windows && zip -9 -r ../cascoin-windows-x86_64-w64-mingw32-${{ steps.tag.outputs.value }}.zip *.exe)
+          else
+            echo "Warnung: Keine Windows-EXE-Dateien gefunden." >&2
+          fi
+
+      - name: Prepare release notes
+        id: notes
+        shell: bash
+        run: |
+          NOTES_FILE=""
+          CANDIDATE_1="doc/release-notes/release-notes-${{ steps.tag.outputs.version }}.md"
+          CANDIDATE_2="doc/release-notes.md"
+          CANDIDATE_3="doc/release-notes/release-notes.md"
+          if [[ -f "$CANDIDATE_1" ]]; then
+            NOTES_FILE="$CANDIDATE_1"
+          elif [[ -f "$CANDIDATE_2" ]]; then
+            NOTES_FILE="$CANDIDATE_2"
+          elif [[ -f "$CANDIDATE_3" ]]; then
+            NOTES_FILE="$CANDIDATE_3"
+          fi
+          if [[ -n "$NOTES_FILE" ]]; then
+            BODY=$(sed -e 's/%/%25/g' -e 's/\r/%0D/g' -e 's/\n/%0A/g' "$NOTES_FILE")
+            echo "body=$BODY" >> $GITHUB_OUTPUT
+          else
+            echo "body=Release-Draft. Bitte Release Notes ergänzen." >> $GITHUB_OUTPUT
+          fi
+
+      - name: Release-Draft erstellen
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          draft: true
+          prerelease: false
+          release_name: 'V${{ steps.tag.outputs.value }}'
+          tag_name: ${{ steps.tag.outputs.value }}
+          body: ${{ steps.notes.outputs.body }}
+
+      - name: Artefakt hochladen (Linux)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: release/cascoin-linux-x86_64-distribution-${{ steps.tag.outputs.value }}.tar.gz
+          asset_name: cascoin-linux-x86_64-distribution-${{ steps.tag.outputs.value }}.tar.gz
+          asset_content_type: application/gzip
+
+      - name: Artefakt hochladen (Windows)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: release/cascoin-windows-x86_64-w64-mingw32-${{ steps.tag.outputs.value }}.zip
+          asset_name: cascoin-windows-x86_64-w64-mingw32-${{ steps.tag.outputs.value }}.zip
+          asset_content_type: application/zip
+
+      - name: Release veröffentlichen
+        if: ${{ inputs.publish == 'true' }}
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const release_id = '${{ steps.create_release.outputs.id }}';
+            await github.rest.repos.updateRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id,
+              draft: false
+            });
