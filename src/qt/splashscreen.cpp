@@ -315,8 +315,20 @@ static void ShowProgress(SplashScreen *splash, const std::string &title, int nPr
 #ifdef ENABLE_WALLET
 void SplashScreen::ConnectWallet(CWallet* wallet)
 {
-    wallet->ShowProgress.connect(boost::bind(ShowProgress, this, boost::placeholders::_1, boost::placeholders::_2, false));
-    connectedWallets.push_back(wallet);
+    // Cascoin: Memory leak fix - Avoid duplicate wallet connections
+    if (std::find(connectedWallets.begin(), connectedWallets.end(), wallet) == connectedWallets.end()) {
+        wallet->ShowProgress.connect(boost::bind(ShowProgress, this, boost::placeholders::_1, boost::placeholders::_2, false));
+        connectedWallets.push_back(wallet);
+        
+        // Limit maximum connected wallets to prevent memory overflow
+        const size_t MAX_CONNECTED_WALLETS = 10;
+        if (connectedWallets.size() > MAX_CONNECTED_WALLETS) {
+            // Disconnect oldest wallet
+            CWallet* oldWallet = connectedWallets.front();
+            oldWallet->ShowProgress.disconnect(boost::bind(ShowProgress, this, boost::placeholders::_1, boost::placeholders::_2, false));
+            connectedWallets.erase(connectedWallets.begin());
+        }
+    }
 }
 #endif
 

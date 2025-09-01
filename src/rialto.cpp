@@ -622,8 +622,16 @@ bool RialtoDecryptMessage(const std::string layer3Envelope, std::string &err) {
         qm.message = std::vector<unsigned char, secure_allocator<unsigned char>>(unconfirmedPlaintext.begin(), unconfirmedPlaintext.end());
         qm.timestamp = layer1timestamp;
 
-        // Get the lock, and add to the received message queue
-        std::lock_guard<std::mutex> lock(receivedMessageQueueMutex); 
+        // Get the lock, and add to the received message queue with size limit
+        std::lock_guard<std::mutex> lock(receivedMessageQueueMutex);
+        
+        // Cascoin: Memory leak fix - Prevent queue overflow
+        if (receivedMessageQueue.size() >= MAX_QUEUED_MESSAGES) {
+            // Remove oldest message to make room
+            receivedMessageQueue.erase(receivedMessageQueue.begin());
+            LogPrint(BCLog::RIALTO, "Rialto: Message queue full, removed oldest message\n");
+        }
+        
         receivedMessageQueue.push_back(qm);
         receivedMessageQueueCV.notify_one();
 

@@ -1426,11 +1426,12 @@ bool AppInitMain()
     int64_t nBlockTreeDBCache = nTotalCache / 8;
     nBlockTreeDBCache = std::min(nBlockTreeDBCache, (gArgs.GetBoolArg("-txindex", DEFAULT_TXINDEX) ? nMaxBlockDBAndTxIndexCache : nMaxBlockDBCache) << 20);
     nTotalCache -= nBlockTreeDBCache;
-    int64_t nCoinDBCache = std::min(nTotalCache / 2, (nTotalCache / 4) + (1 << 23)); // use 25%-50% of the remainder for disk cache
-    nCoinDBCache = std::min(nCoinDBCache, nMaxCoinsDBCache << 20); // cap total coins db cache
+    // Cascoin: Memory leak fix - Reduced cache sizes to prevent memory overflow
+    int64_t nCoinDBCache = std::min(nTotalCache / 3, (nTotalCache / 5) + (1 << 22)); // use 20%-33% of the remainder for disk cache (reduced)
+    nCoinDBCache = std::min(nCoinDBCache, nMaxCoinsDBCache << 19); // cap total coins db cache (reduced by half)
     nTotalCache -= nCoinDBCache;
-    nCoinCacheUsage = nTotalCache; // the rest goes to in-memory cache
-    int64_t nMempoolSizeMax = gArgs.GetArg("-maxmempool", DEFAULT_MAX_MEMPOOL_SIZE) * 1000000;
+    nCoinCacheUsage = std::min(nTotalCache, nTotalCache * 3 / 4); // limit in-memory cache to 75% of remainder
+    int64_t nMempoolSizeMax = std::min((int64_t)(gArgs.GetArg("-maxmempool", DEFAULT_MAX_MEMPOOL_SIZE) * 1000000), (int64_t)(128 * 1000000)); // Cap mempool at 128MB
     LogPrintf("Cache configuration:\n");
     LogPrintf("* Using %.1fMiB for block index database\n", nBlockTreeDBCache * (1.0 / 1024 / 1024));
     LogPrintf("* Using %.1fMiB for chain state database\n", nCoinDBCache * (1.0 / 1024 / 1024));
