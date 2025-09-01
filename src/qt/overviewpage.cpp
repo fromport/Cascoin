@@ -292,20 +292,22 @@ void OverviewPage::updateHiveSummary() {
             + " "
             + BitcoinUnits::shortName(walletModel->getOptionsModel()->getDisplayUnit())
         );
-        ui->matureLabel->setText(HiveDialog::formatLargeNoLocale(mature));
-        ui->immatureLabel->setText(HiveDialog::formatLargeNoLocale(immature));
-        ui->blocksFoundLabel->setText(HiveDialog::formatLargeNoLocale(blocksFound));
+        // Update the single mice status label with clean formatting using proper terminology
+        QString miceText = QString("(%1 resting mice, %2 adventure mice")
+            .arg(HiveDialog::formatLargeNoLocale(immature))
+            .arg(HiveDialog::formatLargeNoLocale(mature));
         
         if (dead > 0) {
-            ui->deadLabel->setText(HiveDialog::formatLargeNoLocale(dead));
-            ui->deadLabel->setVisible(true);
-            ui->deadPreLabel->setVisible(true);
-            ui->deadPostLabel->setVisible(true);
-        } else {
-            ui->deadLabel->setVisible(false);
-            ui->deadPreLabel->setVisible(false);
-            ui->deadPostLabel->setVisible(false);         
+            miceText += QString(", %1 deceased").arg(HiveDialog::formatLargeNoLocale(dead));
         }
+        miceText += ")";
+        
+        ui->miceStatusLabel->setText(miceText);
+        
+        // Update the blocks found status label with proper terminology
+        QString blocksText = QString("(%1 cheese blocks found in labyrinth)")
+            .arg(HiveDialog::formatLargeNoLocale(blocksFound));
+        ui->blocksFoundStatusLabel->setText(blocksText);
     }
 }
 

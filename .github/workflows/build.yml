@@ -3,7 +3,18 @@ name: Build Cascoin (Qt6 GUI + Wallet)
 on:
   push:
     branches: [ master, main ]
+    tags:
+      - 'v*'
   pull_request:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Release-Draft sofort veröffentlichen?'
+        required: false
+        default: 'false'
+      tag:
+        description: 'Tag-Name (bei manueller Ausführung)'
+        required: false
 
 jobs:
   build-linux:
@@ -415,19 +426,37 @@ jobs:
         run: |
           mkdir -p depends/built depends/work depends/sources depends/sdk-sources depends/${HOST} depends/stamps
 
-      - name: Cache depends (sources, built artifacts, prefix)
+      - name: Cache depends (sources)
         uses: actions/cache@v4
         with:
           path: |
-            depends/built
-            depends/work
             depends/sources
             depends/sdk-sources
-            depends/${{ env.HOST }}
-            depends/stamps
-          key: depends-${{ runner.os }}-${{ env.HOST }}-${{ hashFiles('depends/packages/*.mk', 'depends/hosts/*.mk', 'depends/builders/*.mk') }}
+          key: depends-sources-${{ hashFiles('depends/packages/*.mk') }}
+
+      - name: Cache depends (built packages)
+        uses: actions/cache@v4
+        with:
+          path: depends/${{ env.HOST }}
+          key: depends-built-${{ runner.os }}-${{ env.HOST }}-${{ hashFiles('depends/**/*.mk', 'depends/patches/**') }}
           restore-keys: |
-            depends-${{ runner.os }}-${{ env.HOST }}-
+            depends-built-${{ runner.os }}-${{ env.HOST }}-
+
+      - name: Cache depends (built artifacts)
+        uses: actions/cache@v4
+        with:
+          path: depends/built
+          key: depends-artifacts-${{ runner.os }}-${{ env.HOST }}-${{ hashFiles('depends/**/*.mk', 'depends/patches/**') }}
+          restore-keys: |
+            depends-artifacts-${{ runner.os }}-${{ env.HOST }}-
+
+      - name: Cache depends (work - experimental)
+        uses: actions/cache@v4
+        with:
+          path: depends/work
+          key: depends-work-${{ runner.os }}-${{ env.HOST }}-${{ hashFiles('depends/**/*.mk') }}-${{ github.run_id }}
+          restore-keys: |
+            depends-work-${{ runner.os }}-${{ env.HOST }}-${{ hashFiles('depends/**/*.mk') }}-
 
       # Disabled ccache for Qt depends build to avoid path complexity
       # - name: Prebuild native ccache and ensure path for depends
@@ -449,87 +478,261 @@ jobs:
           ls -lah depends/*/native/bin || true
           ls -lah depends/${HOST}
 
-#      - name: Autogen
-#        shell: bash
-#        run: ./autogen.sh
+      - name: Autogen
+        shell: bash
+        run: ./autogen.sh
 
-#      - name: Configure (Windows ${HOST}, Qt6 GUI, wallet, incompatible BDB)
-#        shell: bash
-#        run: |
-#          export CONFIG_SITE="$PWD/depends/${HOST}/share/config.site"
-#          echo "Using Qt tools from depends:"
-#          ls -la "$PWD/depends/${HOST}/native/libexec/" | head -10
-#          CFLAGS="-g -D_WIN32_WINNT=0x0601" CXXFLAGS="-g -D_WIN32_WINNT=0x0601" \
-#          CPPFLAGS="-I$PWD/depends/${HOST}/include" \
-#          LDFLAGS="-L$PWD/depends/${HOST}/lib" \
-#          PKG_CONFIG_PATH="$PWD/depends/${HOST}/lib/pkgconfig" \
-#          MOC="$PWD/depends/${HOST}/native/libexec/moc" \
-#          UIC="$PWD/depends/${HOST}/native/libexec/uic" \
-#          RCC="$PWD/depends/${HOST}/native/libexec/rcc" \
-#          QMAKE="$PWD/depends/${HOST}/native/bin/qmake" \
-#          LRELEASE="/usr/lib/qt6/bin/lrelease" \
-#          LUPDATE="/usr/lib/qt6/bin/lupdate" \
-#          ./configure \
-#            --prefix="$PWD/depends/${HOST}" \
-#            --host=${HOST} \
-#            --disable-tests \
-#            --disable-bench \
-#            --with-gui=qt6 \
-#            --with-qt-incdir="$PWD/depends/${HOST}/include" \
-#            --with-qt-libdir="$PWD/depends/${HOST}/lib" \
-#            --enable-wallet \
-#            --with-incompatible-bdb \
-#            --enable-glibc-back-compat \
-#            --disable-bench \
-#            --disable-tests
+      - name: Configure (Windows ${HOST}, Qt6 GUI, wallet, incompatible BDB)
+        shell: bash
+        run: |
+          export CONFIG_SITE="$PWD/depends/${HOST}/share/config.site"
+          echo "=== Checking Qt6 tools from depends ==="
+          ls -la "$PWD/depends/${HOST}/native/libexec/" | head -10
+          echo "=== Checking Qt6 libraries ==="
+          ls -la "$PWD/depends/x86_64-w64-mingw32/lib/" | grep -i qt || echo "No Qt libraries found"
+          echo "=== Checking Qt6 includes ==="
+          ls -la "$PWD/depends/x86_64-w64-mingw32/include/" | grep -i qt || echo "No Qt includes found"
+          echo "=== Running configure ==="
+          CFLAGS="-g -D_WIN32_WINNT=0x0601" CXXFLAGS="-g -D_WIN32_WINNT=0x0601" \
+          export PATH=/usr/lib/qt6/bin:$PATH
+          CPPFLAGS="-I$PWD/depends/x86_64-w64-mingw32/include" \
+          LDFLAGS="-L$PWD/depends/x86_64-w64-mingw32/lib" \
+          PKG_CONFIG_PATH="$PWD/depends/x86_64-w64-mingw32/lib/pkgconfig" \
+          ./configure \
+            --prefix=$PWD/depends/x86_64-w64-mingw32 \
+            --host=x86_64-w64-mingw32 \
+            --disable-tests \
+            --disable-bench \
+            --with-gui=qt6 \
+            --with-qt-incdir=$PWD/depends/x86_64-w64-mingw32/include \
+            --with-qt-libdir=$PWD/depends/x86_64-w64-mingw32/lib \
+            --with-qt-bindir=$PWD/depends/x86_64-w64-mingw32/native/libexec:/usr/lib/qt6/bin \
+            --with-incompatible-bdb
+          echo "=== Configure completed, checking config.log for Qt6 detection ==="
+          grep -A 5 -B 5 "checking for Qt" config.log || echo "Qt check not found in config.log"
+          grep -A 5 -B 5 "GUI.*qt" config.log || echo "GUI check not found in config.log"
+      - name: Build (Windows ${HOST})
+        shell: bash
+        run: |
+          echo "=== Starting build ==="
+          echo "Available make targets:"
+          make help | head -20 || true
+          echo "=== Building all targets ==="
+          make -j"$(nproc)"
+          echo "=== Build completed, checking what was built ==="
+          echo "Files in src/:"
+          ls -la src/ | head -20 || true
+          echo "Files in src/qt/:"
+          ls -la src/qt/ || true
 
-#      - name: Build (Windows ${HOST})
-#        shell: bash
-#        run: make -j"$(nproc)"
+      - name: Strip Windows binaries (non-fatal) and keep debug symbols
+        shell: bash
+        run: |
+          shopt -s nullglob
+          bins=(src/*.exe src/qt/*.exe)
+          for b in "${bins[@]}"; do
+            if [[ -f "$b" ]]; then
+              echo "Processing $b"
+              if command -v ${HOST}-objcopy >/dev/null 2>&1; then
+                ${HOST}-objcopy --only-keep-debug "$b" "$b".debug || true
+              fi
+              if command -v ${HOST}-strip >/dev/null 2>&1; then
+                ${HOST}-strip --strip-unneeded "$b" || true
+              fi
+              if command -v ${HOST}-objcopy >/dev/null 2>&1; then
+                ${HOST}-objcopy --add-gnu-debuglink="$b".debug "$b" || true
+              fi
+            fi
+          done
 
-#      - name: Strip Windows binaries (non-fatal) and keep debug symbols
-#        shell: bash
-#        run: |
-#          shopt -s nullglob
-#          bins=(src/*.exe src/qt/*.exe)
-#          for b in "${bins[@]}"; do
-#            if [[ -f "$b" ]]; then
-#              echo "Processing $b"
-#              if command -v ${HOST}-objcopy >/dev/null 2>&1; then
-#                ${HOST}-objcopy --only-keep-debug "$b" "$b".debug || true
-#              fi
-#              if command -v ${HOST}-strip >/dev/null 2>&1; then
-#                ${HOST}-strip --strip-unneeded "$b" || true
-#              fi
-#              if command -v ${HOST}-objcopy >/dev/null 2>&1; then
-#                ${HOST}-objcopy --add-gnu-debuglink="$b".debug "$b" || true
-#              fi
-#            fi
-#          done
+      - name: List built Windows binaries
+        shell: bash
+        run: |
+          echo "=== Listing all built binaries ==="
+          ls -lah src || true
+          echo "=== Listing Qt GUI binaries ==="
+          ls -lah src/qt || true
+          echo "=== Looking for specific executables ==="
+          find src -name "*.exe" -type f | head -20 || true
+          echo "=== Checking for cascoin-qt.exe specifically ==="
+          ls -lah src/qt/cascoin-qt.exe || echo "cascoin-qt.exe not found"
+          echo "=== All .exe files in src and subdirectories ==="
+          find src -name "*.exe" -exec ls -lah {} \; || true
+          echo "=== Testing artifact path patterns ==="
+          echo "Files matching src/qt/*-qt.exe:"
+          ls -lah src/qt/*-qt.exe 2>/dev/null || echo "No files match src/qt/*-qt.exe"
+          echo "Files matching src/*coind.exe:"
+          ls -lah src/*coind.exe 2>/dev/null || echo "No files match src/*coind.exe"
+          echo "Files matching src/*coin-cli.exe:"
+          ls -lah src/*coin-cli.exe 2>/dev/null || echo "No files match src/*coin-cli.exe"
 
-#      - name: List built Windows binaries
-#        shell: bash
-#        run: |
-#          ls -lah src || true
-#          ls -lah src/qt || true
+      - name: Upload Windows artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cascoin-windows-${{ env.HOST }}-build
+          path: |
+            src/qt/*-qt.exe
+            src/*coind.exe
+            src/*coin-cli.exe
+            src/*coin-tx.exe
+            src/*.exe
+            src/qt/*.exe
+          if-no-files-found: warn
 
-#      - name: Upload Windows artifacts
-#        if: always()
-#        uses: actions/upload-artifact@v4
-#        with:
-#          name: cascoin-windows-${{ env.HOST }}-build
-#          path: |
-#            src/*.exe
-#            src/qt/*.exe
-#          if-no-files-found: warn
+      - name: Upload Windows debug symbols
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cascoin-windows-${{ env.HOST }}-debug
+          path: |
+            src/*.exe.debug
+            src/qt/*.exe.debug
+          if-no-files-found: ignore
 
-#      - name: Upload Windows debug symbols
-#        if: always()
-#        uses: actions/upload-artifact@v4
-#        with:
-#          name: cascoin-windows-${{ env.HOST }}-debug
-#          path: |
-#            src/*.exe.debug
-#            src/qt/*.exe.debug
-#          if-no-files-found: ignore
 
+  release:
+    runs-on: self-hosted
+    needs:
+      - build-linux
+      - build-windows
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Determine tag
+        id: tag
+        shell: bash
+        run: |
+          TAG=""
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            TAG="${GITHUB_REF_NAME}"
+          elif [[ -n "${{ inputs.tag }}" ]]; then
+            TAG="${{ inputs.tag }}"
+          else
+            echo "Kein Tag übergeben. Breche ab." >&2
+            exit 1
+          fi
+          echo "value=${TAG}" >> $GITHUB_OUTPUT
+          # Strip leading 'v' for versioned filenames
+          VERSION="${TAG#v}"
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Download Linux distribution artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: cascoin-linux-x86_64-distribution
+          path: release/linux
+
+      - name: Normalize Linux artifact filename
+        shell: bash
+        run: |
+          shopt -s nullglob
+          files=(release/linux/*.tar.gz)
+          if (( ${#files[@]} )); then
+            mv "${files[0]}" "release/cascoin-linux-x86_64-distribution-${{ steps.tag.outputs.value }}.tar.gz"
+          else
+            echo "Warnung: Kein Linux-Archiv gefunden." >&2
+          fi
+
+      - name: Download Windows build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: cascoin-windows-x86_64-w64-mingw32-build
+          path: release/windows
+
+      - name: Package Windows ZIP
+        shell: bash
+        run: |
+          mkdir -p release
+          echo "=== Checking Windows artifacts structure ==="
+          find release/windows -name "*.exe" -type f | head -10 || echo "No .exe files found"
+          echo "=== Files in release/windows ==="
+          ls -la release/windows/ || true
+          echo "=== All files in release/windows recursively ==="
+          find release/windows -type f | head -20 || true
+          
+          if find release/windows -name "*.exe" -type f | grep -q .; then
+            echo "=== Creating Windows ZIP with all .exe files ==="
+            (cd release/windows && find . -name "*.exe" -type f -exec zip -9 ../cascoin-windows-x86_64-w64-mingw32-${{ steps.tag.outputs.value }}.zip {} +)
+            echo "=== ZIP contents ==="
+            unzip -l release/cascoin-windows-x86_64-w64-mingw32-${{ steps.tag.outputs.value }}.zip || true
+          else
+            echo "Warnung: Keine Windows-EXE-Dateien gefunden." >&2
+          fi
+
+      - name: Prepare release notes
+        id: notes
+        shell: bash
+        run: |
+          NOTES_FILE=""
+          CANDIDATE_1="doc/release-notes/release-notes-${{ steps.tag.outputs.version }}.md"
+          CANDIDATE_2="doc/release-notes.md"
+          CANDIDATE_3="doc/release-notes/release-notes.md"
+          if [[ -f "$CANDIDATE_1" ]]; then
+            NOTES_FILE="$CANDIDATE_1"
+          elif [[ -f "$CANDIDATE_2" ]]; then
+            NOTES_FILE="$CANDIDATE_2"
+          elif [[ -f "$CANDIDATE_3" ]]; then
+            NOTES_FILE="$CANDIDATE_3"
+          fi
+          if [[ -n "$NOTES_FILE" ]]; then
+            # Read the file and properly escape for GitHub Actions output
+            # Use a more robust approach to handle multiline content
+            {
+              echo "body<<EOF"
+              cat "$NOTES_FILE"
+              echo "EOF"
+            } >> $GITHUB_OUTPUT
+          else
+            echo "body=Release-Draft. Bitte Release Notes ergänzen." >> $GITHUB_OUTPUT
+          fi
+
+      - name: Release-Draft erstellen
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          draft: true
+          prerelease: false
+          release_name: 'V${{ steps.tag.outputs.value }}'
+          tag_name: ${{ steps.tag.outputs.value }}
+          body: ${{ steps.notes.outputs.body }}
+
+      - name: Artefakt hochladen (Linux)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: release/cascoin-linux-x86_64-distribution-${{ steps.tag.outputs.value }}.tar.gz
+          asset_name: cascoin-linux-x86_64-distribution-${{ steps.tag.outputs.value }}.tar.gz
+          asset_content_type: application/gzip
+
+      - name: Artefakt hochladen (Windows)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: release/cascoin-windows-x86_64-w64-mingw32-${{ steps.tag.outputs.value }}.zip
+          asset_name: cascoin-windows-x86_64-w64-mingw32-${{ steps.tag.outputs.value }}.zip
+          asset_content_type: application/zip
+
+      - name: Release veröffentlichen
+        if: ${{ inputs.publish == 'true' }}
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const release_id = '${{ steps.create_release.outputs.id }}';
+            await github.rest.repos.updateRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id,
+              draft: false
+            });

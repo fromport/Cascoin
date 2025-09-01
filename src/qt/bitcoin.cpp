@@ -60,7 +60,13 @@
 #include <QtPlugin>
 #if QT_VERSION >= 0x060000
 // Qt6 static plugins
+#ifdef Q_OS_WIN
 Q_IMPORT_PLUGIN(QWindowsIntegrationPlugin);
+#elif defined(Q_OS_LINUX)
+Q_IMPORT_PLUGIN(QXcbIntegrationPlugin);
+#elif defined(Q_OS_MACOS)
+Q_IMPORT_PLUGIN(QCocoaIntegrationPlugin);
+#endif
 #else
 // Qt5 static plugins
 #if defined(QT_QPA_PLATFORM_XCB)
@@ -101,8 +107,8 @@ static QString GetLangTerritory()
 {
     QSettings settings;
     // Get desired locale (e.g. "de_DE")
-    // 1) System default language
-    QString lang_territory = QLocale::system().name();
+    // 1) Default to English instead of system locale to ensure English on English systems
+    QString lang_territory = "en";
     // 2) Language from QSettings
     QString lang_territory_qsettings = settings.value("language", "").toString();
     if(!lang_territory_qsettings.isEmpty())
@@ -122,7 +128,7 @@ static void initTranslations(QTranslator &qtTranslatorBase, QTranslator &qtTrans
     QApplication::removeTranslator(&translator);
 
     // Get desired locale (e.g. "de_DE")
-    // 1) System default language
+    // 1) Default language (English unless overridden)
     QString lang_territory = GetLangTerritory();
 
     // Convert to "de" only by truncating "_DE"
@@ -352,50 +358,106 @@ BitcoinApplication::BitcoinApplication(int &argc, char **argv):
         platformStyle = PlatformStyle::instantiate("other");
     assert(platformStyle);
 
-    // Cheese-yellow theme with strong contrast for readability
+    // Modern dark theme palette matching the mockup design
     QPalette appPalette = QApplication::palette();
-    appPalette.setColor(QPalette::Window, QColor("#FFFBE6"));          // very light cheese background
-    appPalette.setColor(QPalette::Base, QColor("#FFFDF0"));            // inputs/backgrounds
-    appPalette.setColor(QPalette::AlternateBase, QColor("#FFF7CC"));   // alternating rows
-    appPalette.setColor(QPalette::Highlight, QColor("#FFE680"));       // selection highlight
-    appPalette.setColor(QPalette::HighlightedText, Qt::black);
-    appPalette.setColor(QPalette::Button, QColor("#FFF1A6"));
-    appPalette.setColor(QPalette::ButtonText, Qt::black);
-    appPalette.setColor(QPalette::WindowText, Qt::black);
-    appPalette.setColor(QPalette::Text, Qt::black);
+    appPalette.setColor(QPalette::Window, QColor("#1e1e1e"));          // dark background
+    appPalette.setColor(QPalette::Base, QColor("#2d3748"));            // input field background
+    appPalette.setColor(QPalette::AlternateBase, QColor("#4a5568"));   // alternating rows
+    appPalette.setColor(QPalette::Highlight, QColor("#48bb78"));       // green accent highlight
+    appPalette.setColor(QPalette::HighlightedText, QColor("#ffffff")); // white highlighted text
+    appPalette.setColor(QPalette::Button, QColor("#2d3748"));          // dark button background
+    appPalette.setColor(QPalette::ButtonText, QColor("#ffffff"));      // white button text
+    appPalette.setColor(QPalette::WindowText, QColor("#ffffff"));      // white window text
+    appPalette.setColor(QPalette::Text, QColor("#ffffff"));            // white text
     QApplication::setPalette(appPalette);
 
-    // Apply a light, high-contrast stylesheet for common widgets
+    // Apply modern dark theme stylesheet - optimized for faster loading
     const QString appStyle =
-        // Menu bar and menus
-        "QMenuBar { background: #FFF7CC; color: #000000; }\n"
-        "QMenuBar::item:selected { background: #FFE680; color: #000000; }\n"
-        "QMenu { background: #FFFBE6; color: #000000; }\n"
-        "QMenu::item:selected { background: #FFE680; color: #000000; }\n"
-        // Toolbars
-        "QToolBar { background: #FFF7CC; border: 1px solid #E6C85C; }\n"
-        "QToolBar QToolButton { color: #000000; }\n"
+        // Main window and background - simplified for performance
+        "QMainWindow { background-color: #1e1e1e; color: #ffffff; }\n"
+        "QWidget { background-color: #1e1e1e; color: #ffffff; }\n"
+        "QFrame { background-color: #1e1e1e; color: #ffffff; }\n"
+        // Menu bar - dark header style
+        "QMenuBar { background: #2d3748; color: #ffffff; border-bottom: 1px solid #4a5568; padding: 4px; }\n"
+        "QMenuBar::item { background: transparent; padding: 8px 12px; border-radius: 4px; }\n"
+        "QMenuBar::item:selected { background: #4a5568; }\n"
+        "QMenuBar::item:pressed { background: #2d3748; }\n"
+        "QMenu { background: #2d3748; color: #ffffff; border: 1px solid #4a5568; border-radius: 8px; padding: 4px; }\n"
+        "QMenu::item { padding: 8px 16px; border-radius: 4px; }\n"
+        "QMenu::item:selected { background: #4a5568; }\n"
+        "QMenu::separator { height: 1px; background: #4a5568; margin: 4px 8px; }\n"
+        // Toolbars - modern sidebar style
+        "QToolBar { background: #2d3748; border: none; spacing: 8px; padding: 8px; }\n"
+        "QToolBar QToolButton { background: transparent; color: #cbd5e0; border: none; border-radius: 8px; padding: 12px; min-width: 48px; min-height: 48px; }\n"
+        "QToolBar QToolButton:hover { background: #4a5568; color: #ffffff; }\n"
+        "QToolBar QToolButton:checked { background: #48bb78; color: #ffffff; }\n"
+        "QToolBar QToolButton:pressed { background: #38a169; }\n"
         // Status bar
-        "QStatusBar { color: #000000; }\n"
-        // Tabs
-        "QTabWidget::pane { border: 1px solid #E6C85C; background: #FFFBE6; }\n"
-        "QTabBar::tab { background: #FFF1A6; color: #000000; padding: 4px 10px; border: 1px solid #E6C85C; }\n"
-        "QTabBar::tab:selected { background: #FFFBE6; }\n"
-        "QTabBar::tab:!selected:hover { background: #FFE680; }\n"
-        // Buttons
-        "QPushButton { background-color: #FFF1A6; color: #000000; border: 1px solid #E6C85C; border-radius: 4px; padding: 4px 8px; }\n"
-        "QPushButton:hover { background-color: #FFE680; }\n"
-        "QPushButton:pressed { background-color: #FFD24D; }\n"
-        "QPushButton:disabled { color: #666666; background-color: #FFF7CC; border-color: #E6D98F; }\n"
-        // Combo boxes and dropdowns
-        "QComboBox { background: #FFFBE6; color: #000000; border: 1px solid #E6C85C; border-radius: 3px; padding: 2px 24px 2px 6px; }\n"
-        "QComboBox QAbstractItemView { background: #FFFBE6; color: #000000; selection-background-color: #FFE680; selection-color: #000000; }\n"
-        // Tables and headers
-        "QHeaderView::section { background-color: #FFF1A6; color: #000000; padding: 3px 6px; border: 1px solid #E6C85C; }\n"
-        "QTableView { background: #FFFBE6; color: #000000; gridline-color: #E6C85C; alternate-background-color: #FFF7CC; }\n"
-        "QTableView::item:selected { background: #FFE680; color: #000000; }\n"
-        // Line edits and text edits
-        "QLineEdit, QTextEdit, QPlainTextEdit, QSpinBox, QDoubleSpinBox { background: #FFFDF0; color: #000000; border: 1px solid #E6C85C; border-radius: 3px; }\n";
+        "QStatusBar { background: #2d3748; color: #cbd5e0; border-top: 1px solid #4a5568; }\n"
+        // Cards and frames - modern card design with specific padding only for certain frames
+        "QFrame { background: #2d3748; border: 1px solid #4a5568; border-radius: 12px; }\n"
+        "QFrame[frameShape=\"4\"] { background: #2d3748; border: 1px solid #4a5568; border-radius: 12px; }\n"
+        "QFrame.card { padding: 16px; }\n" /* Only apply padding to frames with 'card' class */
+        // Buttons - modern green accent
+        "QPushButton { background: #48bb78; color: #ffffff; border: none; border-radius: 8px; padding: 12px 24px; font-weight: bold; }\n"
+        "QPushButton:hover { background: #38a169; }\n"
+        "QPushButton:pressed { background: #2f855a; }\n"
+        "QPushButton:disabled { background: #4a5568; color: #a0aec0; }\n"
+        "QPushButton[flat=\"true\"] { background: transparent; border: none; }\n"
+        "QPushButton[flat=\"true\"]:hover { background: #4a5568; border-radius: 4px; }\n"
+        // Labels - enhanced typography
+        "QLabel { color: #ffffff; }\n"
+        "QLabel[styleClass=\"title\"] { font-size: 24px; font-weight: bold; color: #ffffff; }\n"
+        "QLabel[styleClass=\"balance\"] { font-size: 32px; font-weight: bold; color: #48bb78; }\n"
+        "QLabel[styleClass=\"section-header\"] { font-size: 18px; font-weight: bold; color: #e2e8f0; margin: 16px 0 8px 0; }\n"
+        // Input fields - enhanced visibility and contrast
+        "QLineEdit, QTextEdit, QPlainTextEdit, QSpinBox, QDoubleSpinBox { background: #718096; color: #ffffff; border: 2px solid #a0aec0; border-radius: 8px; padding: 10px 14px; font-size: 14px; }\n"
+        "QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus { background: #4a5568; border-color: #48bb78; box-shadow: 0 0 0 3px rgba(72, 187, 120, 0.3); }\n"
+        "QLineEdit:hover, QTextEdit:hover, QPlainTextEdit:hover, QSpinBox:hover, QDoubleSpinBox:hover { border-color: #cbd5e0; }\n"
+        "QLineEdit:disabled, QTextEdit:disabled, QPlainTextEdit:disabled, QSpinBox:disabled, QDoubleSpinBox:disabled { background: #2d3748; color: #a0aec0; border-color: #4a5568; }\n"
+        "QLineEdit::placeholder, QTextEdit::placeholder, QPlainTextEdit::placeholder { color: #cbd5e0; }\n"
+        // Checkboxes and radio buttons - clear visibility
+        "QCheckBox { color: #ffffff; spacing: 8px; }\n"
+        "QCheckBox::indicator { width: 18px; height: 18px; border: 2px solid #718096; border-radius: 4px; background: #4a5568; }\n"
+        "QCheckBox::indicator:hover { border-color: #48bb78; background: #718096; }\n"
+        "QCheckBox::indicator:checked { background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #48bb78, stop:1 #38a169); border-color: #48bb78; }\n"
+        "QCheckBox::indicator:checked::before { content: ''; position: absolute; left: 5px; top: 2px; width: 6px; height: 10px; border: solid #ffffff; border-width: 0 2px 2px 0; transform: rotate(45deg); }\n"
+        "QCheckBox::indicator:checked:hover { background: #38a169; }\n"
+        "QCheckBox::indicator:disabled { background: #2d3748; border-color: #4a5568; }\n"
+        "QRadioButton { color: #ffffff; spacing: 8px; }\n"
+        "QRadioButton::indicator { width: 18px; height: 18px; border: 2px solid #718096; border-radius: 9px; background: #4a5568; }\n"
+        "QRadioButton::indicator:hover { border-color: #48bb78; background: #718096; }\n"
+        "QRadioButton::indicator:checked { background: #48bb78; border-color: #48bb78; }\n"
+        "QRadioButton::indicator:checked::before { content: ''; width: 8px; height: 8px; border-radius: 4px; background: #ffffff; margin: 3px; }\n"
+        // Tables and lists - modern design with proper contrast and visibility
+        "QHeaderView::section { background: #2d3748; color: #e2e8f0; padding: 8px 12px; border: none; border-bottom: 1px solid #4a5568; font-weight: bold; min-height: 20px; }\n"
+        "QTableView, QListView { background: #1e1e1e; color: #ffffff; border: none; alternate-background-color: #2d3748; gridline-color: #4a5568; outline: none; }\n"
+        "QTableView::item, QListView::item { padding: 6px 8px; border-bottom: 1px solid #4a5568; color: #ffffff; min-height: 18px; }\n"
+        "QTableView::item:selected, QListView::item:selected { background: #48bb78; color: #ffffff; }\n"
+        "QTableView::item:hover, QListView::item:hover { background: #4a5568; color: #ffffff; }\n"
+        "QTableView#transactionView { background: #1e1e1e; color: #ffffff; }\n"
+        "QTableView#transactionView::item { color: #ffffff; }\n"
+        "QTableView#recentRequestsView { background: #1e1e1e; color: #ffffff; }\n"
+        "QTableView#recentRequestsView::item { color: #ffffff; min-height: 22px; }\n"
+        // Combo boxes - enhanced to match input fields
+        "QComboBox { background: #718096; color: #ffffff; border: 2px solid #a0aec0; border-radius: 8px; padding: 10px 14px; font-size: 14px; min-width: 120px; }\n"
+        "QComboBox:hover { border-color: #cbd5e0; }\n"
+        "QComboBox:focus { background: #4a5568; border-color: #48bb78; box-shadow: 0 0 0 3px rgba(72, 187, 120, 0.3); }\n"
+        "QComboBox:disabled { background: #2d3748; color: #a0aec0; border-color: #4a5568; }\n"
+        "QComboBox::drop-down { subcontrol-origin: padding; subcontrol-position: top right; width: 20px; border-left-width: 2px; border-left-color: #a0aec0; border-left-style: solid; border-top-right-radius: 8px; border-bottom-right-radius: 8px; background: #a0aec0; }\n"
+        "QComboBox::down-arrow { width: 12px; height: 12px; background: #2d3748; }\n"
+        "QComboBox QAbstractItemView { background: #2d3748; color: #ffffff; selection-background-color: #48bb78; border: 2px solid #4a5568; border-radius: 8px; padding: 4px; }\n"
+        "QComboBox QAbstractItemView::item { padding: 8px 12px; border-radius: 4px; }\n"
+        "QComboBox QAbstractItemView::item:selected { background: #48bb78; }\n"
+        // Scrollbars - modern thin scrollbars
+        "QScrollBar:vertical { background: #2d3748; width: 8px; border-radius: 4px; }\n"
+        "QScrollBar::handle:vertical { background: #4a5568; border-radius: 4px; min-height: 20px; }\n"
+        "QScrollBar::handle:vertical:hover { background: #718096; }\n"
+        "QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { border: none; background: none; }\n"
+        "QScrollBar:horizontal { background: #2d3748; height: 8px; border-radius: 4px; }\n"
+        "QScrollBar::handle:horizontal { background: #4a5568; border-radius: 4px; min-width: 20px; }\n"
+        "QScrollBar::handle:horizontal:hover { background: #718096; }\n"
+        "QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { border: none; background: none; }\n";
     this->setStyleSheet(appStyle);
 }
 
@@ -436,6 +498,15 @@ void BitcoinApplication::createOptionsModel(bool resetSettings)
 void BitcoinApplication::createWindow(const NetworkStyle *networkStyle)
 {
     window = new BitcoinGUI(platformStyle, networkStyle, 0);
+    
+    // Ensure the window inherits the dark theme properly
+    window->setAttribute(Qt::WA_OpaquePaintEvent, false);
+    window->setAttribute(Qt::WA_NoSystemBackground, false);
+    
+    // Force immediate style application to prevent black screen
+    window->style()->unpolish(window);
+    window->style()->polish(window);
+    window->update();
 
     pollShutdownTimer = new QTimer(window);
     connect(pollShutdownTimer, SIGNAL(timeout()), window, SLOT(detectShutdown()));
@@ -574,16 +645,7 @@ void BitcoinApplication::initializeResult(bool success)
         }
 #endif
 
-        // If -min option passed, start window minimized.
-        if(gArgs.GetBoolArg("-min", false))
-        {
-            window->showMinimized();
-        }
-        else
-        {
-            window->show();
-        }
-        // Keep splash until mice DB init finished
+        // Keep splash until mice DB init finished, THEN show window
         if (!g_miceDbReady.load()) {
             QElapsedTimer timer; timer.start();
             while (!g_miceDbReady.load() && timer.elapsed() < 10000) {
@@ -591,6 +653,23 @@ void BitcoinApplication::initializeResult(bool success)
                 QCoreApplication::processEvents(QEventLoop::AllEvents, 20);
             }
         }
+        
+        // Ensure all widgets are properly initialized before showing
+        QCoreApplication::processEvents(QEventLoop::AllEvents, 100);
+        
+        // Show window
+        if(gArgs.GetBoolArg("-min", false))
+        {
+            window->showMinimized();
+        }
+        else
+        {
+            window->show();
+            window->raise();
+            window->activateWindow();
+        }
+        
+        // Immediately close splash - let window render naturally
         Q_EMIT splashFinished(window);
 
 #ifdef ENABLE_WALLET
@@ -676,8 +755,15 @@ int main(int argc, char *argv[])
     qputenv("QT_QPA_PLATFORMTHEME", "");
     qputenv("DBUS_SESSION_BUS_ADDRESS", "disabled");
     qputenv("QT_DBUS_NO_ACTIVATION", "1");
-    // Force Qt to use fallback instead of D-Bus
+    
+#ifdef Q_OS_LINUX
+    // Force Qt to use XCB instead of D-Bus on Linux
     qputenv("QT_QPA_PLATFORM", "xcb");
+#elif defined(Q_OS_WIN)
+    // On Windows, explicitly set the platform to ensure correct plugin is used
+    qputenv("QT_QPA_PLATFORM", "windows");
+#endif
+    // On macOS, let Qt auto-detect the platform
     
     BitcoinApplication app(argc, argv);
 #if QT_VERSION > 0x050100 && QT_VERSION < 0x060000

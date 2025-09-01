@@ -213,16 +213,23 @@ static void InitMessage(SplashScreen *splash, const std::string &message)
     
     if (message.find("Done") != std::string::npos) {
         simpleMessage = std::string("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n") +
-                       "          CASCOIN BEREIT!\n" +
+                       "          CASCOIN READY!\n" +
                        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n" +
-                       "Das Wallet wird geöffnet...\n" +
-                       "BCTs und Mice NFTs werden geladen.";
+                       "Loading GUI...\n" +
+                       "Initializing wallet interface...\n" +
+                       "Loading BCTs and Mice NFTs.";
+    } else if (message.find("Loading") != std::string::npos) {
+        simpleMessage = std::string("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n") +
+                       "        CASCOIN LOADING\n" +
+                       "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n" +
+                       "Loading wallet database...\n" +
+                       "Please wait a moment.";
     } else {
         simpleMessage = std::string("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n") +
-                       "        CASCOIN STARTET\n" +
+                       "        CASCOIN STARTING\n" +
                        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n" +
-                       "Initialisierung läuft...\n" +
-                       "Bitte warten Sie einen Moment.";
+                       "Initialization in progress...\n" +
+                       "Please wait a moment.";
     }
     
     QMetaObject::invokeMethod(splash, "showMessage",
@@ -246,29 +253,33 @@ static void ShowProgress(SplashScreen *splash, const std::string &title, int nPr
         
         if (remainingSeconds > 60) {
             int remainingMinutes = remainingSeconds / 60;
-            timeInfo = strprintf("Noch ca. %d Minute(n)", remainingMinutes);
+            timeInfo = strprintf("About %d minute(s) remaining", remainingMinutes);
         } else if (remainingSeconds > 0) {
-            timeInfo = strprintf("Noch ca. %d Sekunde(n)", (int)remainingSeconds);
+            timeInfo = strprintf("About %d second(s) remaining", (int)remainingSeconds);
         } else {
-            timeInfo = "Fast fertig!";
+            timeInfo = "Almost finished!";
         }
     } else {
-        timeInfo = "Berechne Restzeit...";
+        timeInfo = "Calculating remaining time...";
     }
     
     // Create single, clear status message
     std::string statusMessage;
     
     if (title.find("Mice") != std::string::npos || title.find("MICE") != std::string::npos) {
-        statusMessage = "INITIALISIERE MICE-DATENBANK";
+        statusMessage = "INITIALIZING MICE DATABASE";
     } else if (title.find("Loading") != std::string::npos) {
-        statusMessage = "LADE BLOCKCHAIN-DATENBANK";
+        statusMessage = "LOADING BLOCKCHAIN DATABASE";
     } else if (title.find("Verifying") != std::string::npos) {
-        statusMessage = "ÜBERPRÜFE BLOCKCHAIN";
+        statusMessage = "VERIFYING BLOCKCHAIN";
     } else if (title.find("Rescanning") != std::string::npos) {
-        statusMessage = "SCANNE TRANSAKTIONEN";
+        statusMessage = "SCANNING TRANSACTIONS";
+    } else if (title.find("GUI") != std::string::npos || title.find("Interface") != std::string::npos) {
+        statusMessage = "LOADING USER INTERFACE";
+    } else if (nProgress >= 95) {
+        statusMessage = "FINALIZING WALLET";
     } else {
-        statusMessage = "INITIALISIERE CASCOIN";
+        statusMessage = "INITIALIZING CASCOIN";
     }
     
     // Format single, clear message
@@ -277,19 +288,21 @@ static void ShowProgress(SplashScreen *splash, const std::string &title, int nPr
         "            " + statusMessage + "\n" +
         "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n" +
         "Status: " + title + "\n\n" +
-        "FORTSCHRITT: " + strprintf("%d", nProgress) + "%\n" +
-        "ZEIT: " + strprintf("%d", (int)elapsedSeconds) + " Sekunden\n" +
-        "VERBLEIBEND: " + timeInfo + "\n\n";
+        "PROGRESS: " + strprintf("%d", nProgress) + "%\n" +
+        "TIME: " + strprintf("%d", (int)elapsedSeconds) + " seconds\n" +
+        "REMAINING: " + timeInfo + "\n\n";
     
     if (nProgress < 30) {
-        finalMessage += "Dies ist normal beim ersten Start\n";
+        finalMessage += "This is normal on first startup\n";
     } else if (nProgress < 70) {
-        finalMessage += "Synchronisation läuft...\n";
+        finalMessage += "Synchronization in progress...\n";
+    } else if (nProgress < 95) {
+        finalMessage += "Almost ready!\n";
     } else {
-        finalMessage += "Fast bereit!\n";
+        finalMessage += "Loading GUI...\n";
     }
     
-    finalMessage += "\n(Drücke 'q' zum Beenden)";
+    finalMessage += "\n(Press 'q' to quit)";
     
     // Use direct message display instead of InitMessage to avoid confusion
     QMetaObject::invokeMethod(splash, "showMessage",

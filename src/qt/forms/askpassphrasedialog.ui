@@ -18,7 +18,7 @@
   </property>
   <property name="minimumSize">
    <size>
-    <width>550</width>
+    <width>300</width>
     <height>0</height>
    </size>
   </property>
@@ -27,7 +27,7 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <property name="sizeConstraint">
-    <enum>QLayout::SetMinimumSize</enum>
+    <enum>QLayout::SetDefaultConstraint</enum>
    </property>
    <item>
     <widget class="QLabel" name="warningLabel">
@@ -45,7 +45,7 @@
    <item>
     <layout class="QFormLayout" name="formLayout">
      <property name="sizeConstraint">
-      <enum>QLayout::SetMinimumSize</enum>
+      <enum>QLayout::SetDefaultConstraint</enum>
      </property>
      <property name="fieldGrowthPolicy">
       <enum>QFormLayout::AllNonFixedFieldsGrow</enum>

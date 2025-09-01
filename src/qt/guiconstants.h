@@ -16,23 +16,23 @@ static const int STATUSBAR_ICONSIZE = 16;
 
 static const bool DEFAULT_SPLASHSCREEN = true;
 
-/* Invalid field background style */
-#define STYLE_INVALID "background:#FF8080"
+/* Invalid field background style - updated for dark theme */
+#define STYLE_INVALID "background:#e53e3e; color:#ffffff; border: 1px solid #c53030;"
 
-/* Transaction list -- unconfirmed transaction */
-#define COLOR_UNCONFIRMED QColor(128, 128, 128)
-/* Transaction list -- negative amount */
-#define COLOR_NEGATIVE QColor(255, 0, 0)
-/* Transaction list -- bare address (without label) */
-#define COLOR_BAREADDRESS QColor(140, 140, 140)
-/* Transaction list -- TX status decoration - open until date */
-#define COLOR_TX_STATUS_OPENUNTILDATE QColor(64, 64, 255)
-/* Transaction list -- TX status decoration - offline */
-#define COLOR_TX_STATUS_OFFLINE QColor(192, 192, 192)
-/* Transaction list -- TX status decoration - danger, tx needs attention */
-#define COLOR_TX_STATUS_DANGER QColor(200, 100, 100)
-/* Transaction list -- TX status decoration - default color */
-#define COLOR_BLACK QColor(0, 0, 0)
+/* Transaction list -- unconfirmed transaction - light grey for dark theme */
+#define COLOR_UNCONFIRMED QColor(160, 174, 192)
+/* Transaction list -- negative amount - bright red for visibility */
+#define COLOR_NEGATIVE QColor(248, 113, 113)
+/* Transaction list -- bare address (without label) - medium grey */
+#define COLOR_BAREADDRESS QColor(203, 213, 224)
+/* Transaction list -- TX status decoration - open until date - bright blue */
+#define COLOR_TX_STATUS_OPENUNTILDATE QColor(99, 179, 237)
+/* Transaction list -- TX status decoration - offline - light grey */
+#define COLOR_TX_STATUS_OFFLINE QColor(203, 213, 224)
+/* Transaction list -- TX status decoration - danger, tx needs attention - bright red */
+#define COLOR_TX_STATUS_DANGER QColor(248, 113, 113)
+/* Transaction list -- TX status decoration - default color - white for dark theme */
+#define COLOR_BLACK QColor(255, 255, 255)
 
 /* Tooltips longer than this (in characters) are converted into rich text,
    so that they can be word-wrapped.

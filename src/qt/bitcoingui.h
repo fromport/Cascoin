@@ -131,6 +131,8 @@ private:
     /** Monitor GUI responsiveness */
     ResponseMonitor *responseMonitor;
 
+    bool m_numBlocksChangedConnected; // Flag to ensure we only connect the signal once
+
     const PlatformStyle *platformStyle;
 
     /** Create the main UI actions. */
