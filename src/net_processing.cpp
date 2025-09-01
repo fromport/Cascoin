@@ -1034,10 +1034,28 @@ void RelayRialtoMessage(const CRialtoMessage message, CConnman* connman, CNode* 
         }
     });
 
-    // Add to mapMessageRelay now
+    // Add to mapMessageRelay now with size limits
     int64_t nNow = GetTime();
 
     LOCK(cs_main);
+    
+    // Cascoin: Memory leak fix - Prevent mapMessageRelay from growing too large
+    const size_t MAX_MESSAGE_RELAY_SIZE = 5000;
+    if (mapMessageRelay.size() >= MAX_MESSAGE_RELAY_SIZE) {
+        // Remove expired messages first
+        auto it = vMessageRelayExpiration.begin();
+        while (it != vMessageRelayExpiration.end() && it->first < nNow) {
+            mapMessageRelay.erase(it->second);
+            it = vMessageRelayExpiration.erase(it);
+        }
+        
+        // If still too large, remove oldest
+        if (mapMessageRelay.size() >= MAX_MESSAGE_RELAY_SIZE && !vMessageRelayExpiration.empty()) {
+            mapMessageRelay.erase(vMessageRelayExpiration.begin()->second);
+            vMessageRelayExpiration.erase(vMessageRelayExpiration.begin());
+        }
+    }
+    
     auto ret = mapMessageRelay.insert(std::make_pair(hash, message.GetMessage()));
     if (ret.second)
         vMessageRelayExpiration.push_back(std::make_pair(nNow + RIALTO_MESSAGE_TTL, ret.first));

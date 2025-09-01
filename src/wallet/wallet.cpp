@@ -2910,16 +2910,30 @@ std::vector<CBeeCreationTransactionInfo> CWallet::GetBCTs(bool includeDead, bool
     // Pre-build a lookup map for hive coinbase transactions to avoid O(n²) complexity
     std::map<std::string, std::pair<int, CAmount>> hiveCoinbaseMap;
     if (scanRewards) {
+        // Cascoin: Memory leak fix - Add counter and early exit for very large wallets
+        int processedCount = 0;
+        const int MAX_COINBASE_PROCESS = 5000; // Limit coinbase processing to prevent memory explosion
+        
         for (const std::pair<uint256, CWalletTx>& pairWtx : mapWallet) {
             const CWalletTx& wtx = pairWtx.second;
             
+            // Early exit if processing too many transactions
+            if (processedCount >= MAX_COINBASE_PROCESS) {
+                LogPrintf("Memory optimization: Stopping coinbase processing at %d transactions to prevent RAM overflow\n", processedCount);
+                break;
+            }
+            
             // Only process hive coinbase transactions
-            if (!wtx.IsHiveCoinBase())
+            if (!wtx.IsHiveCoinBase()) {
+                processedCount++;
                 continue;
+            }
                 
             // Skip unconfirmed transactions
-            if (wtx.GetDepthInMainChain() < minHoneyConfirmations)
+            if (wtx.GetDepthInMainChain() < minHoneyConfirmations) {
+                processedCount++;
                 continue;
+            }
                 
             // Extract the BCT txid from the coinbase transaction
             if (wtx.tx->vout.size() > 0 && wtx.tx->vout[0].scriptPubKey.size() >= 78) {
@@ -2935,11 +2949,38 @@ std::vector<CBeeCreationTransactionInfo> CWallet::GetBCTs(bool includeDead, bool
                     hiveCoinbaseMap[blockTxidStr].second += wtx.tx->vout[1].nValue;  // rewards
                 }
             }
+            processedCount++;
         }
+        
+        // Cascoin: Memory leak fix - More aggressive clearing for large maps
+        if (hiveCoinbaseMap.size() > 500) {  // Reduced from 1000 to 500
+            LogPrintf("Memory optimization: Clearing hiveCoinbaseMap to prevent memory leak (size: %d)\n", hiveCoinbaseMap.size());
+            hiveCoinbaseMap.clear();
+        }
+        
+        LogPrintf("Processed %d wallet transactions for coinbase rewards (map size: %d)\n", processedCount, hiveCoinbaseMap.size());
     }
+
+    // Cascoin: Memory leak fix - Add limits for BCT processing to prevent RAM explosion
+    int bctProcessedCount = 0;
+    const int MAX_BCT_PROCESS = 10000; // Limit BCT processing for very large wallets
+    const int MAX_BCTS_RESULT = 1000;  // Limit result size to prevent memory overflow
 
     for (const std::pair<uint256, CWalletTx>& pairWtx : mapWallet) {
         const CWalletTx& wtx = pairWtx.second;
+
+        // Early exit if processing too many transactions
+        bctProcessedCount++;
+        if (bctProcessedCount > MAX_BCT_PROCESS) {
+            LogPrintf("Memory optimization: Stopped BCT processing at %d transactions to prevent RAM overflow\n", MAX_BCT_PROCESS);
+            break;
+        }
+
+        // Early exit if we have too many results already
+        if (bcts.size() >= MAX_BCTS_RESULT) {
+            LogPrintf("Memory optimization: Limited BCT results to %d entries to prevent memory overflow\n", MAX_BCTS_RESULT);
+            break;
+        }
 
         // Skip unconfirmed transactions and orphans
         if (wtx.GetDepthInMainChain() < 1)
@@ -2955,10 +2996,12 @@ std::vector<CBeeCreationTransactionInfo> CWallet::GetBCTs(bool includeDead, bool
 
         // Get its info if it's a BCT - use optimized version with pre-built lookup
         CBeeCreationTransactionInfo bct = GetBCTOptimized(wtx, includeDead, scanRewards, consensusParams, minHoneyConfirmations, hiveCoinbaseMap);
-        if (bct.txid != "")
+        if (bct.txid != "") {
             bcts.push_back(bct);
+        }
     }
 
+    LogPrintf("BCT loading completed: processed %d transactions, found %d BCTs\n", bctProcessedCount, bcts.size());
     return bcts;
 }
 

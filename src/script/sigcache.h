@@ -10,10 +10,11 @@
 
 #include <vector>
 
-// DoS prevention: limit cache size to 32MB (over 1000000 entries on 64-bit
+// Cascoin: Memory leak fix - Reduced cache size to prevent memory overflow
+// DoS prevention: limit cache size to 16MB (over 500000 entries on 64-bit
 // systems). Due to how we count cache size, actual memory usage is slightly
-// more (~32.25 MB)
-static const unsigned int DEFAULT_MAX_SIG_CACHE_SIZE = 32;
+// more (~16.25 MB) - reduced from 32MB to save memory
+static const unsigned int DEFAULT_MAX_SIG_CACHE_SIZE = 16;
 // Maximum sig cache size allowed
 static const int64_t MAX_MAX_SIG_CACHE_SIZE = 16384;
 

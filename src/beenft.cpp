@@ -11,6 +11,12 @@
 #include <base58.h>
 
 #include <algorithm>
+#include <mutex>
+
+// Cascoin: Static member definitions for NFTMemoryManager
+std::map<uint256, std::shared_ptr<std::vector<unsigned char>>> NFTMemoryManager::nftDataPool;
+std::mutex NFTMemoryManager::poolMutex;
+size_t NFTMemoryManager::currentPoolSize = 0;
 
 // Validate a bee NFT token transaction
 bool IsValidBeeNFTTokenTransaction(const CTransaction& tx, std::string& error) {

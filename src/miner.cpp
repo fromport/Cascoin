@@ -838,8 +838,12 @@ bool BusyBees(const Consensus::Params& consensusParams, int height) {
 
     // Grab all BCTs from wallet that are mature and not yet expired.
     // We don't need to scan for rewards here as we only need the txid and honey address.
+    // Cascoin: Memory leak fix - Limit potential BCTs to prevent memory overflow
     std::vector<CBeeCreationTransactionInfo> potentialBctsWallet = pwallet->GetBCTs(false, false, consensusParams);
     std::vector<CBeeCreationTransactionInfo> potentialBcts; // This will store the filtered BCTs
+    
+    // Reserve reasonable space and limit processing
+    potentialBcts.reserve(std::min((size_t)5000, potentialBctsWallet.size()));
     int totalBees = 0;
 
     // Original logic to populate potentialBcts and totalBees based on wallet status
@@ -867,11 +871,14 @@ bool BusyBees(const Consensus::Params& consensusParams, int height) {
 
     int beesPerBin = ceil(totalBees / (float)threadCount);  // We want to check this many bees per thread
 
-    // Bin the bees according to desired thead count
+    // Cascoin: Memory leak fix - Limit bee binning to prevent memory overflow
     if (verbose) LogPrint(BCLog::HIVE, "BusyBees: Binning %i bees in %i bins (%i bees per bin)\n", totalBees, threadCount, beesPerBin);
     std::vector<CBeeCreationTransactionInfo>::const_iterator bctIterator = potentialBcts.begin();
     CBeeCreationTransactionInfo bct = *bctIterator;
     std::vector<std::vector<CBeeRange>> beeBins;
+    
+    // Reserve space for bins to prevent frequent reallocations
+    beeBins.reserve(std::min(threadCount, 100)); // Limit to max 100 bins
     int beeOffset = 0;                                      // Track offset in current BCT
     while(bctIterator != potentialBcts.end()) {                      // Until we're out of BCTs
         std::vector<CBeeRange> currentBin;                  // Create a new bin

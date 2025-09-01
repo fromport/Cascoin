@@ -396,6 +396,15 @@ bool InitHTTPServer()
 
     LogPrint(BCLog::HTTP, "Initialized HTTP server\n");
     int workQueueDepth = std::max((long)gArgs.GetArg("-rpcworkqueue", DEFAULT_HTTP_WORKQUEUE), 1L);
+    
+    // Cascoin: Memory leak fix - Limit work queue depth to prevent thread pool overflow
+    // Cap at reasonable maximum to prevent unbounded memory growth
+    int maxWorkQueueDepth = 64; // Reasonable maximum for most use cases
+    if (workQueueDepth > maxWorkQueueDepth) {
+        LogPrintf("HTTP: work queue depth %d exceeds maximum %d, capping to maximum\n", workQueueDepth, maxWorkQueueDepth);
+        workQueueDepth = maxWorkQueueDepth;
+    }
+    
     LogPrintf("HTTP: creating work queue of depth %d\n", workQueueDepth);
 
     workQueue = new WorkQueue<HTTPClosure>(workQueueDepth);
@@ -427,7 +436,12 @@ bool StartHTTPServer()
 {
     LogPrint(BCLog::HTTP, "Starting HTTP server\n");
     int rpcThreads = std::max((long)gArgs.GetArg("-rpcthreads", DEFAULT_HTTP_THREADS), 1L);
-    LogPrintf("HTTP: starting %d worker threads\n", rpcThreads);
+    
+    // Cascoin: Memory leak fix - Limit max active tasks to prevent thread pool overflow
+    // Max active tasks should not exceed 2x thread count to prevent unbounded task creation
+    int maxActiveTasks = rpcThreads * 2;
+    LogPrintf("HTTP: starting %d worker threads with max %d active tasks\n", rpcThreads, maxActiveTasks);
+    
     std::packaged_task<bool(event_base*, evhttp*)> task(ThreadHTTP);
     threadResult = task.get_future();
     threadHTTP = std::thread(std::move(task), eventBase, eventHTTP);

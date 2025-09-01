@@ -36,10 +36,11 @@ bool BCTDatabase::initialize()
     // Load existing data if available
     loadFromFile();
     
-    // If no data exists, create some sample data for testing
-    if (bctList.isEmpty()) {
-        createSampleData();
-    }
+    // Cascoin: Memory leak fix - Don't create sample data on startup to reduce memory usage
+    // Sample data will only be created when explicitly requested
+    // if (bctList.isEmpty()) {
+    //     createSampleData();
+    // }
     
     return true;
 }
@@ -53,6 +54,15 @@ bool BCTDatabase::addBCT(const BCTInfo& bct)
         if (bctList[i].txid == bct.txid) {
             bctList[i] = bct; // Update existing
             return saveToFile();
+        }
+    }
+    
+    // Cascoin: Memory leak fix - Limit BCT cache to max 1000 entries instead of 10000
+    if (bctList.size() >= 1000) {
+        qDebug() << "BCT database cache limit reached (1000 entries). Removing oldest entries.";
+        // Remove the oldest 100 entries to make room for new ones
+        for (int i = 0; i < 100 && !bctList.isEmpty(); ++i) {
+            bctList.removeFirst();
         }
     }
     

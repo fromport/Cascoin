@@ -22,10 +22,13 @@
 
 // Cascoin: Rialto
 
-// Protected queue of received messages
+// Cascoin: Memory leak fix - Protected queue of received messages with size limits
 std::vector<RialtoQueuedMessage> receivedMessageQueue;
 std::mutex receivedMessageQueueMutex;
 std::condition_variable receivedMessageQueueCV;
+
+// Maximum number of queued messages to prevent memory leaks
+const size_t MAX_QUEUED_MESSAGES = 1000;
 
 // White pages directory mapping hashes of nicknames to pubkeys
 CRialtoWhitePagesDB::CRialtoWhitePagesDB(std::string dbName, size_t nCacheSize, bool fMemory, bool fWipe)
@@ -619,8 +622,16 @@ bool RialtoDecryptMessage(const std::string layer3Envelope, std::string &err) {
         qm.message = std::vector<unsigned char, secure_allocator<unsigned char>>(unconfirmedPlaintext.begin(), unconfirmedPlaintext.end());
         qm.timestamp = layer1timestamp;
 
-        // Get the lock, and add to the received message queue
-        std::lock_guard<std::mutex> lock(receivedMessageQueueMutex); 
+        // Get the lock, and add to the received message queue with size limit
+        std::lock_guard<std::mutex> lock(receivedMessageQueueMutex);
+        
+        // Cascoin: Memory leak fix - Prevent queue overflow
+        if (receivedMessageQueue.size() >= MAX_QUEUED_MESSAGES) {
+            // Remove oldest message to make room
+            receivedMessageQueue.erase(receivedMessageQueue.begin());
+            LogPrint(BCLog::RIALTO, "Rialto: Message queue full, removed oldest message\n");
+        }
+        
         receivedMessageQueue.push_back(qm);
         receivedMessageQueueCV.notify_one();
 

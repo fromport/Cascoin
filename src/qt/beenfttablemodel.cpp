@@ -10,6 +10,7 @@
 #include <QTimer>
 #include <QIcon>
 #include <QDateTime>
+#include <algorithm>
 
 // Column alignments for the table
 static int column_alignments[] = {
@@ -49,7 +50,8 @@ BeeNFTTableModel::~BeeNFTTableModel()
 int BeeNFTTableModel::rowCount(const QModelIndex &parent) const
 {
     Q_UNUSED(parent);
-    return cachedBeeNFTList.size();
+    // Cascoin: Memory leak fix - Limit cached NFT list size to prevent memory overflow
+    return std::min(cachedBeeNFTList.size(), static_cast<qsizetype>(100)); // Reduced to 100 entries for better memory usage
 }
 
 int BeeNFTTableModel::columnCount(const QModelIndex &parent) const
@@ -218,7 +220,27 @@ void BeeNFTTableModel::updateBeeNFTs()
 void BeeNFTTableModel::updateBeeNFTListWithData(const QList<BeeNFTRecord>& newRecords)
 {
     beginResetModel();
-    cachedBeeNFTList = newRecords;
+    
+    // Cascoin: Memory leak fix with intelligent cleanup - keep 4KB NFT data size but manage memory better
+    if (newRecords.size() > 500) {
+        qDebug() << "NFT list size (" << newRecords.size() << ") exceeded 500 entries, using smart truncation to prevent memory leak";
+        
+        // Sort by priority: active NFTs first, then by blocks left (descending)
+        QList<BeeNFTRecord> sortedRecords = newRecords;
+        std::sort(sortedRecords.begin(), sortedRecords.end(), [](const BeeNFTRecord& a, const BeeNFTRecord& b) {
+            // Active NFTs have priority
+            if (a.status == "mature" && b.status != "mature") return true;
+            if (a.status != "mature" && b.status == "mature") return false;
+            
+            // Then sort by blocks left (more blocks left = higher priority)
+            return a.blocksLeft > b.blocksLeft;
+        });
+        
+        cachedBeeNFTList = sortedRecords.mid(0, 500); // Keep only top 500 entries
+    } else {
+        cachedBeeNFTList = newRecords;
+    }
+    
     endResetModel();
     
     Q_EMIT beeNFTsChanged();
