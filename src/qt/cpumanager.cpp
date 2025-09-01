@@ -18,14 +18,14 @@ void CPUManager::SetThreadPriority(int priority)
     HANDLE thread = GetCurrentThread();
     switch (priority) {
         case 0: // Lowest
-            SetThreadPriority(thread, THREAD_PRIORITY_IDLE);
+            ::SetThreadPriority(thread, THREAD_PRIORITY_IDLE);
             break;
         case 1: // Below normal
-            SetThreadPriority(thread, THREAD_PRIORITY_BELOW_NORMAL);
+            ::SetThreadPriority(thread, THREAD_PRIORITY_BELOW_NORMAL);
             break;
         case 2: // Normal
         default:
-            SetThreadPriority(thread, THREAD_PRIORITY_NORMAL);
+            ::SetThreadPriority(thread, THREAD_PRIORITY_NORMAL);
             break;
     }
 #else
