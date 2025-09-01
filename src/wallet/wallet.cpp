@@ -2936,6 +2936,12 @@ std::vector<CBeeCreationTransactionInfo> CWallet::GetBCTs(bool includeDead, bool
                 }
             }
         }
+        
+        // Cascoin: Memory leak fix - Clear hiveCoinbaseMap if it gets too large
+        if (hiveCoinbaseMap.size() > 1000) {
+            LogPrintf("Clearing hiveCoinbaseMap to prevent memory leak (size: %d)\n", hiveCoinbaseMap.size());
+            hiveCoinbaseMap.clear();
+        }
     }
 
     for (const std::pair<uint256, CWalletTx>& pairWtx : mapWallet) {

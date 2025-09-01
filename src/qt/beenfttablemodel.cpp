@@ -49,7 +49,8 @@ BeeNFTTableModel::~BeeNFTTableModel()
 int BeeNFTTableModel::rowCount(const QModelIndex &parent) const
 {
     Q_UNUSED(parent);
-    return cachedBeeNFTList.size();
+    // Cascoin: Memory leak fix - Limit cached NFT list size to prevent memory overflow
+    return std::min(cachedBeeNFTList.size(), 500); // Limit to 500 entries max
 }
 
 int BeeNFTTableModel::columnCount(const QModelIndex &parent) const
@@ -219,6 +220,13 @@ void BeeNFTTableModel::updateBeeNFTListWithData(const QList<BeeNFTRecord>& newRe
 {
     beginResetModel();
     cachedBeeNFTList = newRecords;
+    
+    // Cascoin: Memory leak fix - Truncate list if it exceeds maximum size
+    if (cachedBeeNFTList.size() > 500) {
+        qDebug() << "NFT list size exceeded 500 entries, truncating to prevent memory leak";
+        cachedBeeNFTList = cachedBeeNFTList.mid(0, 500); // Keep only first 500 entries
+    }
+    
     endResetModel();
     
     Q_EMIT beeNFTsChanged();

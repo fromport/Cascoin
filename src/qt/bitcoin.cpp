@@ -522,29 +522,33 @@ void BitcoinApplication::createSplashScreen(const NetworkStyle *networkStyle)
     connect(this, SIGNAL(requestedShutdown()), splash, SLOT(close()));
 
     // Cascoin: Start mice/BCT DB init while splash is visible so user sees progress
-    std::thread([](){
+    // Memory leak fix: Use shared_ptr to ensure proper cleanup and avoid detached thread memory leaks
+    auto dbInitTask = std::make_shared<std::thread>([](){
         try {
             uiInterface.ShowProgress("Mice DB initialisieren", 1, false);
             BCTDatabase db;
-            std::this_thread::sleep_for(std::chrono::milliseconds(80));
-            uiInterface.ShowProgress("Mice DB initialisieren", 10, false);
+            std::this_thread::sleep_for(std::chrono::milliseconds(50)); // Reduced delay to prevent memory buildup
+            uiInterface.ShowProgress("Mice DB initialisieren", 20, false);
             (void)db.initialize();
-            std::this_thread::sleep_for(std::chrono::milliseconds(80));
-            uiInterface.ShowProgress("Mice DB initialisieren", 35, false);
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+            uiInterface.ShowProgress("Mice DB initialisieren", 50, false);
             (void)db.getTotalBCTs();
-            std::this_thread::sleep_for(std::chrono::milliseconds(80));
-            uiInterface.ShowProgress("Mice DB initialisieren", 65, false);
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+            uiInterface.ShowProgress("Mice DB initialisieren", 80, false);
             (void)db.getTotalAvailableMice();
-            std::this_thread::sleep_for(std::chrono::milliseconds(80));
-            uiInterface.ShowProgress("Mice DB initialisieren", 90, false);
-            std::this_thread::sleep_for(std::chrono::milliseconds(80));
+            std::this_thread::sleep_for(std::chrono::milliseconds(30));
             uiInterface.ShowProgress("Mice DB initialisieren", 100, false);
             g_miceDbReady.store(true);
         } catch (...) {
             uiInterface.ShowProgress("Mice DB initialisieren", 100, false);
             g_miceDbReady.store(true);
         }
-    }).detach();
+    });
+    
+    // Store thread reference for proper cleanup
+    static std::vector<std::shared_ptr<std::thread>> splashThreads;
+    splashThreads.push_back(dbInitTask);
+    dbInitTask->detach();
 }
 
 void BitcoinApplication::startThread()

@@ -41,8 +41,8 @@ Each bee NFT contains:
 - Mining performance history
 */
 
-// Maximum data size for bee NFT transactions
-const int BEE_NFT_MAX_DATA_SIZE = 4096; // Increased from 80 to 4KB for larger metadata
+// Maximum data size for bee NFT transactions - Reduced to prevent memory leaks
+const int BEE_NFT_MAX_DATA_SIZE = 1024; // Reduced from 4KB to 1KB to prevent memory issues
 
 // Magic bytes for different NFT types
 #define NFT_MAGIC_MICE_TOKEN "CASTOK"

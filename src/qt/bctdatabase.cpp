@@ -56,6 +56,15 @@ bool BCTDatabase::addBCT(const BCTInfo& bct)
         }
     }
     
+    // Cascoin: Memory leak fix - Limit BCT cache to max 1000 entries instead of 10000
+    if (bctList.size() >= 1000) {
+        qDebug() << "BCT database cache limit reached (1000 entries). Removing oldest entries.";
+        // Remove the oldest 100 entries to make room for new ones
+        for (int i = 0; i < 100 && !bctList.isEmpty(); ++i) {
+            bctList.removeFirst();
+        }
+    }
+    
     // Add new BCT
     bctList.append(bct);
     return saveToFile();

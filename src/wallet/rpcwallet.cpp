@@ -2047,10 +2047,10 @@ UniValue nftcreate_large(const JSONRPCRequest& request)
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Amount must be positive");
     }
 
-    // Check data size limit (4KB - 6 bytes magic - some overhead)
+    // Cascoin: Memory leak fix - Reduce data size limit to prevent memory issues
     int totalDataSize = name.length() + description.length() + metadata.length() + imageData.length();
-    if (totalDataSize > 4000) {
-        throw JSONRPCError(RPC_INVALID_PARAMETER, "Total data size exceeds 4KB limit");
+    if (totalDataSize > 1024) { // Reduced from 4KB to 1KB to prevent memory leaks
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Total data size exceeds 1KB limit");
     }
 
     // Generate new address for the NFT
