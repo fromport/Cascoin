@@ -545,10 +545,26 @@ void BitcoinApplication::createSplashScreen(const NetworkStyle *networkStyle)
         }
     });
     
-    // Store thread reference for proper cleanup
+    // Cascoin: Memory leak fix - Clean up old finished threads before adding new ones
     static std::vector<std::shared_ptr<std::thread>> splashThreads;
-    splashThreads.push_back(dbInitTask);
-    dbInitTask->detach();
+    
+    // Remove finished threads to prevent memory leak
+    auto it = splashThreads.begin();
+    while (it != splashThreads.end()) {
+        if ((*it)->joinable()) {
+            ++it;
+        } else {
+            it = splashThreads.erase(it);
+        }
+    }
+    
+    // Limit maximum concurrent threads to prevent memory overflow
+    if (splashThreads.size() < 3) {
+        splashThreads.push_back(dbInitTask);
+        dbInitTask->detach();
+    } else {
+        LogPrintf("Warning: Too many splash threads running, skipping DB init task\n");
+    }
 }
 
 void BitcoinApplication::startThread()

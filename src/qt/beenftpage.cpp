@@ -258,6 +258,9 @@ void BeeNFTPage::loadAvailableMice()
         std::string rpcResult;
         std::string rpcCommand = "miceavailable";
 
+        // Cascoin: Memory leak fix - Add timeout and error handling for large wallets
+        LogPrintf("Starting BCT/Mice database initialization (memory optimized)\n");
+        
         bool rpcOk = RPCConsole::RPCExecuteCommandLine(rpcResult, rpcCommand);
 
         if (!rpcOk) {

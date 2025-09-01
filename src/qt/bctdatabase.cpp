@@ -36,10 +36,11 @@ bool BCTDatabase::initialize()
     // Load existing data if available
     loadFromFile();
     
-    // If no data exists, create some sample data for testing
-    if (bctList.isEmpty()) {
-        createSampleData();
-    }
+    // Cascoin: Memory leak fix - Don't create sample data on startup to reduce memory usage
+    // Sample data will only be created when explicitly requested
+    // if (bctList.isEmpty()) {
+    //     createSampleData();
+    // }
     
     return true;
 }

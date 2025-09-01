@@ -22,10 +22,13 @@
 
 // Cascoin: Rialto
 
-// Protected queue of received messages
+// Cascoin: Memory leak fix - Protected queue of received messages with size limits
 std::vector<RialtoQueuedMessage> receivedMessageQueue;
 std::mutex receivedMessageQueueMutex;
 std::condition_variable receivedMessageQueueCV;
+
+// Maximum number of queued messages to prevent memory leaks
+const size_t MAX_QUEUED_MESSAGES = 1000;
 
 // White pages directory mapping hashes of nicknames to pubkeys
 CRialtoWhitePagesDB::CRialtoWhitePagesDB(std::string dbName, size_t nCacheSize, bool fMemory, bool fWipe)

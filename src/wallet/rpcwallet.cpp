@@ -2157,17 +2157,29 @@ UniValue miceavailable(const JSONRPCRequest& request)
         includeImmature = request.params[0].get_bool();
     }
 
-    // Get all BCTs from wallet
+    // Get all BCTs from wallet  
     const Consensus::Params& consensusParams = Params().GetConsensus();
     std::vector<CBeeCreationTransactionInfo> vBCTs = pwallet->GetBCTs(false, false, consensusParams);
 
     UniValue result(UniValue::VARR);
+
+    // Cascoin: Memory leak fix - Limit results to prevent memory explosion in large wallets
+    const int MAX_BCTS_RESPONSE = 100;  // Limit to 100 BCTs per response
+    const int MAX_MICE_PER_BCT = 1000;  // Limit mice per BCT to prevent huge responses
+    int processedBCTs = 0;
 
     for (const CBeeCreationTransactionInfo& bct : vBCTs) {
         // Skip immature if not requested
         if (!includeImmature && bct.beeStatus != "mature") {
             continue;
         }
+
+        // Stop if we've processed enough BCTs to prevent memory overflow
+        if (processedBCTs >= MAX_BCTS_RESPONSE) {
+            LogPrintf("Memory optimization: Limited miceavailable response to %d BCTs\n", MAX_BCTS_RESPONSE);
+            break;
+        }
+        processedBCTs++;
 
         UniValue bctObj(UniValue::VOBJ);
         bctObj.pushKV("bct_txid", bct.txid);
@@ -2179,8 +2191,9 @@ UniValue miceavailable(const JSONRPCRequest& request)
 
         UniValue availableMice(UniValue::VARR);
         
-        // List each individual mouse in this BCT
-        for (int mouseIndex = 0; mouseIndex < bct.beeCount; mouseIndex++) {
+        // List each individual mouse in this BCT (with limit)
+        int miceToProcess = std::min(bct.beeCount, MAX_MICE_PER_BCT);
+        for (int mouseIndex = 0; mouseIndex < miceToProcess; mouseIndex++) {
             UniValue mouseObj(UniValue::VOBJ);
             mouseObj.pushKV("mouse_index", mouseIndex);
             
@@ -2192,6 +2205,14 @@ UniValue miceavailable(const JSONRPCRequest& request)
             mouseObj.pushKV("already_tokenized", false);
             
             availableMice.push_back(mouseObj);
+        }
+        
+        // Add warning if mice were truncated
+        if (bct.beeCount > MAX_MICE_PER_BCT) {
+            bctObj.pushKV("mice_truncated", true);
+            bctObj.pushKV("mice_shown", miceToProcess);
+            LogPrintf("Memory optimization: Truncated mice list from %d to %d for BCT %s\n", 
+                     bct.beeCount, miceToProcess, bct.txid);
         }
         
         bctObj.pushKV("available_mice", availableMice);
