@@ -203,8 +203,15 @@ void WalletView::gotoOverviewPage()
 // Cascoin: Hive page
 void WalletView::gotoHivePage()
 {
-    hivePage->updateData();
+    // PERFORMANCE FIX: Switch tab immediately, then update data asynchronously
     setCurrentWidget(hivePage);
+    
+    // Schedule data update with slight delay to ensure smooth UI transition
+    QTimer::singleShot(50, [this](){
+        if (hivePage) {
+            hivePage->updateData();
+        }
+    });
 }
 
 // Cascoin: Bee NFT page

@@ -365,6 +365,14 @@ BitcoinApplication::BitcoinApplication(int &argc, char **argv):
     appPalette.setColor(QPalette::Text, QColor("#ffffff"));            // white text
     QApplication::setPalette(appPalette);
 
+    // PERFORMANCE FIX: Split styling - essential first, detailed later
+    const QString essentialStyles = 
+        // Core styling only - reduced for fast startup
+        "QMainWindow { background-color: #1e1e1e; color: #ffffff; }\n"
+        "QWidget { background-color: #1e1e1e; color: #ffffff; }\n"
+        "QLabel { color: #ffffff; }\n"
+        "QPushButton { background: #48bb78; color: #ffffff; border: none; border-radius: 8px; padding: 12px 24px; }\n";
+        
     // Apply modern dark theme stylesheet - optimized for faster loading
     const QString appStyle =
         // Main window and background - simplified for performance
@@ -452,7 +460,14 @@ BitcoinApplication::BitcoinApplication(int &argc, char **argv):
         "QScrollBar::handle:horizontal { background: #4a5568; border-radius: 4px; min-width: 20px; }\n"
         "QScrollBar::handle:horizontal:hover { background: #718096; }\n"
         "QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { border: none; background: none; }\n";
-    this->setStyleSheet(appStyle);
+    
+    // Apply essential styles immediately for responsive startup
+    this->setStyleSheet(essentialStyles);
+    
+    // Apply full styling asynchronously to prevent startup lag
+    QTimer::singleShot(100, this, [this, appStyle]() {
+        this->setStyleSheet(appStyle);
+    });
 }
 
 BitcoinApplication::~BitcoinApplication()
@@ -645,19 +660,11 @@ void BitcoinApplication::initializeResult(bool success)
         }
 #endif
 
-        // Keep splash until mice DB init finished, THEN show window
-        if (!g_miceDbReady.load()) {
-            QElapsedTimer timer; timer.start();
-            while (!g_miceDbReady.load() && timer.elapsed() < 10000) {
-                QThread::msleep(50);
-                QCoreApplication::processEvents(QEventLoop::AllEvents, 20);
-            }
-        }
-        
+        // PERFORMANCE FIX: Show window immediately, check mice DB asynchronously
         // Ensure all widgets are properly initialized before showing
         QCoreApplication::processEvents(QEventLoop::AllEvents, 100);
         
-        // Show window
+        // Show window immediately - don't wait for mice DB
         if(gArgs.GetBoolArg("-min", false))
         {
             window->showMinimized();
@@ -669,8 +676,36 @@ void BitcoinApplication::initializeResult(bool success)
             window->activateWindow();
         }
         
-        // Immediately close splash - let window render naturally
-        Q_EMIT splashFinished(window);
+        // Check mice DB status asynchronously without blocking
+        if (!g_miceDbReady.load()) {
+            // Create a non-blocking timer to check mice DB status
+            QTimer *miceDbTimer = new QTimer(this);
+            miceDbTimer->setSingleShot(false);
+            miceDbTimer->setInterval(100); // Check every 100ms
+            
+            int checkCount = 0;
+            const int maxChecks = 100; // 10 seconds max (100 * 100ms)
+            
+            connect(miceDbTimer, &QTimer::timeout, [=]() mutable {
+                checkCount++;
+                if (g_miceDbReady.load()) {
+                    // Mice DB ready - can close splash now
+                    miceDbTimer->deleteLater();
+                    Q_EMIT splashFinished(window);
+                    qDebug() << "Mice DB ready after" << (checkCount * 100) << "ms";
+                } else if (checkCount >= maxChecks) {
+                    // Timeout reached - close splash anyway
+                    miceDbTimer->deleteLater();
+                    Q_EMIT splashFinished(window);
+                    qDebug() << "Mice DB timeout after" << (checkCount * 100) << "ms - proceeding anyway";
+                }
+            });
+            
+            miceDbTimer->start();
+        } else {
+            // Mice DB already ready - close splash immediately
+            Q_EMIT splashFinished(window);
+        }
 
 #ifdef ENABLE_WALLET
         // Now that initialization/startup is done, process any command-line
