@@ -1035,14 +1035,21 @@ bool AppInitParameterInteraction()
         incrementalRelayFee = CFeeRate(n);
     }
 
+    // PERFORMANCE FIX: Optimize script verification threads for block loading
     // -par=0 means autodetect, but nScriptCheckThreads==0 means no concurrency
     nScriptCheckThreads = gArgs.GetArg("-par", DEFAULT_SCRIPTCHECK_THREADS);
     if (nScriptCheckThreads <= 0)
         nScriptCheckThreads += GetNumCores();
+    
+    // PERFORMANCE BOOST: Use more threads for script verification (up to 8)
     if (nScriptCheckThreads <= 1)
         nScriptCheckThreads = 0;
-    else if (nScriptCheckThreads > MAX_SCRIPTCHECK_THREADS)
-        nScriptCheckThreads = MAX_SCRIPTCHECK_THREADS;
+    else {
+        // Cap at 8 threads for optimal performance vs resource usage
+        nScriptCheckThreads = std::min(nScriptCheckThreads, 8);
+        if (nScriptCheckThreads > MAX_SCRIPTCHECK_THREADS)
+            nScriptCheckThreads = MAX_SCRIPTCHECK_THREADS;
+    }
 
     // block pruning; get the amount of disk space (in MiB) to allot for block & undo files
     int64_t nPruneArg = gArgs.GetArg("-prune", 0);
@@ -1436,10 +1443,11 @@ bool AppInitMain()
     
     // Optimize coin cache allocation for lower RAM usage
     int64_t nCoinDBCache;
-    if (nTotalCache <= (32 << 20)) { // <= 32MB remaining: use smaller fraction
-        nCoinDBCache = nTotalCache / 4;
+    // PERFORMANCE FIX: More generous coin DB cache allocation for faster block loading
+    if (nTotalCache <= (64 << 20)) { // <= 64MB remaining: use more generous fraction
+        nCoinDBCache = nTotalCache / 2; // Use half instead of 1/4
     } else {
-        nCoinDBCache = std::min(nTotalCache / 2, (nTotalCache / 4) + (1 << 23)); // use 25%-50% of the remainder for disk cache
+        nCoinDBCache = std::min(nTotalCache / 2, (nTotalCache / 3) + (1 << 24)); // Increased from 1/4 to 1/3, increased constant
     }
     nCoinDBCache = std::min(nCoinDBCache, nMaxCoinsDBCache << 20); // cap total coins db cache
     nTotalCache -= nCoinDBCache;
