@@ -51,7 +51,7 @@ int BeeNFTTableModel::rowCount(const QModelIndex &parent) const
 {
     Q_UNUSED(parent);
     // Cascoin: Memory leak fix - Limit cached NFT list size to prevent memory overflow
-    return std::min(cachedBeeNFTList.size(), 500); // Limit to 500 entries max
+    return std::min(cachedBeeNFTList.size(), static_cast<qsizetype>(500)); // Limit to 500 entries max
 }
 
 int BeeNFTTableModel::columnCount(const QModelIndex &parent) const
