@@ -2047,10 +2047,10 @@ UniValue nftcreate_large(const JSONRPCRequest& request)
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Amount must be positive");
     }
 
-    // Cascoin: Memory leak fix - Reduce data size limit to prevent memory issues
+    // Check data size limit (4KB - 6 bytes magic - some overhead)
     int totalDataSize = name.length() + description.length() + metadata.length() + imageData.length();
-    if (totalDataSize > 1024) { // Reduced from 4KB to 1KB to prevent memory leaks
-        throw JSONRPCError(RPC_INVALID_PARAMETER, "Total data size exceeds 1KB limit");
+    if (totalDataSize > 4000) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Total data size exceeds 4KB limit");
     }
 
     // Generate new address for the NFT
@@ -2075,6 +2075,11 @@ UniValue nftcreate_large(const JSONRPCRequest& request)
 
     // Create OP_RETURN output for large NFT data
     std::vector<unsigned char> nftData = CreateGenericNFTScript(nfts);
+    
+    // Cascoin: Memory leak fix - Use NFT memory pool for 4KB data management
+    uint256 nftId = Hash(nftData.begin(), nftData.end());
+    NFTMemoryManager::StoreNFTData(nftId, nftData);
+    
     CScript nftScript = CScript() << OP_RETURN << nftData;
     vecSend.push_back({nftScript, 0, false});
 

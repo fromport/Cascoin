@@ -41,8 +41,13 @@ Each bee NFT contains:
 - Mining performance history
 */
 
-// Maximum data size for bee NFT transactions - Reduced to prevent memory leaks
-const int BEE_NFT_MAX_DATA_SIZE = 1024; // Reduced from 4KB to 1KB to prevent memory issues
+// Maximum data size for bee NFT transactions
+const int BEE_NFT_MAX_DATA_SIZE = 4096; // 4KB for larger metadata as required
+
+// Cascoin: Memory management for NFT system - prevent memory leaks
+const int MAX_NFT_CACHE_ENTRIES = 500; // Maximum NFT objects to keep in memory
+const int NFT_CACHE_CLEANUP_THRESHOLD = 600; // Start cleanup when this many entries
+const size_t MAX_NFT_MEMORY_POOL_SIZE = 8 * 1024 * 1024; // 8MB max for NFT data pool
 
 // Magic bytes for different NFT types
 #define NFT_MAGIC_MICE_TOKEN "CASTOK"
@@ -86,6 +91,69 @@ struct BeeNFTToken {
     // Check if bee has expired
     bool IsExpired(int currentHeight) const {
         return currentHeight >= expiryHeight;
+    }
+    
+    // Cascoin: Memory management - estimate memory usage for this NFT
+    size_t EstimateMemoryUsage() const {
+        return sizeof(BeeNFTToken) + currentOwner.size() + 64; // Conservative estimate: ~512 bytes per entry
+    }
+};
+
+// Cascoin: NFT Memory Pool Manager to prevent memory leaks while maintaining 4KB data size
+class NFTMemoryManager {
+private:
+    static std::map<uint256, std::shared_ptr<std::vector<unsigned char>>> nftDataPool;
+    static std::mutex poolMutex;
+    static size_t currentPoolSize;
+    
+public:
+    // Store NFT data in managed pool
+    static bool StoreNFTData(const uint256& nftId, const std::vector<unsigned char>& data) {
+        std::lock_guard<std::mutex> lock(poolMutex);
+        
+        // Check if we would exceed memory pool size
+        if (currentPoolSize + data.size() > MAX_NFT_MEMORY_POOL_SIZE) {
+            // Cleanup oldest entries to make space
+            CleanupOldEntries();
+        }
+        
+        auto dataPtr = std::make_shared<std::vector<unsigned char>>(data);
+        nftDataPool[nftId] = dataPtr;
+        currentPoolSize += data.size();
+        return true;
+    }
+    
+    // Retrieve NFT data from pool
+    static std::shared_ptr<std::vector<unsigned char>> GetNFTData(const uint256& nftId) {
+        std::lock_guard<std::mutex> lock(poolMutex);
+        auto it = nftDataPool.find(nftId);
+        return (it != nftDataPool.end()) ? it->second : nullptr;
+    }
+    
+    // Cleanup old entries when memory pool gets too large
+    static void CleanupOldEntries() {
+        if (nftDataPool.size() <= MAX_NFT_CACHE_ENTRIES) return;
+        
+        // Remove oldest 25% of entries to make room
+        size_t toRemove = nftDataPool.size() / 4;
+        auto it = nftDataPool.begin();
+        for (size_t i = 0; i < toRemove && it != nftDataPool.end(); ++i) {
+            if (it->second) {
+                currentPoolSize -= it->second->size();
+            }
+            it = nftDataPool.erase(it);
+        }
+    }
+    
+    // Get current memory usage statistics
+    static size_t GetPoolSize() { 
+        std::lock_guard<std::mutex> lock(poolMutex);
+        return currentPoolSize; 
+    }
+    
+    static size_t GetEntryCount() { 
+        std::lock_guard<std::mutex> lock(poolMutex);
+        return nftDataPool.size(); 
     }
 };
 

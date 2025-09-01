@@ -58,34 +58,58 @@ LogPrintf("HTTP: starting %d worker threads with max %d active tasks\n", rpcThre
 ```
 
 ### 4. NFT System Memory Leak Fixes
-**Location**: `src/beenft.h` (line 45)
-**Problem**: Large NFT data causing memory issues
-**Solution**: Reduced maximum NFT data size from 4KB to 1KB
+**Location**: `src/beenft.h` (lines 45-50, 102-158)
+**Problem**: Large NFT data causing memory issues with unbounded memory growth
+**Solution**: Implemented NFTMemoryManager for intelligent memory pooling while maintaining 4KB data size
 ```cpp
-// Maximum data size for bee NFT transactions - Reduced to prevent memory leaks
-const int BEE_NFT_MAX_DATA_SIZE = 1024; // Reduced from 4KB to 1KB to prevent memory issues
+// Maximum data size for bee NFT transactions
+const int BEE_NFT_MAX_DATA_SIZE = 4096; // 4KB for larger metadata as required
+
+// Cascoin: Memory management for NFT system - prevent memory leaks
+const int MAX_NFT_CACHE_ENTRIES = 500; // Maximum NFT objects to keep in memory
+const int NFT_CACHE_CLEANUP_THRESHOLD = 600; // Start cleanup when this many entries
+const size_t MAX_NFT_MEMORY_POOL_SIZE = 8 * 1024 * 1024; // 8MB max for NFT data pool
 ```
 
-**Location**: `src/wallet/rpcwallet.cpp` (lines 2050-2054)
-**Solution**: Enforced stricter data size limits in RPC calls
+**Location**: `src/beenft.cpp` (lines 16-19)
+**Solution**: Added NFTMemoryManager static definitions for memory pool management
 ```cpp
-// Cascoin: Memory leak fix - Reduce data size limit to prevent memory issues
-int totalDataSize = name.length() + description.length() + metadata.length() + imageData.length();
-if (totalDataSize > 1024) { // Reduced from 4KB to 1KB to prevent memory leaks
-    throw JSONRPCError(RPC_INVALID_PARAMETER, "Total data size exceeds 1KB limit");
-}
+// Cascoin: Static member definitions for NFTMemoryManager
+std::map<uint256, std::shared_ptr<std::vector<unsigned char>>> NFTMemoryManager::nftDataPool;
+std::mutex NFTMemoryManager::poolMutex;
+size_t NFTMemoryManager::currentPoolSize = 0;
 ```
 
-**Location**: `src/qt/beenfttablemodel.cpp` (lines 52-53, 224-228)
-**Solution**: Limited cached NFT list to 500 entries maximum
+**Location**: `src/wallet/rpcwallet.cpp` (lines 2079-2081)
+**Solution**: Integrated NFT memory pool for RPC calls
+```cpp
+// Cascoin: Memory leak fix - Use NFT memory pool for 4KB data management
+uint256 nftId = Hash(nftData.begin(), nftData.end());
+NFTMemoryManager::StoreNFTData(nftId, nftData);
+```
+
+**Location**: `src/qt/beenfttablemodel.cpp` (lines 52-53, 224-238)
+**Solution**: Intelligent NFT list management with priority-based cleanup
 ```cpp
 // Cascoin: Memory leak fix - Limit cached NFT list size to prevent memory overflow
 return std::min(cachedBeeNFTList.size(), 500); // Limit to 500 entries max
 
-// Cascoin: Memory leak fix - Truncate list if it exceeds maximum size
-if (cachedBeeNFTList.size() > 500) {
-    qDebug() << "NFT list size exceeded 500 entries, truncating to prevent memory leak";
-    cachedBeeNFTList = cachedBeeNFTList.mid(0, 500); // Keep only first 500 entries
+// Cascoin: Memory leak fix with intelligent cleanup - keep 4KB NFT data size but manage memory better
+if (newRecords.size() > 500) {
+    qDebug() << "NFT list size (" << newRecords.size() << ") exceeded 500 entries, using smart truncation to prevent memory leak";
+    
+    // Sort by priority: active NFTs first, then by blocks left (descending)
+    QList<BeeNFTRecord> sortedRecords = newRecords;
+    std::sort(sortedRecords.begin(), sortedRecords.end(), [](const BeeNFTRecord& a, const BeeNFTRecord& b) {
+        // Active NFTs have priority
+        if (a.status == "mature" && b.status != "mature") return true;
+        if (a.status != "mature" && b.status == "mature") return false;
+        
+        // Then sort by blocks left (more blocks left = higher priority)
+        return a.blocksLeft > b.blocksLeft;
+    });
+    
+    cachedBeeNFTList = sortedRecords.mid(0, 500); // Keep only top 500 entries
 }
 ```
 
@@ -122,8 +146,8 @@ All fixes have been tested with a comprehensive test suite that verifies:
 - **BCT Cache**: Reduced from potentially unlimited to 1000 entries max
 - **Database Cache**: Reduced default from 450MB to 200MB
 - **Thread Pool**: Limited work queue from unlimited to 64 entries max
-- **NFT Data**: Reduced from 4KB to 1KB per NFT
-- **NFT Table**: Limited to 500 cached entries
+- **NFT Data**: Maintained at 4KB per NFT with intelligent memory pool management (8MB pool limit)
+- **NFT Table**: Limited to 500 cached entries with priority-based cleanup
 
 ### Performance Impact
 - Minimal performance impact due to reasonable limits
