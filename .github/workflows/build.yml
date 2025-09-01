@@ -233,18 +233,6 @@ jobs:
             "libzmq.so*"
           )
           
-          # Ensure libminiupnpc.so.17 is specifically included
-          echo "  Ensuring libminiupnpc.so.17 is included..."
-          if [[ -f "/usr/lib/x86_64-linux-gnu/libminiupnpc.so.17" ]]; then
-            echo "    Copying: libminiupnpc.so.17"
-            cp "/usr/lib/x86_64-linux-gnu/libminiupnpc.so.17" "$LIB_DIR/" 2>/dev/null || true
-          else
-            echo "    Warning: libminiupnpc.so.17 not found, searching for alternatives..."
-            find /usr/lib/x86_64-linux-gnu -name "libminiupnpc.so*" 2>/dev/null | while read lib; do
-              echo "    Found alternative: $(basename "$lib")"
-            done
-          fi
-          
           for req_lib in "${other_required_libs[@]}"; do
             find /usr/lib/x86_64-linux-gnu -name "$req_lib" 2>/dev/null | while read lib; do
               if [[ -f "$lib" ]]; then
@@ -342,7 +330,7 @@ jobs:
           - Boost (system, filesystem, chrono, thread, program_options)
           - Berkeley DB (C++ interface for wallet)
           - libevent + libevent_pthreads (networking)
-          - libminiupnpc.so.17 (UPnP support)
+          - libminiupnpc (UPnP support)
           - libprotobuf (serialization)
           - libqrencode (QR code generation)
           - libzmq (ZeroMQ messaging)
