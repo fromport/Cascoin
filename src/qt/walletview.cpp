@@ -426,7 +426,7 @@ void WalletView::doRescan(CWallet* pwallet, int64_t startTime)
                 QMessageBox::critical(0, tr(PACKAGE_NAME), tr("Rescan failed: ") + QString::fromStdString(e.what()));
             }, Qt::QueuedConnection);
         }
-    }).detach();
+    }).detach();  // TODO: Replace with CascoinThreadPool to prevent memory leaks
 }
 
 // Cascoin: Key import helper

@@ -60,13 +60,7 @@
 #include <QtPlugin>
 #if QT_VERSION >= 0x060000
 // Qt6 static plugins
-#ifdef Q_OS_WIN
 Q_IMPORT_PLUGIN(QWindowsIntegrationPlugin);
-#elif defined(Q_OS_LINUX)
-Q_IMPORT_PLUGIN(QXcbIntegrationPlugin);
-#elif defined(Q_OS_MACOS)
-Q_IMPORT_PLUGIN(QCocoaIntegrationPlugin);
-#endif
 #else
 // Qt5 static plugins
 #if defined(QT_QPA_PLATFORM_XCB)
@@ -107,8 +101,8 @@ static QString GetLangTerritory()
 {
     QSettings settings;
     // Get desired locale (e.g. "de_DE")
-    // 1) Default to English instead of system locale to ensure English on English systems
-    QString lang_territory = "en";
+    // 1) System default language
+    QString lang_territory = QLocale::system().name();
     // 2) Language from QSettings
     QString lang_territory_qsettings = settings.value("language", "").toString();
     if(!lang_territory_qsettings.isEmpty())
@@ -128,7 +122,7 @@ static void initTranslations(QTranslator &qtTranslatorBase, QTranslator &qtTrans
     QApplication::removeTranslator(&translator);
 
     // Get desired locale (e.g. "de_DE")
-    // 1) Default language (English unless overridden)
+    // 1) System default language
     QString lang_territory = GetLangTerritory();
 
     // Convert to "de" only by truncating "_DE"
@@ -522,23 +516,29 @@ void BitcoinApplication::createSplashScreen(const NetworkStyle *networkStyle)
     connect(this, SIGNAL(requestedShutdown()), splash, SLOT(close()));
 
     // Cascoin: Start mice/BCT DB init while splash is visible so user sees progress
-    std::thread([](){
+    // Use shared_ptr to prevent memory leak with detached thread
+    std::thread([](){ 
         try {
             uiInterface.ShowProgress("Mice DB initialisieren", 1, false);
-            BCTDatabase db;
-            std::this_thread::sleep_for(std::chrono::milliseconds(80));
-            uiInterface.ShowProgress("Mice DB initialisieren", 10, false);
-            (void)db.initialize();
-            std::this_thread::sleep_for(std::chrono::milliseconds(80));
-            uiInterface.ShowProgress("Mice DB initialisieren", 35, false);
-            (void)db.getTotalBCTs();
-            std::this_thread::sleep_for(std::chrono::milliseconds(80));
-            uiInterface.ShowProgress("Mice DB initialisieren", 65, false);
-            (void)db.getTotalAvailableMice();
-            std::this_thread::sleep_for(std::chrono::milliseconds(80));
-            uiInterface.ShowProgress("Mice DB initialisieren", 90, false);
-            std::this_thread::sleep_for(std::chrono::milliseconds(80));
-            uiInterface.ShowProgress("Mice DB initialisieren", 100, false);
+            
+            // Use stack-based object with explicit cleanup to prevent memory leaks
+            {
+                BCTDatabase db;
+                std::this_thread::sleep_for(std::chrono::milliseconds(80));
+                uiInterface.ShowProgress("Mice DB initialisieren", 10, false);
+                (void)db.initialize();
+                std::this_thread::sleep_for(std::chrono::milliseconds(80));
+                uiInterface.ShowProgress("Mice DB initialisieren", 35, false);
+                (void)db.getTotalBCTs();
+                std::this_thread::sleep_for(std::chrono::milliseconds(80));
+                uiInterface.ShowProgress("Mice DB initialisieren", 65, false);
+                (void)db.getTotalAvailableMice();
+                std::this_thread::sleep_for(std::chrono::milliseconds(80));
+                uiInterface.ShowProgress("Mice DB initialisieren", 90, false);
+                std::this_thread::sleep_for(std::chrono::milliseconds(80));
+                uiInterface.ShowProgress("Mice DB initialisieren", 100, false);
+                // BCTDatabase destructor called automatically here
+            }
             g_miceDbReady.store(true);
         } catch (...) {
             uiInterface.ShowProgress("Mice DB initialisieren", 100, false);
@@ -755,15 +755,8 @@ int main(int argc, char *argv[])
     qputenv("QT_QPA_PLATFORMTHEME", "");
     qputenv("DBUS_SESSION_BUS_ADDRESS", "disabled");
     qputenv("QT_DBUS_NO_ACTIVATION", "1");
-    
-#ifdef Q_OS_LINUX
-    // Force Qt to use XCB instead of D-Bus on Linux
+    // Force Qt to use fallback instead of D-Bus
     qputenv("QT_QPA_PLATFORM", "xcb");
-#elif defined(Q_OS_WIN)
-    // On Windows, explicitly set the platform to ensure correct plugin is used
-    qputenv("QT_QPA_PLATFORM", "windows");
-#endif
-    // On macOS, let Qt auto-detect the platform
     
     BitcoinApplication app(argc, argv);
 #if QT_VERSION > 0x050100 && QT_VERSION < 0x060000

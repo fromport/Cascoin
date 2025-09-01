@@ -243,7 +243,7 @@ bool BCTCache::get(const QString& key, std::vector<CBeeCreationTransactionInfo>&
         auto now = std::chrono::steady_clock::now();
         auto age = std::chrono::duration_cast<std::chrono::minutes>(now - it->second.lastAccess);
         
-        if (age.count() < 5 && it->second.includesExpired >= includeExpired) {
+        if (age.count() < 15 && it->second.includesExpired >= includeExpired) {
             it->second.lastAccess = now; // Update access time
             result = it->second.data;
             return true;
@@ -268,8 +268,9 @@ void BCTCache::put(const QString& key, const std::vector<CBeeCreationTransaction
         evictOldest();
     }
     
-    // Don't cache if entry is too large
-    if (entrySize > m_maxMemoryBytes / 2) {
+    // Don't cache if entry is too large or if there are too many entries
+    if (entrySize > m_maxMemoryBytes / 2 || data.size() > 1000) {
+        qDebug() << "Skipping cache: entry too large (" << entrySize << "bytes) or too many entries (" << data.size() << ")";
         return;
     }
     
@@ -306,8 +307,19 @@ void BCTCache::evictOldest()
 
 size_t BCTCache::calculateMemorySize(const std::vector<CBeeCreationTransactionInfo>& data) const
 {
-    // Rough estimation: each BCT entry is about 200 bytes
-    return data.size() * 200;
+    if (data.empty()) return 0;
+    
+    // Conservative estimate: each BCT entry takes ~512 bytes on average
+    size_t totalSize = data.size() * 512;
+    
+    // Cap the estimate to prevent cache overflow
+    if (totalSize > m_maxMemoryBytes / 4) {
+        qDebug() << "Warning: BCT cache entry size estimate" << totalSize << "bytes is very large for" << data.size() << "entries";
+        // Return a capped size to prevent cache overflow
+        return m_maxMemoryBytes / 4;
+    }
+    
+    return totalSize;
 }
 
 size_t BCTCache::currentMemoryUsage() const

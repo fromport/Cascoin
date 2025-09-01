@@ -2912,6 +2912,12 @@ std::vector<CBeeCreationTransactionInfo> CWallet::GetBCTs(bool includeDead, bool
     // Use cached hiveCoinbaseMap to avoid expensive O(n²) wallet scanning
     std::map<std::string, std::pair<int, CAmount>> localHiveCoinbaseMap;
     if (scanRewards) {
+        // Clear and rebuild cache every 1000 entries to prevent memory leaks
+        if (hiveCoinbaseMap.size() > 1000) {
+            LogPrintf("Clearing hiveCoinbaseMap to prevent memory leak (size: %d)\n", hiveCoinbaseMap.size());
+            hiveCoinbaseMap.clear();
+        }
+        
         // Check if we have a cached version first
         if (hiveCoinbaseMap.empty()) {
             // Build coinbase map only once and cache it

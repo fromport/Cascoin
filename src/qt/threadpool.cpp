@@ -89,6 +89,14 @@ void CascoinThreadPool::executeAsync(std::function<void()> task, QObject* receiv
         qDebug() << "Background task error:" << error;
     });
     
+    // Limit concurrent tasks to prevent memory overflow
+    if (m_threadPool->activeThreadCount() > m_threadPool->maxThreadCount() * 2) {
+        qWarning() << "ThreadPool overloaded (" << m_threadPool->activeThreadCount() 
+                   << " active), skipping new task to prevent memory issues";
+        runner->deleteLater();
+        return;
+    }
+    
     m_threadPool->start(runner);
 }
 

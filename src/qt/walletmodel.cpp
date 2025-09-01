@@ -49,7 +49,7 @@ WalletModel::WalletModel(const PlatformStyle *platformStyle, CWallet *_wallet, O
     QObject(parent), wallet(_wallet), optionsModel(_optionsModel), addressTableModel(0),
     transactionTableModel(0),
     recentRequestsTableModel(0),
-    bctCache(std::make_unique<BCTCache>(MemoryOptimizer::instance().getRecommendedCacheSize() / 4)),
+    bctCache(std::make_unique<BCTCache>(std::min(8, MemoryOptimizer::instance().getRecommendedCacheSize() / 16))),
     hiveTableModel(0),  // Cascoin: Hive
     cachedBalance(0), cachedUnconfirmedBalance(0), cachedImmatureBalance(0),
     cachedEncryptionStatus(Unencrypted),
@@ -182,7 +182,7 @@ void WalletModel::pollBalanceChanged()
         } catch (...) {
             updateInProgress.store(false);
         }
-    }).detach();
+    }).detach();  // TODO: Replace with CascoinThreadPool to prevent memory leaks
 }
 
 void WalletModel::checkBalanceChanged()
