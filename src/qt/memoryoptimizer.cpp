@@ -2,8 +2,11 @@
 #include <wallet/wallet.h> // For CBeeCreationTransactionInfo
 
 #include <QDebug>
+#include <QFile>
+#include <QIODevice>
 #include <QProcess>
 #include <QSysInfo>
+#include <QTextStream>
 #include <algorithm>
 
 #ifdef Q_OS_LINUX
