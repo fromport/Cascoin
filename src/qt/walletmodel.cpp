@@ -16,6 +16,7 @@
 #include <qt/hivetablemodel.h>  // Cascoin: Hive
 #include <qt/sendcoinsdialog.h>
 #include <qt/transactiontablemodel.h>
+#include <qt/memoryoptimizer.h>
 
 #include <base58.h>
 #include <chain.h>
@@ -48,6 +49,7 @@ WalletModel::WalletModel(const PlatformStyle *platformStyle, CWallet *_wallet, O
     QObject(parent), wallet(_wallet), optionsModel(_optionsModel), addressTableModel(0),
     transactionTableModel(0),
     recentRequestsTableModel(0),
+    bctCache(std::make_unique<BCTCache>(MemoryOptimizer::instance().getRecommendedCacheSize() / 4)),
     hiveTableModel(0),  // Cascoin: Hive
     cachedBalance(0), cachedUnconfirmedBalance(0), cachedImmatureBalance(0),
     cachedEncryptionStatus(Unencrypted),
@@ -702,18 +704,42 @@ void WalletModel::loadReceiveRequests(std::vector<std::string>& vReceiveRequests
     vReceiveRequests = wallet->GetDestValues("rr"); // receive request
 }
 
-// Cascoin: Hive
+// Cascoin: Hive - Memory-optimized BCT retrieval with caching
 void WalletModel::getBCTs(std::vector<CBeeCreationTransactionInfo>& vBeeCreationTransactions, bool includeDeadBees) {
-    if (wallet) {
-        // Use TRY_LOCK with timeout to prevent indefinite hanging
-        TRY_LOCK(wallet->cs_wallet, lockWallet);
-        if (lockWallet) {
+    if (!wallet) {
+        vBeeCreationTransactions.clear();
+        return;
+    }
+    
+    // Create cache key based on current state
+    QString cacheKey = QString("bcts_%1_%2_%3")
+        .arg(includeDeadBees ? "expired" : "active")
+        .arg(chainActive.Height())
+        .arg(wallet->GetName().c_str());
+    
+    // Try to get from cache first
+    if (bctCache && bctCache->get(cacheKey, vBeeCreationTransactions, includeDeadBees)) {
+        return; // Cache hit!
+    }
+    
+    // Cache miss - load from wallet with lock timeout
+    TRY_LOCK(wallet->cs_wallet, lockWallet);
+    if (lockWallet) {
+        try {
             vBeeCreationTransactions = wallet->GetBCTs(includeDeadBees, true, Params().GetConsensus());
-        } else {
-            // If we can't get the lock immediately, return empty result to prevent hang
-            LogPrintf("Warning: Could not acquire wallet lock for BCT update, skipping to prevent GUI hang\n");
+            
+            // Cache the result
+            if (bctCache) {
+                bctCache->put(cacheKey, vBeeCreationTransactions, includeDeadBees);
+            }
+        } catch (const std::exception& e) {
+            qDebug() << "Error getting BCTs:" << e.what();
             vBeeCreationTransactions.clear();
         }
+    } else {
+        // If we can't get the lock immediately, return empty result to prevent hang
+        LogPrintf("Warning: Could not acquire wallet lock for BCT update, skipping to prevent GUI hang\n");
+        vBeeCreationTransactions.clear();
     }
 }
 

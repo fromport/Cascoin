@@ -1419,14 +1419,28 @@ bool AppInitMain()
     fReindex = gArgs.GetBoolArg("-reindex", false);
     bool fReindexChainState = gArgs.GetBoolArg("-reindex-chainstate", false);
 
-    // cache size calculations
+    // cache size calculations - optimized for lower RAM usage
     int64_t nTotalCache = (gArgs.GetArg("-dbcache", nDefaultDbCache) << 20);
     nTotalCache = std::max(nTotalCache, nMinDbCache << 20); // total cache cannot be less than nMinDbCache
     nTotalCache = std::min(nTotalCache, nMaxDbCache << 20); // total cache cannot be greater than nMaxDbcache
-    int64_t nBlockTreeDBCache = nTotalCache / 8;
+    
+    // Progressive cache allocation based on available cache size for better memory efficiency
+    int64_t nBlockTreeDBCache;
+    if (nTotalCache <= (64 << 20)) { // <= 64MB: use smaller fraction for block cache
+        nBlockTreeDBCache = nTotalCache / 16; 
+    } else {
+        nBlockTreeDBCache = nTotalCache / 8;
+    }
     nBlockTreeDBCache = std::min(nBlockTreeDBCache, (gArgs.GetBoolArg("-txindex", DEFAULT_TXINDEX) ? nMaxBlockDBAndTxIndexCache : nMaxBlockDBCache) << 20);
     nTotalCache -= nBlockTreeDBCache;
-    int64_t nCoinDBCache = std::min(nTotalCache / 2, (nTotalCache / 4) + (1 << 23)); // use 25%-50% of the remainder for disk cache
+    
+    // Optimize coin cache allocation for lower RAM usage
+    int64_t nCoinDBCache;
+    if (nTotalCache <= (32 << 20)) { // <= 32MB remaining: use smaller fraction
+        nCoinDBCache = nTotalCache / 4;
+    } else {
+        nCoinDBCache = std::min(nTotalCache / 2, (nTotalCache / 4) + (1 << 23)); // use 25%-50% of the remainder for disk cache
+    }
     nCoinDBCache = std::min(nCoinDBCache, nMaxCoinsDBCache << 20); // cap total coins db cache
     nTotalCache -= nCoinDBCache;
     nCoinCacheUsage = nTotalCache; // the rest goes to in-memory cache

@@ -325,12 +325,22 @@ void HiveDialog::onUpdateTimerTimeout() {
     ui->includeDeadBeesCheckbox->setText(tr("Include expired mice (updating...)"));
 
     if(model && model->getHiveTableModel()) {
+        // Connect to completion signal to re-enable UI after background operation finishes
+        connect(model->getHiveTableModel(), &HiveTableModel::updateCompleted, 
+                this, &HiveDialog::onBCTUpdateCompleted, Qt::UniqueConnection);
+        
         model->getHiveTableModel()->updateBCTs(ui->includeDeadBeesCheckbox->isChecked());
     }
+}
 
-    // Re-enable checkbox after update
+void HiveDialog::onBCTUpdateCompleted() {
+    // Re-enable checkbox after background update completes
     ui->includeDeadBeesCheckbox->setEnabled(true);
     ui->includeDeadBeesCheckbox->setText(tr("Include expired mice"));
+    
+    // Disconnect to avoid multiple connections
+    disconnect(model->getHiveTableModel(), &HiveTableModel::updateCompleted, 
+               this, &HiveDialog::onBCTUpdateCompleted);
 }
 
 void HiveDialog::on_showAdvancedStatsCheckbox_stateChanged() {

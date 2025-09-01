@@ -60,4 +60,4 @@ void ResponseMonitor::checkResponseTime()
     }
 }
 
-#include <qt/moc_responsemonitor.cpp>
+#include "moc_responsemonitor.cpp"
