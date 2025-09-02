@@ -207,9 +207,15 @@ void Shutdown()
 
     StopTorControl();
 
+    // Flush and unregister background callbacks before stopping the scheduler to
+    // ensure no new tasks are queued while the scheduler is shutting down.
+    GetMainSignals().FlushBackgroundCallbacks();
+    GetMainSignals().UnregisterBackgroundSignalScheduler();
+    GetMainSignals().UnregisterWithMempoolSignals(mempool);
+
     // After everything has been shut down, but before things get flushed, stop the
     // CScheduler/checkqueue threadGroup
-    scheduler.stop(true);
+    scheduler.stop(false);
     threadGroup.interrupt_all();
     threadGroup.join_all();
 
