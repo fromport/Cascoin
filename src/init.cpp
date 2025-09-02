@@ -207,6 +207,9 @@ void Shutdown()
 
     StopTorControl();
 
+    // Stop the scheduler before interrupting threads to ensure clean shutdown
+    scheduler.stop(true);
+
     // After everything has been shut down, but before things get flushed, stop the
     // CScheduler/checkqueue threadGroup
     threadGroup.interrupt_all();
