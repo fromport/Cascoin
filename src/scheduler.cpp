@@ -6,11 +6,9 @@
 
 #include <random.h>
 #include <reverselock.h>
-#include <util.h>
 
 #include <assert.h>
 #include <boost/bind.hpp>
-#include <boost/thread.hpp>
 #include <utility>
 
 CScheduler::CScheduler() : nThreadsServicingQueue(0), stopRequested(false), stopWhenEmpty(false)
@@ -19,15 +17,6 @@ CScheduler::CScheduler() : nThreadsServicingQueue(0), stopRequested(false), stop
 
 CScheduler::~CScheduler()
 {
-    // Ensure scheduler is stopped before destruction
-    if (nThreadsServicingQueue > 0) {
-        LogPrintf("Warning: CScheduler destructor called with %d threads still running. Stopping scheduler.\n", nThreadsServicingQueue);
-        stop(true);
-        // Give threads a moment to exit gracefully
-        for (int i = 0; i < 100 && nThreadsServicingQueue > 0; ++i) {
-            boost::this_thread::sleep_for(boost::chrono::milliseconds(10));
-        }
-    }
     assert(nThreadsServicingQueue == 0);
 }
 

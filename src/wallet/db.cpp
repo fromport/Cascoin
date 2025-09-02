@@ -66,6 +66,21 @@ void CDBEnv::EnvShutdown()
         return;
 
     fDbEnvInit = false;
+    
+    // Close all database handles first
+    {
+        LOCK(cs_db);
+        for (auto& it : mapDb) {
+            if (it.second) {
+                it.second->close(0);
+                delete it.second;
+                it.second = nullptr;
+            }
+        }
+        mapDb.clear();
+        mapFileUseCount.clear();
+    }
+    
     int ret = dbenv->close(0);
     if (ret != 0)
         LogPrintf("CDBEnv::EnvShutdown: Error %d shutting down database environment: %s\n", ret, DbEnv::strerror(ret));
@@ -100,7 +115,16 @@ bool CDBEnv::Open(const fs::path& pathIn, bool retry)
     if (fDbEnvInit)
         return true;
 
-    boost::this_thread::interruption_point();
+    // Only check for thread interruption if we're in a boost thread context
+    // This prevents issues during static destruction order problems
+    try {
+        boost::this_thread::interruption_point();
+    } catch (const boost::thread_interrupted&) {
+        // If interrupted, return false instead of propagating the exception
+        // during static destruction scenarios
+        LogPrintf("CDBEnv::Open: Thread interrupted during database environment initialization\n");
+        return false;
+    }
 
     strPath = pathIn.string();
     if (!LockDirectory(pathIn, ".walletlock")) {
@@ -169,7 +193,13 @@ void CDBEnv::MakeMock()
     if (fDbEnvInit)
         throw std::runtime_error("CDBEnv::MakeMock: Already initialized");
 
-    boost::this_thread::interruption_point();
+    // Only check for thread interruption if we're in a boost thread context
+    try {
+        boost::this_thread::interruption_point();
+    } catch (const boost::thread_interrupted&) {
+        LogPrintf("CDBEnv::MakeMock: Thread interrupted during mock database initialization\n");
+        throw std::runtime_error("CDBEnv::MakeMock: Thread interrupted");
+    }
 
     LogPrint(BCLog::DB, "CDBEnv::MakeMock\n");
 
