@@ -46,7 +46,6 @@
 #include <rialto.h>   // Cascoin: Rialto
 #ifdef ENABLE_WALLET
 #include <wallet/init.h>
-#include <wallet/db.h>
 #endif
 #include <warnings.h>
 #include <stdint.h>
@@ -281,9 +280,6 @@ void Shutdown()
     GetMainSignals().UnregisterWithMempoolSignals(mempool);
 #ifdef ENABLE_WALLET
     CloseWallets();
-    // Explicitly shutdown wallet database environment to prevent
-    // static destruction order issues with the scheduler
-    bitdb.Close();
 #endif
     // Release directory locks before static destructors run to avoid
     // static destruction order issues with the scheduler
