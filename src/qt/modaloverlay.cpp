@@ -220,13 +220,27 @@ void ModalOverlay::showHide(bool hide, bool userRequested)
     animation->setStartValue(startRect);
     animation->setEndValue(endRect);
     animation->setEasingCurve(QEasingCurve::OutQuad);
+    
+    // Connect animation finished signal to handle visibility properly
+    connect(animation, &QPropertyAnimation::finished, this, [this, hide]() {
+        if (hide) {
+            // Hide the widget after animation completes
+            setVisible(false);
+            if (ui->bgWidget) ui->bgWidget->setVisible(false);
+        }
+        layerIsVisible = !hide;
+    });
+    
     animation->start(QAbstractAnimation::DeleteWhenStopped);
     
     if (!hide && ui->bgWidget) {
         ui->bgWidget->setVisible(true);
     }
     
-    layerIsVisible = !hide;
+    // Update layerIsVisible immediately for show, but wait for animation completion for hide
+    if (!hide) {
+        layerIsVisible = true;
+    }
 }
 
 void ModalOverlay::closeClicked()
