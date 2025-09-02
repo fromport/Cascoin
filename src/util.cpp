@@ -86,6 +86,10 @@ const char * const BITCOIN_CONF_FILENAME = "cascoin.conf";
 const char * const BITCOIN_PID_FILENAME = "cascoind.pid";
 const char * const DEFAULT_DEBUGLOGFILE = "debug.log";
 
+// Automatic debug.log maintenance thresholds
+static constexpr size_t MAX_DEBUG_LOG_SIZE = 20 * 1000000;      // 20 MB
+static constexpr size_t RECENT_DEBUG_KEEP_SIZE = 10 * 1000000;  // Keep last 10 MB when trimming
+
 ArgsManager gArgs;
 bool fPrintToConsole = false;
 bool fPrintToDebugLog = true;
@@ -339,6 +343,58 @@ static std::string LogTimestampStr(const std::string &str, std::atomic_bool *fSt
     return strStamped;
 }
 
+// Trim the debug.log file if it exceeds MAX_DEBUG_LOG_SIZE. Must be called with mutexDebugLog held.
+static void MaybeShrinkDebugLogLocked()
+{
+    fs::path pathLog = GetDebugLogPath();
+    // Ensure pending writes are flushed before size check
+    if (fileout != nullptr) {
+        fflush(fileout);
+    }
+
+    if (!fs::exists(pathLog)) {
+        return;
+    }
+
+    uintmax_t current_size = 0;
+    try {
+        current_size = fs::file_size(pathLog);
+    } catch (const fs::filesystem_error&) {
+        return;
+    }
+
+    if (current_size <= MAX_DEBUG_LOG_SIZE) {
+        return;
+    }
+
+    FILE* in = fsbridge::fopen(pathLog, "r");
+    if (!in) {
+        return;
+    }
+
+    std::vector<char> tail(RECENT_DEBUG_KEEP_SIZE, 0);
+    if (current_size > tail.size()) {
+        fseek(in, -((long)tail.size()), SEEK_END);
+    } else {
+        fseek(in, 0, SEEK_SET);
+    }
+    int nBytes = fread(tail.data(), 1, tail.size(), in);
+    fclose(in);
+
+    // Truncate and rewrite using the existing file handle to avoid races
+    if (fileout != nullptr && fsbridge::freopen(pathLog, "w", fileout) != nullptr) {
+        setbuf(fileout, nullptr); // unbuffered
+        if (nBytes > 0) {
+            fwrite(tail.data(), 1, nBytes, fileout);
+            fflush(fileout);
+        }
+        // Switch back to append mode for subsequent writes
+        if (fsbridge::freopen(pathLog, "a", fileout) != nullptr) {
+            setbuf(fileout, nullptr); // unbuffered
+        }
+    }
+}
+
 int LogPrintStr(const std::string &str)
 {
     int ret = 0; // Returns total number of characters written
@@ -372,6 +428,9 @@ int LogPrintStr(const std::string &str)
                 if (fsbridge::freopen(pathDebug,"a",fileout) != nullptr)
                     setbuf(fileout, nullptr); // unbuffered
             }
+
+            // Ensure the debug.log does not grow unbounded
+            MaybeShrinkDebugLogLocked();
 
             ret = FileWriteStr(strTimestamped, fileout);
         }
@@ -831,30 +890,41 @@ void AllocateFileRange(FILE *file, unsigned int offset, unsigned int length) {
 
 void ShrinkDebugFile()
 {
-    // Amount of debug.log to save at end when shrinking (must fit in memory)
-    constexpr size_t RECENT_DEBUG_HISTORY_SIZE = 10 * 1000000;
     // Scroll debug.log if it's getting too big
     fs::path pathLog = GetDebugLogPath();
     FILE* file = fsbridge::fopen(pathLog, "r");
-    // If debug.log file is more than 10% bigger the RECENT_DEBUG_HISTORY_SIZE
-    // trim it down by saving only the last RECENT_DEBUG_HISTORY_SIZE bytes
-    if (file && fs::file_size(pathLog) > 11 * (RECENT_DEBUG_HISTORY_SIZE / 10))
-    {
-        // Restart the file with some of the end
-        std::vector<char> vch(RECENT_DEBUG_HISTORY_SIZE, 0);
-        fseek(file, -((long)vch.size()), SEEK_END);
-        int nBytes = fread(vch.data(), 1, vch.size(), file);
-        fclose(file);
+    // Trim it down by saving only the last RECENT_DEBUG_KEEP_SIZE bytes if above MAX_DEBUG_LOG_SIZE
+    if (file) {
+        uintmax_t current_size = 0;
+        try {
+            current_size = fs::file_size(pathLog);
+        } catch (const fs::filesystem_error&) {
+            fclose(file);
+            return;
+        }
 
-        file = fsbridge::fopen(pathLog, "w");
-        if (file)
+        if (current_size > MAX_DEBUG_LOG_SIZE)
         {
-            fwrite(vch.data(), 1, nBytes, file);
+            std::vector<char> vch(RECENT_DEBUG_KEEP_SIZE, 0);
+            if (current_size > vch.size()) {
+                fseek(file, -((long)vch.size()), SEEK_END);
+            }
+            int nBytes = fread(vch.data(), 1, vch.size(), file);
+            fclose(file);
+
+            file = fsbridge::fopen(pathLog, "w");
+            if (file)
+            {
+                if (nBytes > 0) {
+                    fwrite(vch.data(), 1, nBytes, file);
+                }
+                fclose(file);
+            }
+        }
+        else {
             fclose(file);
         }
     }
-    else if (file != nullptr)
-        fclose(file);
 }
 
 #ifdef WIN32
