@@ -14,13 +14,13 @@ License
 Cascoin Core is released under the terms of the MIT license. See [COPYING](COPYING) for more
 information or see https://opensource.org/licenses/MIT.
 
-Build‑Anleitungen
+Build-Manual
 -----------------
 
-- Linux: siehe `doc/build-linux.md` (Qt6, Wallet, GUI, System‑Libraries)
-- Windows: siehe `doc/build-windows.md`
+- Linux: Seee `doc/build-linux.md` (Qt6, Wallet, GUI, System‑Libraries)
+- Windows: See `doc/build-windows.md`
 - macOS (Qt6 + Wallet, BDB5): `doc/build-osx.md`
-- Weitere Unix‑Hinweise: `doc/build-unix.md`
+- More Unix‑Hints: `doc/build-unix.md`
 
 Development Process
 -------------------
