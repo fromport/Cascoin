@@ -562,6 +562,12 @@ void BitcoinGUI::setClientModel(ClientModel *_clientModel)
         connect(_clientModel, SIGNAL(showProgress(QString,int)), this, SLOT(showProgress(QString,int)));
 
         rpcConsole->setClientModel(_clientModel);
+        
+        // Enable menu actions that were disabled during initialization
+        aboutAction->setEnabled(true);
+        optionsAction->setEnabled(true);
+        openRPCConsoleAction->setEnabled(true);
+        
 #ifdef ENABLE_WALLET
         if(walletFrame)
         {
