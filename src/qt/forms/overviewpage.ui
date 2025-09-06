@@ -69,7 +69,7 @@ margin: 8px;
                <string notr="true">QLabel { color: #e2e8f0; margin-bottom: 16px; }</string>
               </property>
               <property name="text">
-               <string>Kontostände</string>
+               <string>Account Balances</string>
               </property>
              </widget>
             </item>
@@ -239,7 +239,7 @@ margin: 8px;
                <string notr="true">QLabel { color: #e2e8f0; font-size: 16px; font-weight: bold; margin-right: 16px; }</string>
               </property>
               <property name="text">
-               <string>Gesamt-Käse:</string>
+               <string>Total:</string>
               </property>
              </widget>
             </item>
@@ -287,7 +287,7 @@ margin: 8px;
                <string notr="true">QLabel { color: #a0aec0; font-size: 14px; font-weight: bold; margin-right: 16px; }</string>
               </property>
               <property name="text">
-               <string>Reifender Käse:</string>
+               <string>Immature:</string>
               </property>
              </widget>
             </item>
@@ -344,7 +344,7 @@ margin: 8px;
             <item row="0" column="2">
              <widget class="QLabel" name="labelWatchonly">
               <property name="text">
-               <string>Katzen-Beobachtung:</string>
+               <string>Watch-only:</string>
               </property>
               <property name="alignment">
                <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -357,7 +357,7 @@ margin: 8px;
                <string notr="true">QLabel { color: #a0aec0; font-size: 14px; font-weight: bold; margin-right: 16px; }</string>
               </property>
               <property name="text">
-               <string>Verfügbarer Käse:</string>
+               <string>Available:</string>
               </property>
              </widget>
             </item>
@@ -427,14 +427,14 @@ border-radius: 8px;
                <string notr="true">QLabel { color: #a0aec0; font-size: 14px; font-weight: bold; margin-right: 16px; }</string>
               </property>
               <property name="text">
-               <string>Ausstehender Käse:</string>
+               <string>Pending:</string>
               </property>
              </widget>
             </item>
             <item row="0" column="1">
              <widget class="QLabel" name="labelSpendable">
               <property name="text">
-               <string>Verwendbarer Käse:</string>
+               <string>Spendable:</string>
               </property>
               <property name="alignment">
                <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -470,7 +470,7 @@ border-radius: 8px;
                </font>
               </property>
               <property name="text">
-               <string>Ihr aktuelles Katzen-Labyrinth</string>
+               <string>Your current Labyrinth</string>
               </property>
              </widget>
             </item>
@@ -529,14 +529,14 @@ border-radius: 8px;
             <item row="2" column="0">
              <widget class="QLabel" name="profitLabel_2">
               <property name="text">
-               <string>Katzen-Profit:</string>
+               <string>Profit:</string>
               </property>
              </widget>
             </item>
             <item row="1" column="0">
              <widget class="QLabel" name="rewardsLabel">
               <property name="text">
-               <string>Käse-Belohnungen:</string>
+               <string>Rewards:</string>
               </property>
              </widget>
             </item>
@@ -591,7 +591,7 @@ border-radius: 8px;
             <item row="0" column="0">
              <widget class="QLabel" name="costLabel_2">
               <property name="text">
-               <string>Mäuse-Kosten:</string>
+               <string>Mice Cost:</string>
               </property>
              </widget>
             </item>
@@ -607,7 +607,7 @@ border-radius: 6px;
 }</string>
               </property>
               <property name="text">
-               <string>(0 ruhende Mäuse, 0 Abenteuer-Mäuse)</string>
+               <string>(0 resting mice, 0 adventure mice)</string>
               </property>
               <property name="alignment">
                <set>Qt::AlignLeft|Qt::AlignVCenter</set>
@@ -626,7 +626,7 @@ border-radius: 6px;
 }</string>
               </property>
               <property name="text">
-               <string>(0 Käse-Blöcke im Labyrinth gefunden)</string>
+               <string>(0 blocks found in The Labyrinth)</string>
               </property>
               <property name="alignment">
                <set>Qt::AlignLeft|Qt::AlignVCenter</set>

@@ -286,7 +286,7 @@ BitcoinGUI::BitcoinGUI(const PlatformStyle *_platformStyle, const NetworkStyle *
     }
 #endif
 
-    updateHiveStatusIcon(":/icons/hivestatus_disabled", "The Labyrinth is not enabled on the network");
+    updateHiveStatusIcon(":/icons/hivestatus_disabled", tr("The Labyrinth is not enabled on the network"));
     
     // Allow free window resizing - remove minimum size constraints
     setMinimumSize(200, 150); // Very small minimum size to allow maximum flexibility

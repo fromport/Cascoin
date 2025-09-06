@@ -15,6 +15,9 @@
 #include <qt/sendcoinsdialog.h>
 #include <qt/transactiontablemodel.h>
 
+#include <QTimer>  // Cascoin: For hive update debouncing
+#include <QThread>  // Cascoin: For wallet lock retry delays
+
 #include <base58.h>
 #include <chain.h>
 #include <keystore.h>
@@ -175,6 +178,26 @@ void WalletModel::updateTransaction()
 {
     // Balance and number of transactions might have changed
     fForceCheckBalanceChanged = true;
+    
+    // Cascoin: Also update hive table when transactions change as this might affect 
+    // mice status (new creations, maturation, rewards, etc.)
+    if (hiveTableModel) {
+        // Use a timer to debounce frequent transaction updates
+        static QTimer* hiveUpdateTimer = nullptr;
+        if (!hiveUpdateTimer) {
+            hiveUpdateTimer = new QTimer();
+            hiveUpdateTimer->setSingleShot(true);
+            hiveUpdateTimer->setInterval(1000); // 1 second debounce
+            connect(hiveUpdateTimer, &QTimer::timeout, [this]() {
+                if (hiveTableModel) {
+                    // Get current checkbox state from preferences or use a reasonable default
+                    bool includeExpired = false; // Default to not include expired mice
+                    hiveTableModel->updateBCTs(includeExpired);
+                }
+            });
+        }
+        hiveUpdateTimer->start(); // Restart the timer
+    }
 }
 
 void WalletModel::updateAddressBook(const QString &address, const QString &label,
@@ -664,14 +687,28 @@ void WalletModel::loadReceiveRequests(std::vector<std::string>& vReceiveRequests
 // Cascoin: Hive
 void WalletModel::getBCTs(std::vector<CBeeCreationTransactionInfo>& vBeeCreationTransactions, bool includeDeadBees) {
     if (wallet) {
-        // Use TRY_LOCK with timeout to prevent indefinite hanging
-        TRY_LOCK(wallet->cs_wallet, lockWallet);
-        if (lockWallet) {
-            vBeeCreationTransactions = wallet->GetBCTs(includeDeadBees, true, Params().GetConsensus());
-        } else {
-            // If we can't get the lock immediately, return empty result to prevent hang
-            LogPrintf("Warning: Could not acquire wallet lock for BCT update, skipping to prevent GUI hang\n");
-            vBeeCreationTransactions.clear();
+        // Try a few times with short waits to avoid showing empty results when wallet is temporarily busy
+        int retries = 3;
+        bool success = false;
+        
+        for (int i = 0; i < retries && !success; i++) {
+            TRY_LOCK(wallet->cs_wallet, lockWallet);
+            if (lockWallet) {
+                vBeeCreationTransactions = wallet->GetBCTs(includeDeadBees, true, Params().GetConsensus());
+                success = true;
+            } else {
+                // Short delay before retry to allow other operations to complete
+                if (i < retries - 1) {
+                    QThread::msleep(50); // 50ms delay
+                }
+            }
+        }
+        
+        if (!success) {
+            // Only clear and log after all retries failed
+            LogPrintf("Warning: Could not acquire wallet lock for BCT update after %d retries, showing previous results\n", retries);
+            // Don't clear the vector - keep previous results instead of showing empty
+            // vBeeCreationTransactions.clear();
         }
     }
 }
@@ -704,7 +741,7 @@ bool WalletModel::createBees(int beeCount, bool communityContrib, QWidget *paren
 
     questionString.append("<br />");
     questionString.append("<b>" + BitcoinUnits::formatHtmlWithUnit(optionsModel->getDisplayUnit(), amountWithoutFees) + "</b>");
-    questionString.append(" to create " + QString::number(beeCount) + " mice");
+    questionString.append(" " + tr("to create %1 mice").arg(beeCount));
 
     questionString.append("<hr /><span style='color:#aa0000;'>");
     questionString.append(BitcoinUnits::formatHtmlWithUnit(optionsModel->getDisplayUnit(), txFee));

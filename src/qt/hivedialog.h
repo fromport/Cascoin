@@ -74,6 +74,7 @@ public Q_SLOTS:
     void setBalance(const CAmount& balance, const CAmount& unconfirmedBalance, const CAmount& immatureBalance,
                     const CAmount& watchOnlyBalance, const CAmount& watchUnconfBalance, const CAmount& watchImmatureBalance);
     void setEncryptionStatus(int status);
+    void onBlocksChanged();  // Cascoin: Auto-update labyrinth when blocks change
 
 Q_SIGNALS:
     void hiveStatusIconChanged(QString icon, QString tooltip);    
@@ -98,6 +99,7 @@ private:
     QCPItemLine *globalMarkerLine;
     QSharedPointer<QCPAxisTickerGI> giTicker;
     QTimer *updateTimer;  // Timer for debouncing checkbox state changes
+    QTimer *periodicRefreshTimer;  // Timer for periodic labyrinth refresh
 
     void updateTotalCostDisplay();
     void initGraph();
@@ -111,6 +113,7 @@ private Q_SLOTS:
     void on_beeCountSpinner_valueChanged(int i);
     void on_includeDeadBeesCheckbox_stateChanged();
     void onUpdateTimerTimeout();
+    void onPeriodicRefresh();  // Cascoin: Periodic refresh for labyrinth
     void on_showAdvancedStatsCheckbox_stateChanged();
     void updateDisplayUnit();
     void on_retryGlobalSummaryButton_clicked();

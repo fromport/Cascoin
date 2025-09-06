@@ -133,6 +133,9 @@ background-color:#2d3748; color:#ffffff;}</string>
           <pointsize>9</pointsize>
          </font>
         </property>
+        <property name="styleSheet">
+         <string notr="true">QLabel { color: #ffffff !important; font-weight: bold; }</string>
+        </property>
         <property name="text">
          <string>Current mouse cost:</string>
         </property>
@@ -193,6 +196,9 @@ background-color:#2d3748; color:#ffffff;}</string>
           <pointsize>9</pointsize>
          </font>
         </property>
+        <property name="styleSheet">
+         <string notr="true">QLabel { color: #ffffff !important; font-weight: bold; }</string>
+        </property>
         <property name="text">
          <string>Mice to create:</string>
         </property>
@@ -215,6 +221,51 @@ background-color:#2d3748; color:#ffffff;}</string>
            <font>
             <pointsize>9</pointsize>
            </font>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">
+QSpinBox {
+    background-color: #f7fafc !important;
+    color: #1a202c !important;
+    border: 3px solid #2d3748 !important;
+    padding: 6px !important;
+    font-size: 14px !important;
+    font-weight: bold !important;
+    border-radius: 6px !important;
+}
+
+QSpinBox:focus {
+    border: 3px solid #3182ce !important;
+    background-color: #edf2f7 !important;
+    color: #1a202c !important;
+}
+
+QSpinBox::up-button {
+    background-color: #2d3748 !important;
+    border: 1px solid #1a202c !important;
+    color: #ffffff !important;
+    width: 20px !important;
+    border-top-right-radius: 3px !important;
+}
+
+QSpinBox::down-button {
+    background-color: #2d3748 !important;
+    border: 1px solid #1a202c !important;
+    color: #ffffff !important;
+    width: 20px !important;
+    border-bottom-right-radius: 3px !important;
+}
+
+QSpinBox::up-button:hover, QSpinBox::down-button:hover {
+    background-color: #4a5568 !important;
+}
+
+QSpinBox::up-arrow, QSpinBox::down-arrow {
+    color: #ffffff !important;
+    width: 10px !important;
+    height: 10px !important;
+}
+           </string>
           </property>
           <property name="minimum">
            <number>1</number>

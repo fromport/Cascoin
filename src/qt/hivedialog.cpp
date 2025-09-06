@@ -73,6 +73,12 @@ HiveDialog::HiveDialog(const PlatformStyle *_platformStyle, QWidget *parent) :
     updateTimer->setInterval(300); // 300ms debounce delay
     connect(updateTimer, SIGNAL(timeout()), this, SLOT(onUpdateTimerTimeout()));
 
+    // Initialize periodic refresh timer to ensure labyrinth stays current
+    periodicRefreshTimer = new QTimer(this);
+    periodicRefreshTimer->setInterval(60000); // 60 seconds
+    connect(periodicRefreshTimer, SIGNAL(timeout()), this, SLOT(onPeriodicRefresh()));
+    periodicRefreshTimer->start(); // Start the periodic refresh timer
+
     initGraph();
     ui->beePopGraph->hide();
 }
@@ -81,7 +87,7 @@ void HiveDialog::setClientModel(ClientModel *_clientModel) {
     this->clientModel = _clientModel;
 
     if (_clientModel) {
-        connect(_clientModel, SIGNAL(numBlocksChanged(int,QDateTime,double,bool)), this, SLOT(updateData()));
+        connect(_clientModel, SIGNAL(numBlocksChanged(int,QDateTime,double,bool)), this, SLOT(onBlocksChanged()));
         connect(_clientModel, SIGNAL(numConnectionsChanged(int)), this, SLOT(updateData()));    // TODO: This may be too expensive to call here, and the only point is to update The Labyrinth status icon.
     }
 }
@@ -257,24 +263,24 @@ void HiveDialog::updateHiveSummary() {
     // Status icon
     QString tooltip, icon;
     if (clientModel && clientModel->getNumConnections() == 0) {
-        tooltip = "Cascoin is not connected";
+        tooltip = tr("Cascoin is not connected");
         icon = ":/icons/hivestatus_disabled";
     } else if (!model->isHiveEnabled()) {
-        tooltip = "The Labyrinth is not enabled on the network";
+        tooltip = tr("The Labyrinth is not enabled on the network");
         icon = ":/icons/hivestatus_disabled";
     } else {
         if (mature + immature == 0) {
-            tooltip = "No live mice currently in wallet";
+            tooltip = tr("No live mice currently in wallet");
             icon = ":/icons/hivestatus_clear";
         } else if (mature == 0) {
-            tooltip = "Only immature mice currently in wallet";
+            tooltip = tr("Only immature mice currently in wallet");
             icon = ":/icons/hivestatus_orange";
         } else {
             if (model->getEncryptionStatus() == WalletModel::Locked) {
-                tooltip = "WARNING: Mice mature but not mining because wallet is locked";
+                tooltip = tr("WARNING: Mice mature but not mining because wallet is locked");
                 icon = ":/icons/hivestatus_red";
             } else {
-                tooltip = "Mice mature and mining";
+                tooltip = tr("Mice mature and mining");
                 icon = ":/icons/hivestatus_green";
             }
         }
@@ -333,6 +339,16 @@ void HiveDialog::onUpdateTimerTimeout() {
     ui->includeDeadBeesCheckbox->setText(tr("Include expired mice"));
 }
 
+void HiveDialog::onPeriodicRefresh() {
+    // Periodic refresh to ensure labyrinth stays current even if some notifications are missed
+    if (model && model->getHiveTableModel()) {
+        model->getHiveTableModel()->updateBCTs(ui->includeDeadBeesCheckbox->isChecked());
+    }
+    
+    // Also update the global summary
+    updateData();
+}
+
 void HiveDialog::on_showAdvancedStatsCheckbox_stateChanged() {
     if(ui->showAdvancedStatsCheckbox->isChecked()) {
         ui->beePopGraph->show();
@@ -366,6 +382,17 @@ void HiveDialog::on_createBeesButton_clicked() {
 		if(!ctx.isValid())
 			return;     // Unlock wallet was cancelled
         model->createBees(ui->beeCountSpinner->value(), clientModel->getOptionsModel()->getHiveContribCF(), this, beePopIndex); // Cascoin: MinotaurX+Hive1.2
+    }
+}
+
+// Cascoin: Auto-update labyrinth when new blocks are found
+void HiveDialog::onBlocksChanged() {
+    // Update both the global summary and the hive table data
+    updateData();
+    
+    // Also refresh the hive table to reflect any status changes (immature->mature, etc.)
+    if (model && model->getHiveTableModel()) {
+        model->getHiveTableModel()->updateBCTs(ui->includeDeadBeesCheckbox->isChecked());
     }
 }
 
@@ -472,7 +499,9 @@ void HiveDialog::onMouseMove(QMouseEvent *event) {
     graphTracerImmature->setPen(QPen(traceColImmature, 1, Qt::DashLine));    
     graphTracerMature->setPen(QPen(traceColMature, 1, Qt::DashLine));
 
-    graphMouseoverText->setText(xDateTime.toString("ddd d MMM") + " " + xDateTime.time().toString() + ":\n" + formatLargeNoLocale(beeCountMature) + " adventure mice\n" + formatLargeNoLocale(beeCountImmature) + " resting mice");
+    graphMouseoverText->setText(xDateTime.toString("ddd d MMM") + " " + xDateTime.time().toString() + ":\n" + 
+                               formatLargeNoLocale(beeCountMature) + " " + tr("adventure mice") + "\n" + 
+                               formatLargeNoLocale(beeCountImmature) + " " + tr("resting mice"));
     graphMouseoverText->setColor(traceColMature);
     graphMouseoverText->position->setCoords(QPointF(x, y));
     QPointF pixelPos = graphMouseoverText->position->pixelPosition();

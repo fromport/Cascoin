@@ -5,6 +5,7 @@
 // Cascoin: Hive
 
 #include <qt/hivetablemodel.h>
+#include <qt/bctdatabase.h>  // For BCTDatabase synchronization
 
 #include <qt/bitcoinunits.h>
 #include <qt/guiutil.h>
@@ -90,6 +91,12 @@ void HiveTableModel::updateBCTs(bool includeDeadBees) {
 
                 // Fire signal
                 QMetaObject::invokeMethod(walletModel, "newHiveSummaryAvailable", Qt::QueuedConnection);
+                
+                // Sync BCT database with real wallet data (fix dummy data issue)
+                BCTDatabase* bctDb = BCTDatabase::instance();
+                if (bctDb) {
+                    bctDb->syncWithWalletBCTs(vBeeCreationTransactions);
+                }
                 
                 // Reset update flag
                 updateInProgress = false;

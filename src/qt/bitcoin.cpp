@@ -107,13 +107,17 @@ static QString GetLangTerritory()
 {
     QSettings settings;
     // Get desired locale (e.g. "de_DE")
-    // 1) Default to English instead of system locale to ensure English on English systems
-    QString lang_territory = "en";
-    // 2) Language from QSettings
+    // 1) Default to system locale to match user's system language
+    QString lang_territory = QLocale::system().name();
+    // Fallback to English only if system locale detection fails
+    if (lang_territory.isEmpty() || lang_territory == "C") {
+        lang_territory = "en";
+    }
+    // 2) Language from QSettings (user override)
     QString lang_territory_qsettings = settings.value("language", "").toString();
     if(!lang_territory_qsettings.isEmpty())
         lang_territory = lang_territory_qsettings;
-    // 3) -lang command line argument
+    // 3) -lang command line argument (highest priority)
     lang_territory = QString::fromStdString(gArgs.GetArg("-lang", lang_territory.toStdString()));
     return lang_territory;
 }

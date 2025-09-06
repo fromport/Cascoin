@@ -3,6 +3,9 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <qt/bctdatabase.h>
+#include <qt/guiutil.h>
+#include <util.h>
+#include <wallet/wallet.h>
 
 #include <QStandardPaths>
 #include <QJsonDocument>
@@ -14,11 +17,12 @@
 
 BCTDatabase::BCTDatabase()
 {
-    QString dataDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-    if (dataDir.isEmpty()) {
-        dataDir = QDir::homePath() + "/.cascoin";
-    }
+    // Use the same data directory as the rest of Cascoin (consistent with wallet.dat, blocks/, etc.)
+    QString dataDir = GUIUtil::boostPathToQString(GetDataDir());
     databasePath = dataDir + "/bct_cache.json";
+    
+    // Migrate from old location if new location doesn't exist but old location does
+    migrateFromOldLocation();
 }
 
 BCTDatabase::~BCTDatabase()
@@ -312,4 +316,96 @@ void BCTDatabase::createSampleData()
     }
     
     qDebug() << "Created" << bctList.size() << "sample BCTs";
+}
+
+// Static instance management
+static BCTDatabase* g_bctDatabase = nullptr;
+
+BCTDatabase* BCTDatabase::instance() {
+    return g_bctDatabase;
+}
+
+void BCTDatabase::setInstance(BCTDatabase* db) {
+    g_bctDatabase = db;
+}
+
+void BCTDatabase::syncWithWalletBCTs(const std::vector<CBeeCreationTransactionInfo>& walletBCTs)
+{
+    QMutexLocker locker(&mutex);
+    
+    qDebug() << "Synchronizing BCT database with" << walletBCTs.size() << "wallet BCTs";
+    
+    // Clear existing dummy data
+    bctList.clear();
+    
+    // Convert wallet BCT data to our format
+    for (const CBeeCreationTransactionInfo& walletBCT : walletBCTs) {
+        BCTInfo bct;
+        bct.txid = QString::fromStdString(walletBCT.txid);
+        bct.status = QString::fromStdString(walletBCT.beeStatus);
+        bct.totalMice = walletBCT.beeCount;
+        bct.blocksLeft = walletBCT.blocksLeft;
+        bct.honeyAddress = QString::fromStdString(walletBCT.honeyAddress);
+        bct.timestamp = walletBCT.time;
+        
+        // Generate mouse IDs for available mice (mature BCTs)
+        if (bct.status == "mature") {
+            for (int i = 0; i < bct.totalMice; i++) {
+                bct.availableMice.append(QString("%1:%2").arg(bct.txid).arg(i));
+            }
+        }
+        
+        bctList.append(bct);
+    }
+    
+    qDebug() << "BCT database now contains" << bctList.size() << "real BCTs from wallet";
+    
+    // Save to disk
+    saveToFile();
+}
+
+void BCTDatabase::migrateFromOldLocation()
+{
+    // Check if we need to migrate from the old inconsistent location
+    QFile newFile(databasePath);
+    if (newFile.exists()) {
+        // New location already has data, no migration needed
+        return;
+    }
+    
+    // Determine old location (QStandardPaths::AppDataLocation)
+    QString oldDataDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    if (oldDataDir.isEmpty()) {
+        oldDataDir = QDir::homePath() + "/.local/share/Cascoin/Cascoin-Qt";
+    }
+    QString oldDatabasePath = oldDataDir + "/bct_cache.json";
+    
+    QFile oldFile(oldDatabasePath);
+    if (!oldFile.exists()) {
+        // No old file to migrate
+        return;
+    }
+    
+    qDebug() << "Migrating BCT database from" << oldDatabasePath << "to" << databasePath;
+    
+    // Ensure new directory exists
+    if (!ensureDirectoryExists()) {
+        qDebug() << "Failed to create new BCT database directory, migration aborted";
+        return;
+    }
+    
+    // Copy the file
+    if (oldFile.copy(databasePath)) {
+        qDebug() << "Successfully migrated BCT database to standard Cascoin datadir";
+        
+        // Optionally rename old file as backup instead of deleting
+        QString backupPath = oldDatabasePath + ".migrated";
+        if (QFile::exists(backupPath)) {
+            QFile::remove(backupPath);
+        }
+        oldFile.rename(backupPath);
+        qDebug() << "Old BCT database backed up as" << backupPath;
+    } else {
+        qDebug() << "Failed to migrate BCT database:" << oldFile.errorString();
+    }
 }

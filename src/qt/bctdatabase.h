@@ -12,6 +12,10 @@
 #include <QMutex>
 #include <QFile>
 #include <QDir>
+#include <vector>
+
+// Forward declaration
+struct CBeeCreationTransactionInfo;
 
 /**
  * Local BCT (Bee Creation Transaction) database for GUI
@@ -50,6 +54,13 @@ public:
     bool loadFromFile();
     bool saveToFile();
     QString getDatabasePath();
+    
+    // Wallet synchronization
+    void syncWithWalletBCTs(const std::vector<CBeeCreationTransactionInfo>& walletBCTs);
+    
+    // Global instance access
+    static BCTDatabase* instance();
+    static void setInstance(BCTDatabase* db);
 
 private:
     QList<BCTInfo> bctList;
@@ -61,6 +72,7 @@ private:
     BCTInfo bctFromJson(const QJsonObject& json);
     bool ensureDirectoryExists();
     void createSampleData();
+    void migrateFromOldLocation();
 };
 
 #endif // CASCOIN_QT_BCTDATABASE_H

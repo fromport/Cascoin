@@ -37,11 +37,17 @@ BeeNFTPage::BeeNFTPage(const PlatformStyle *_platformStyle, QWidget *parent) :
     platformStyle(_platformStyle),
     bctDatabase(new BCTDatabase())
 {
+    // Set as global BCTDatabase instance for synchronization with wallet data
+    BCTDatabase::setInstance(bctDatabase);
     setupUI();
 }
 
 BeeNFTPage::~BeeNFTPage()
 {
+    // Clear global instance before deleting
+    if (BCTDatabase::instance() == bctDatabase) {
+        BCTDatabase::setInstance(nullptr);
+    }
     delete bctDatabase;
 }
 
